@@ -189,11 +189,10 @@ body{
   transition:opacity .25s var(--ease), transform .3s var(--ease);
 }
 .view.hidden{opacity:0;pointer-events:none}
-#view1.out{opacity:0;transform:translateY(-26px)}
-#view2{transform:translateY(46px)}
-#view2.in{transform:translateY(0)}
-#view3{transform:translateY(46px)}
-#view3.in{transform:translateY(0)}
+/* todas las vistas entran desde abajo (.in) y salen hacia arriba (.out) */
+.view{transform:translateY(46px)}
+.view.in{transform:translateY(0)}
+.view.out{opacity:0;transform:translateY(-26px)}
 
 /* ───────────────────────── VISTA 1 ─────────────────────────────────────── */
 .hero{margin-top:26px;margin-bottom:6px}
@@ -517,6 +516,84 @@ body{
 /* opciones ocultas por dependencia (ciudades por país, subtipos por tipo) */
 .opt[hidden]{display:none !important}
 
+/* ───────────────────────── HUB tras el rol ─────────────────────────────── */
+.hub{display:flex;flex-direction:column;gap:14px;flex:1;min-height:0;margin-top:18px}
+.hub .card.big{flex:1.6}
+.hub-row{display:flex;gap:14px;flex:1}
+.hub-row .card{flex:1;padding:18px;gap:8px}
+.hub-row .card .name{font-size:19px}
+.hub-row .card .sub{font-size:12.5px}
+.card .icn-hub{width:34px;height:34px;color:var(--text);transition:color .18s}
+.card:hover .icn-hub,.card:active .icn-hub{color:var(--accent)}
+
+/* ───────────────────────── directorio de camarógrafos ──────────────────── */
+.ctrl{display:flex;align-items:center;gap:10px;margin-top:12px}
+.ctrl-lbl{
+  font-family:var(--mono);font-size:9px;letter-spacing:.16em;
+  color:var(--muted);text-transform:uppercase;width:52px;flex:none;
+}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.fchip{
+  padding:6px 11px;
+  background:var(--surface);
+  border:1px solid var(--line);border-radius:999px;
+  color:var(--muted);
+  font-family:var(--opt-font);font-weight:600;
+  font-size:12px;letter-spacing:.05em;text-transform:uppercase;
+  cursor:pointer;
+  transition:border-color .15s, color .15s, box-shadow .15s, background-color .35s;
+}
+.fchip:hover,.fchip:active{border-color:var(--accent)}
+.fchip.on{color:var(--text);border-color:var(--accent);box-shadow:0 0 12px var(--accent-glow)}
+#camDir{margin-top:16px}
+.cam.dir{
+  cursor:pointer;text-align:left;font:inherit;color:inherit;width:100%;
+  transition:transform .15s var(--ease), border-color .15s, box-shadow .15s,
+             background-color .35s;
+}
+.cam.dir:hover,.cam.dir:active{transform:scale(1.01);border-color:var(--accent);box-shadow:0 0 16px var(--accent-glow)}
+.cam.dir.sel{border-color:var(--accent);box-shadow:0 0 18px var(--accent-glow)}
+.cam.dir.sel .icn{color:var(--accent)}
+.cam-stats{
+  display:block;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
+  color:var(--muted);text-transform:uppercase;
+  margin-top:4px;
+}
+.cam-stats .tier{color:var(--accent)}
+.cam-extra{display:none;margin-top:8px;font-size:12.5px;color:var(--muted)}
+.cam.dir.sel .cam-extra{display:block;animation:rise .25s var(--ease) both}
+
+/* ───────────────────────── mis bailes / mis sesiones ───────────────────── */
+#mineList{margin-top:16px;display:flex;flex-direction:column;gap:10px}
+.dance{
+  display:flex;flex-direction:column;gap:4px;
+  padding:14px 16px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:6px;
+  transition:background-color .35s;
+}
+.dance b{
+  font-family:var(--opt-font);font-weight:600;
+  font-size:15px;letter-spacing:.05em;text-transform:uppercase;
+}
+.dance .dmeta{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);
+}
+.dance .dinfo{font-size:13px;color:var(--muted)}
+.st{
+  align-self:flex-start;margin-top:6px;
+  font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  border:1px solid var(--line);border-radius:3px;
+  padding:3px 7px;color:var(--muted);
+}
+.st.ok{color:#c6ff00;border-color:#c6ff00}
+.st.mid{color:#ffd60a;border-color:#ffd60a}
+.app.light .st.ok{color:#7da300;border-color:#7da300}
+.app.light .st.mid{color:#b08900;border-color:#b08900}
+
 /* resultados: lista de eventos */
 #result.open{max-height:1400px}
 .res{display:none}
@@ -654,7 +731,7 @@ body{
   </div>
 
   <!-- ════════════════ VISTA 1 · ROL ════════════════ -->
-  <section class="view" id="view1">
+  <section class="view in" id="view1">
     <header class="hero enter" style="animation-delay:.08s">
       <div class="tag">// escena 01 · toma única</div>
       <h1>Capture it<br>like a <span class="pro">pro</span></h1>
@@ -674,6 +751,38 @@ body{
         <span class="name">Bailarín</span>
         <span class="sub">Vengo a bailar</span>
       </button>
+    </div>
+  </section>
+
+  <!-- ════════════════ HUB · ¿QUÉ BUSCAS? ════════════════ -->
+  <section class="view hidden" id="viewHub">
+    <div class="v2-head">
+      <div class="nav-btns">
+        <button class="nav-back" id="hubBack" title="Cambiar rol">←</button>
+      </div>
+      <div>
+        <h2 class="v2-title">¿Qué buscas?</h2>
+        <p class="v2-sub" id="hubSub">—</p>
+      </div>
+    </div>
+    <div class="hub">
+      <button class="card big" id="hubEvent">
+        <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
+        <span class="name">Busco evento</span>
+        <span class="sub">Filtra por país, ciudad y tipo de pista</span>
+      </button>
+      <div class="hub-row">
+        <button class="card" id="hubCams">
+          <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="M15.5 10.8l6-3.3v9l-6-3.3"/><circle cx="7.5" cy="12" r="2.2"/></svg>
+          <span class="name">Ver camarógrafos</span>
+          <span class="sub">Elige quién te graba</span>
+        </button>
+        <button class="card" id="hubMine">
+          <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M3 9h18M8 4.5V9M16 4.5V9"/><path d="M10.5 12.5l4 2.5-4 2.5z"/></svg>
+          <span class="name" id="hubMineName">Mis bailes</span>
+          <span class="sub" id="hubMineSub">Tu historial grabado</span>
+        </button>
+      </div>
     </div>
   </section>
 
@@ -790,6 +899,59 @@ body{
     </section>
   </section>
 
+  <!-- ════════════════ DIRECTORIO DE CAMARÓGRAFOS ════════════════ -->
+  <section class="view hidden" id="viewCams">
+    <div class="v2-head">
+      <div class="nav-btns">
+        <button class="nav-back" id="camsBack" title="Subir un nivel">←</button>
+        <button class="nav-back" id="camsHome" title="Inicio"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10.5V20h12v-9.5"/></svg></button>
+      </div>
+      <div>
+        <h2 class="v2-title">Camarógrafos</h2>
+        <p class="v2-sub">Tócalos para ver más; ordena y filtra a tu gusto.</p>
+      </div>
+    </div>
+    <div class="ctrl">
+      <span class="ctrl-lbl">Ordenar</span>
+      <div class="chips" id="sortChips">
+        <button class="fchip on" data-sort="rating">Popularidad</button>
+        <button class="fchip" data-sort="videos">Nº vídeos</button>
+        <button class="fchip" data-sort="price">Precio</button>
+      </div>
+    </div>
+    <div class="ctrl">
+      <span class="ctrl-lbl">Ciudad</span>
+      <div class="chips" id="cityChips">
+        <button class="fchip on" data-city="all">Todas</button>
+        <button class="fchip" data-city="mad">Madrid</button>
+        <button class="fchip" data-city="sev">Sevilla</button>
+        <button class="fchip" data-city="bcn">Barcelona</button>
+        <button class="fchip" data-city="waw">Varsovia</button>
+        <button class="fchip" data-city="kra">Cracovia</button>
+      </div>
+    </div>
+    <div class="cams" id="camDir"></div>
+    <div class="notice" id="camDirEmpty" style="display:none;margin-top:16px">
+      <span class="nosig">Sin señal</span>
+      <p>No hay camarógrafos en esa ciudad todavía.</p>
+    </div>
+  </section>
+
+  <!-- ════════════════ MIS BAILES / MIS SESIONES ════════════════ -->
+  <section class="view hidden" id="viewMine">
+    <div class="v2-head">
+      <div class="nav-btns">
+        <button class="nav-back" id="mineBack" title="Subir un nivel">←</button>
+        <button class="nav-back" id="mineHome" title="Inicio"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10.5V20h12v-9.5"/></svg></button>
+      </div>
+      <div>
+        <h2 class="v2-title" id="mineTitle">Mis bailes</h2>
+        <p class="v2-sub" id="mineSub">—</p>
+      </div>
+    </div>
+    <div id="mineList"></div>
+  </section>
+
   <!-- ════════════════ VISTA 3 · DETALLE DEL EVENTO ════════════════ -->
   <section class="view hidden" id="view3">
     <div class="v2-head">
@@ -825,43 +987,82 @@ body{
   var ORDER = ['role','country','city','type','subtype'];   // orden lógico de los pasos
   var resultTimer = null;
 
-  /* ── datos mock para probar (ver PROYECTO.md) ─────────────────────── */
+  /* ════════════════════════ MODELO DE DATOS (mock) ════════════════════
+     Entidades y relaciones (detalle completo en PROYECTO.md):
+       CAM (camarógrafo): id, name, city, desc, rating (popularidad 0-5),
+            videos (nº entregados), price (€ medio/vídeo → tier $/$$/$$$).
+       EVENT: id, name, country, city, type, sub (solo exterior), venue,
+            when, camIds[] → referencia a CAM.
+       DANCE (baile grabado, para "Mis bailes"): eventId→EVENT, camId→CAM,
+            date, song (identificada por AudD), partner, status
+            (pendiente → enviado [WeTransfer] → recibido).
+       SESSION (sesión de grabación, para "Mis sesiones"): eventId→EVENT,
+            date, couples (parejas grabadas), sent (vídeos ya enviados).
+  ════════════════════════════════════════════════════════════════════ */
   var CITY_LABELS = { all:'Todas', mad:'Madrid', sev:'Sevilla', bcn:'Barcelona',
                       waw:'Varsovia', kra:'Cracovia' };
   var TYPE_LABELS = { sala:'Salas de baile', congreso:'Congresos', exterior:'Al exterior' };
-  var SUB_LABELS  = { all:'Todos', social:'Sala social', academia:'Academia',
-                      club:'Club nocturno', festival:'Festival', weekender:'Weekender',
-                      terraza:'Terraza', playa:'Playa', parque:'Parque' };
+  var SUB_LABELS  = { all:'Todos', terraza:'Terraza', playa:'Playa', parque:'Parque' };
+
+  var CAMS = [
+    { id:'juan',   name:'Juan Pérez',     city:'mad', desc:'5 años de experiencia · 4K',        rating:4.8, videos:132, price:9 },
+    { id:'ana',    name:'Ana López',      city:'mad', desc:'Estilo cinematográfico',            rating:4.9, videos:87,  price:14 },
+    { id:'carlos', name:'Carlos Ruiz',    city:'mad', desc:'Estabilizador pro · entrega 48h',   rating:4.5, videos:210, price:6 },
+    { id:'lucia',  name:'Lucía Martín',   city:'bcn', desc:'Vídeos en 48h',                     rating:4.7, videos:64,  price:8 },
+    { id:'david',  name:'David Soto',     city:'bcn', desc:'2 cámaras',                         rating:4.2, videos:45,  price:5 },
+    { id:'marta',  name:'Marta Gil',      city:'sev', desc:'Equipo doble · drones',             rating:5.0, videos:156, price:15 },
+    { id:'piotr',  name:'Piotr Nowak',    city:'waw', desc:'Slow-motion · 4K',                  rating:4.4, videos:38,  price:6 },
+    { id:'magda',  name:'Magda Kowalska', city:'kra', desc:'Multicámara',                       rating:4.6, videos:71,  price:10 }
+  ];
+  var CAMS_BY_ID = {};
+  CAMS.forEach(function(c){ CAMS_BY_ID[c.id] = c; });
+  /* tier de precio automático: <7 → $ · 7-12 → $$ · >12 → $$$ */
+  function priceTier(p){ return p < 7 ? '$' : (p > 12 ? '$$$' : '$$'); }
+
   var EVENTS = [
     { id:'fri',   name:'Bachata Friday Night',  country:'es', city:'mad', type:'sala',
-      venue:'Sala Tropic',          when:'Vie · 23:00',
-      cams:[ {name:'Juan Pérez', desc:'5 años de experiencia · 4K'},
-             {name:'Ana López',  desc:'Estilo cinematográfico'} ] },
+      venue:'Sala Tropic',          when:'Vie · 23:00',          camIds:['juan','ana'] },
     { id:'acad',  name:'Open Class SBK',        country:'es', city:'mad', type:'sala',
-      venue:'Academia Ritmo',       when:'Jue · 20:30', cams:[] },
+      venue:'Academia Ritmo',       when:'Jue · 20:30',          camIds:[] },
     { id:'sunset',name:'Bachata Sunset Madrid', country:'es', city:'mad', type:'exterior', sub:'terraza',
-      venue:'Terraza Plaza España', when:'Sáb · 19:30',
-      cams:[ {name:'Carlos Ruiz', desc:'Estabilizador pro · entrega 48h'} ] },
+      venue:'Terraza Plaza España', when:'Sáb · 19:30',          camIds:['carlos'] },
     { id:'beach', name:'Bachata Beach Party',   country:'es', city:'bcn', type:'exterior', sub:'playa',
-      venue:'Playa Bogatell',       when:'Dom · 18:00',
-      cams:[ {name:'Lucía Martín', desc:'Vídeos en 48h'},
-             {name:'David Soto',   desc:'2 cámaras'} ] },
+      venue:'Playa Bogatell',       when:'Dom · 18:00',          camIds:['lucia','david'] },
     { id:'club',  name:'Caribbean Late Night',  country:'es', city:'bcn', type:'sala',
-      venue:'Sala Caribbean',       when:'Sáb · 00:30', cams:[] },
+      venue:'Sala Caribbean',       when:'Sáb · 00:30',          camIds:[] },
     { id:'cong',  name:'Congreso Bachatísimo',  country:'es', city:'sev', type:'congreso',
-      venue:'Palacio de Congresos', when:'31 may · todo el día',
-      cams:[ {name:'Marta Gil', desc:'Equipo doble · drones'} ] },
+      venue:'Palacio de Congresos', when:'31 may · todo el día', camIds:['marta'] },
     { id:'wknd',  name:'Sevilla Weekender',     country:'es', city:'sev', type:'congreso',
-      venue:'Hotel Triana',         when:'13–15 jun', cams:[] },
+      venue:'Hotel Triana',         when:'13–15 jun',            camIds:[] },
     { id:'waw1',  name:'Warsaw Bachata Social', country:'pl', city:'waw', type:'sala',
-      venue:'Klub Mokotów',         when:'Vie · 21:00',
-      cams:[ {name:'Piotr Nowak', desc:'Slow-motion · 4K'} ] },
+      venue:'Klub Mokotów',         when:'Vie · 21:00',          camIds:['piotr'] },
     { id:'waw2',  name:'Vistula Open Air',      country:'pl', city:'waw', type:'exterior', sub:'parque',
-      venue:'Park Vístula',         when:'Dom · 17:00', cams:[] },
+      venue:'Park Vístula',         when:'Dom · 17:00',          camIds:[] },
     { id:'kra1',  name:'Kraków Bachata Fest',   country:'pl', city:'kra', type:'congreso',
-      venue:'ICE Kraków',           when:'20–22 jun',
-      cams:[ {name:'Magda Kowalska', desc:'Multicámara'} ] }
+      venue:'ICE Kraków',           when:'20–22 jun',            camIds:['magda'] }
   ];
+  var EVENTS_BY_ID = {};
+  EVENTS.forEach(function(e){ EVENTS_BY_ID[e.id] = e; });
+
+  /* mis bailes (rol bailarín) — el vídeo NO se guarda aquí: llega por WeTransfer */
+  var MY_DANCES = [
+    { eventId:'fri',    date:'23 may 2026', song:'Romeo Santos — Propuesta Indecente',
+      partner:'Lucía',  camId:'juan',   status:'recibido' },
+    { eventId:'fri',    date:'23 may 2026', song:'Prince Royce — Darte un Beso',
+      partner:'Sofía',  camId:'ana',    status:'enviado' },
+    { eventId:'sunset', date:'24 may 2026', song:'Aventura — Obsesión',
+      partner:'Marta',  camId:'carlos', status:'pendiente' },
+    { eventId:'cong',   date:'31 may 2026', song:'Juan Luis Guerra — Bachata Rosa',
+      partner:'Elena',  camId:'marta',  status:'recibido' }
+  ];
+
+  /* mis sesiones (rol camarógrafo): cuántas parejas grabé por evento */
+  var MY_SESSIONS = [
+    { eventId:'fri',    date:'23 may 2026', couples:14, sent:14 },
+    { eventId:'sunset', date:'24 may 2026', couples:9,  sent:6 },
+    { eventId:'beach',  date:'1 jun 2026',  couples:11, sent:0 }
+  ];
+
   /* eventos en los que TÚ estás apuntado como camarógrafo */
   var joined = {};
   try{ joined = JSON.parse(localStorage.getItem('cilap-joined') || '{}'); }catch(e){}
@@ -1028,7 +1229,7 @@ body{
     renderPanel();
     if(key === 'role'){           // volver a la vista 1
       closeFrom('country');
-      showView1();
+      goView('view1', 'ac-red');
     } else if(key === 'country'){ closeFrom('country'); openStep('stepA'); }
     else if(key === 'city'){      closeFrom('city');    openStep('stepB'); }
     else if(key === 'type'){      closeFrom('type');    openStep('stepC'); }
@@ -1046,55 +1247,38 @@ body{
     else if(open('stepD'))  goBackTo('type');
     else if(open('stepC'))  goBackTo('city');
     else if(open('stepB'))  goBackTo('country');
-    else                    goBackTo('role');
+    else                    goView('viewHub','ac-red');   // padre del paso país = hub
   });
 
-  /* ── botón home: al punto cero tras el rol (rol intacto) ──────────── */
+  /* ── botón home: al hub tras el rol (rol intacto, búsqueda limpia) ── */
   function goHome(){
     editing = null;
     ['country','city','type','subtype'].forEach(function(k){ state[k] = null; });
     closeAll();
     renderPanel();
-    var v3 = $('#view3');
-    if(!v3.classList.contains('hidden')){
-      v3.classList.remove('in');
-      setTimeout(function(){
-        v3.classList.add('hidden');
-        var v2 = $('#view2');
-        v2.classList.remove('hidden');
-        void v2.offsetHeight;
-        v2.classList.add('in');
-        openStep('stepA');
-      }, 240);
-    } else {
-      openStep('stepA');
-    }
+    goView('viewHub','ac-red');
   }
   $('#homeBtn2').addEventListener('click', goHome);
   $('#homeBtn3').addEventListener('click', goHome);
 
-  /* ── transición de vistas ─────────────────────────────────────────── */
-  function showView2(){
-    $('#view1').classList.add('out');
+  /* ── transición genérica entre vistas ─────────────────────────────── */
+  var VIEW_IDS = ['view1','viewHub','view2','viewCams','viewMine','view3'];
+  function goView(toId, accent){
+    var to = $('#'+toId), from = null;
+    VIEW_IDS.forEach(function(id){
+      var v = $('#'+id);
+      if(!v.classList.contains('hidden')) from = v;
+    });
+    if(accent) setAccent(accent);
+    if(from === to) return;
+    from.classList.remove('in');
+    from.classList.add('out');
     setTimeout(function(){
-      $('#view1').classList.add('hidden');
-      var v2 = $('#view2');
-      v2.classList.remove('hidden');
-      void v2.offsetHeight;
-      v2.classList.add('in');
-      openStep('stepA');
-    }, 240);
-  }
-  function showView1(){
-    var v2 = $('#view2');
-    v2.classList.remove('in');
-    setAccent(ACCENTS.view1);
-    setTimeout(function(){
-      v2.classList.add('hidden');
-      var v1 = $('#view1');
-      v1.classList.remove('hidden');
-      void v1.offsetHeight;
-      v1.classList.remove('out');
+      from.classList.add('hidden');
+      from.classList.remove('out');
+      to.classList.remove('hidden');
+      void to.offsetHeight;
+      to.classList.add('in');
     }, 240);
   }
 
@@ -1105,7 +1289,8 @@ body{
       state.role = { value:role, label:ROLE_META[role] };
       try{ localStorage.setItem('cilap-role', role); }catch(e){}
       renderPanel();
-      showView2();
+      updateHub();
+      goView('viewHub', 'ac-red');
     });
   });
 
@@ -1149,7 +1334,7 @@ body{
   bindStep('stepD','subtype', function(){ advance(); });
 
   /* ── resultados: lista de eventos filtrada ────────────────────────── */
-  function camCountOf(ev){ return ev.cams.length + (joined[ev.id] ? 1 : 0); }
+  function camCountOf(ev){ return ev.camIds.length + (joined[ev.id] ? 1 : 0); }
 
   function renderResults(){
     var list = EVENTS.filter(function(ev){
@@ -1189,8 +1374,8 @@ body{
       '<span class="tag2">' + CITY_LABELS[ev.city] + '</span>' +
       '<span class="tag2">' + TYPE_LABELS[ev.type] + '</span>' +
       (ev.sub ? '<span class="tag2 hl">' + SUB_LABELS[ev.sub] + '</span>' : '');
-    var cams = ev.cams.slice();
-    if(joined[ev.id]) cams.push({ name:'Tú', desc:'Apuntado desde este móvil', you:true });
+    var cams = ev.camIds.map(function(id){ return CAMS_BY_ID[id]; });
+    if(joined[ev.id]) cams = cams.concat({ name:'Tú', desc:'Apuntado desde este móvil', you:true });
     var html = '';
     cams.forEach(function(c){
       html += '<div class="cam' + (c.you ? ' you' : '') + '">' + CAM_SVG +
@@ -1215,27 +1400,12 @@ body{
   function openEvent(ev){
     currentEvent = ev;
     renderEventDetail();
-    var v2 = $('#view2'), v3 = $('#view3');
-    v2.classList.remove('in');
-    setAccent('ac-red');
-    setTimeout(function(){
-      v2.classList.add('hidden');
-      v3.classList.remove('hidden');
-      void v3.offsetHeight;
-      v3.classList.add('in');
-    }, 240);
+    goView('view3', 'ac-red');
   }
 
   $('#backToEvents').addEventListener('click', function(){
-    var v2 = $('#view2'), v3 = $('#view3');
-    v3.classList.remove('in');
-    setTimeout(function(){
-      v3.classList.add('hidden');
-      v2.classList.remove('hidden');
-      void v2.offsetHeight;
-      v2.classList.add('in');
-      if($('#result').classList.contains('open')) renderResults();  // refresca CAM ×n
-    }, 240);
+    if($('#result').classList.contains('open')) renderResults();  // refresca CAM ×n
+    goView('view2', 'ac-red');
   });
 
   $('#joinBtn').addEventListener('click', function(){
@@ -1245,6 +1415,124 @@ body{
     try{ localStorage.setItem('cilap-joined', JSON.stringify(joined)); }catch(e){}
     renderEventDetail();
   });
+
+  /* ── hub: ¿qué buscas? ────────────────────────────────────────────── */
+  function updateHub(){
+    var dancer = state.role && state.role.value === 'dancer';
+    $('#hubSub').textContent = dancer ? 'Entraste como bailarín.' : 'Entraste como camarógrafo.';
+    $('#hubMineName').textContent = dancer ? 'Mis bailes' : 'Mis sesiones';
+    $('#hubMineSub').textContent = dancer ? 'Quién te grabó y qué' : 'Lo que has grabado';
+  }
+  $('#hubBack').addEventListener('click', function(){ goView('view1','ac-red'); });
+  $('#hubEvent').addEventListener('click', function(){
+    goView('view2');
+    advance();                       // retoma la búsqueda donde estuviera
+  });
+  $('#hubCams').addEventListener('click', function(){
+    renderCamDir();
+    goView('viewCams','ac-amber');
+  });
+  $('#hubMine').addEventListener('click', function(){
+    renderMine();
+    goView('viewMine','ac-lime');
+  });
+
+  /* ── directorio de camarógrafos: ordenar, filtrar, seleccionar ────── */
+  var camSort = 'rating', camCity = 'all', camSel = null;
+  function renderCamDir(){
+    var list = CAMS.filter(function(c){ return camCity === 'all' || c.city === camCity; });
+    list.sort(function(a, b){
+      if(camSort === 'videos') return b.videos - a.videos;
+      if(camSort === 'price')  return a.price - b.price;
+      return b.rating - a.rating;          // popularidad
+    });
+    var box = $('#camDir');
+    box.innerHTML = '';
+    list.forEach(function(c){
+      var evs = EVENTS.filter(function(e){ return e.camIds.indexOf(c.id) !== -1; })
+                      .map(function(e){ return e.name; });
+      var el = document.createElement('button');
+      el.className = 'cam dir' + (camSel === c.id ? ' sel' : '');
+      el.innerHTML = CAM_SVG +
+        '<div class="cam-info"><b>' + c.name + '</b>' +
+        '<small>' + CITY_LABELS[c.city] + ' · ' + c.desc + '</small>' +
+        '<span class="cam-stats">★ ' + c.rating.toFixed(1) + ' · ' + c.videos +
+          ' vídeos · <span class="tier">' + priceTier(c.price) + '</span></span>' +
+        '<span class="cam-extra">' +
+          (evs.length ? 'Graba en: ' + evs.join(' · ') : 'Sin eventos próximos') +
+          '</span>' +
+        '</div>';
+      el.addEventListener('click', function(){
+        camSel = (camSel === c.id) ? null : c.id;   // tap: seleccionar / soltar
+        renderCamDir();
+      });
+      box.appendChild(el);
+    });
+    $('#camDirEmpty').style.display = list.length ? 'none' : 'flex';
+  }
+  document.querySelectorAll('#sortChips .fchip').forEach(function(ch){
+    ch.addEventListener('click', function(){
+      camSort = ch.dataset.sort;
+      document.querySelectorAll('#sortChips .fchip').forEach(function(o){ o.classList.toggle('on', o === ch); });
+      renderCamDir();
+    });
+  });
+  document.querySelectorAll('#cityChips .fchip').forEach(function(ch){
+    ch.addEventListener('click', function(){
+      camCity = ch.dataset.city;
+      document.querySelectorAll('#cityChips .fchip').forEach(function(o){ o.classList.toggle('on', o === ch); });
+      renderCamDir();
+    });
+  });
+  $('#camsBack').addEventListener('click', function(){ goView('viewHub','ac-red'); });
+  $('#camsHome').addEventListener('click', goHome);
+
+  /* ── mis bailes (bailarín) / mis sesiones (camarógrafo) ───────────── */
+  var DANCE_STATUS = {
+    recibido:  { txt:'Recibido ✓',           cls:'ok'  },
+    enviado:   { txt:'Enviado · WeTransfer', cls:'mid' },
+    pendiente: { txt:'Pendiente de envío',   cls:''    }
+  };
+  function renderMine(){
+    var dancer = state.role && state.role.value === 'dancer';
+    $('#mineTitle').textContent = dancer ? 'Mis bailes' : 'Mis sesiones';
+    $('#mineSub').textContent = dancer
+      ? 'Tus actuaciones grabadas; el vídeo te llega por WeTransfer.'
+      : 'Tus grabaciones, evento a evento.';
+    var box = $('#mineList');
+    box.innerHTML = '';
+    if(dancer){
+      MY_DANCES.forEach(function(d){
+        var ev = EVENTS_BY_ID[d.eventId], cam = CAMS_BY_ID[d.camId];
+        var st = DANCE_STATUS[d.status];
+        var el = document.createElement('div');
+        el.className = 'dance';
+        el.innerHTML =
+          '<b>' + d.song + '</b>' +
+          '<span class="dmeta">' + ev.name + ' · ' + d.date + '</span>' +
+          '<span class="dinfo">Te grabó ' + cam.name + ' · bailaste con ' + d.partner + '</span>' +
+          '<span class="st ' + st.cls + '">' + st.txt + '</span>';
+        box.appendChild(el);
+      });
+    } else {
+      MY_SESSIONS.forEach(function(s){
+        var ev = EVENTS_BY_ID[s.eventId];
+        var done = s.sent >= s.couples;
+        var el = document.createElement('div');
+        el.className = 'dance';
+        el.innerHTML =
+          '<b>' + ev.name + '</b>' +
+          '<span class="dmeta">' + ev.venue + ' · ' + s.date + '</span>' +
+          '<span class="dinfo">Grabaste a ' + s.couples + ' parejas</span>' +
+          '<span class="st ' + (done ? 'ok' : 'mid') + '">' +
+            (done ? 'Todo enviado · ' + s.sent + '/' + s.couples
+                  : 'Enviados ' + s.sent + '/' + s.couples + ' · WeTransfer') + '</span>';
+        box.appendChild(el);
+      });
+    }
+  }
+  $('#mineBack').addEventListener('click', function(){ goView('viewHub','ac-red'); });
+  $('#mineHome').addEventListener('click', goHome);
 })();
 </script>
 

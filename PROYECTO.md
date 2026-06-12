@@ -165,6 +165,75 @@ Cada paso elegido queda como breadcrumb pulsable arriba.
 
 ---
 
+## 4.5 Modelo de datos (v1 — en evolución)
+
+> Implementado como mock en `index.html`. Cuando llegue la Fase 2 (Firebase),
+> estas entidades pasan a colecciones. Los ❓ son dudas abiertas.
+
+### Entidades
+
+**USER** (futuro; hoy el rol vive en localStorage)
+| Campo | Tipo | Notas |
+|---|---|---|
+| id | string | |
+| name | string | |
+| email | string | para recibir el WeTransfer |
+| role | `cam` \| `dancer` | un mismo usuario podría ser ambos ❓ |
+
+**CAM (camarógrafo)** — perfil público
+| Campo | Tipo | Notas |
+|---|---|---|
+| id | string | |
+| name | string | |
+| city | ref CITY | localización base, para el filtro del directorio |
+| desc | string | una línea de venta ("4K · entrega 48h") |
+| rating | number 0-5 | popularidad ❓ (¿estrellas de usuarios o nº de "me gusta"?) |
+| videos | int | nº de vídeos entregados (sube con cada sesión) |
+| price | number € | precio medio por vídeo. **Derivado**: tier `$` (<7) / `$$` (7-12) / `$$$` (>12) |
+
+**EVENT**
+| Campo | Tipo | Notas |
+|---|---|---|
+| id | string | |
+| name, venue, when | string | `when` pasará a datetime real |
+| country / city | ref | filtros en cascada |
+| type | `sala` \| `congreso` \| `exterior` | |
+| sub | `terraza` \| `playa` \| `parque` | **solo si type=exterior** |
+| camIds | ref CAM[] | camarógrafos apuntados (0..n). "Apuntarse" = añadirte aquí |
+
+**DANCE (baile grabado)** → alimenta "Mis bailes" del bailarín
+| Campo | Tipo | Notas |
+|---|---|---|
+| eventId | ref EVENT | |
+| camId | ref CAM | quién te grabó |
+| dancerId | ref USER | (mock: siempre "tú") |
+| date | date | |
+| song | string | título identificado por AudD en directo |
+| partner | string | con quién bailaste ❓ (¿ref USER si la pareja también usa la app?) |
+| status | `pendiente` → `enviado` → `recibido` | el vídeo viaja por WeTransfer, NUNCA se almacena en la app |
+
+**SESSION (sesión de grabación)** → alimenta "Mis sesiones" del camarógrafo
+| Campo | Tipo | Notas |
+|---|---|---|
+| eventId | ref EVENT | |
+| camId | ref CAM | (mock: siempre "tú") |
+| date | date | |
+| couples | int | parejas grabadas |
+| sent | int | vídeos ya enviados (sent == couples ⇒ sesión cerrada) |
+
+### Relaciones
+- EVENT 1—n DANCE · EVENT 1—n SESSION · CAM 1—n DANCE · CAM 1—n SESSION
+- SESSION es agregable desde DANCE (couples = nº de DANCEs de ese cam en ese
+  evento) ❓ — ¿mantenemos ambas o derivamos SESSION al vuelo?
+
+### Dudas abiertas para decidir
+1. ¿`rating` lo puntúan los bailarines tras recibir su vídeo (1-5★)?
+2. ¿`price` lo declara el camarógrafo o se calcula de precios por evento?
+3. ¿Una persona puede tener los dos roles a la vez (cambiar sin cerrar sesión)?
+4. ¿`partner` como texto libre o como referencia a otro usuario de la app?
+
+---
+
 ## 5. Stack técnico
 
 | Pieza | Tecnología | Notas |
