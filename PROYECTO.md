@@ -246,6 +246,57 @@ Cada paso elegido queda como breadcrumb pulsable arriba.
 
 ---
 
+## 4.6 Mapas de sala (módulo `mapa-editor/` — aparte, pendiente de integrar)
+
+> Editor independiente con la estética VISOR, accesible desde la escena 01
+> (botón violeta bajo las cards de rol) y desplegado en `/mapa-editor/`.
+> Sirve para señalar dónde estará la cámara, los accesos, columnas, etc.
+> Cuando se integre, cada EVENT podrá referenciar un MAP.
+
+**MAP**
+| Campo | Tipo | Notas |
+|---|---|---|
+| id | string | `m<timestamp>` |
+| name | string | nombre de la sala |
+| pieces | PIECE[] | planta componible: la unión visual de las piezas forma la silueta |
+| elements | ELEMENT[] | objetos colocados encima de la planta |
+| updated | timestamp | se sella al guardar en "Mis mapas" |
+
+**PIECE** (forma de planta)
+| Campo | Tipo | Notas |
+|---|---|---|
+| kind | `rect` \| `ele` \| `te` \| `semi` | ✅ DECIDIDO: el rectángulo cubre también el cuadrado (se le editan los lados); el semicírculo sustituye al óvalo |
+| x, y | % 0-100 | centro de la pieza, relativo al lienzo → independiente del tamaño de pantalla |
+| w, h | % | redimensionable en pasos de 4 (botones An±/Al±, con swap de ejes si está girada) |
+| rot | 0/90/180/270 | ✅ DECIDIDO: las piezas rotan solo a 90° |
+
+✅ DECIDIDO: "editar la forma / borrar líneas" se resuelve **componiendo piezas
+solapadas** (los bordes interiores desaparecen visualmente al fundirse los
+rellenos), no editando vértices — mucho más robusto en táctil.
+
+**ELEMENT** (drag & drop desde la paleta; rotables a 45°)
+| Tipo | Color | Notas |
+|---|---|---|
+| acceso | lima | ✅ DECIDIDO: entrada y salida fusionadas en un solo elemento |
+| columna | gris | redonda |
+| camarografo | ámbar | ✅ DECIDIDO: baliza ROJA parpadeante (halo + punto REC) para localizarla de un vistazo |
+| dj / bar | violeta / azul | |
+| escenario | naranja | chip rectangular del doble de ancho |
+| gen_estrella / gen_circulo / gen_cuadrado | blanco | genéricos "otros": campo `text` editable (botón Aa) |
+
+Persistencia: borrador de trabajo en `cip_mapa_editor_v1` (autosave),
+biblioteca "Mis mapas" en `cip_mapas_v1` (guardar/cargar/borrar/nuevo).
+
+### Dudas abiertas
+1. ¿Quién crea el mapa de un EVENT (organizador, camarógrafo) y dónde se
+   muestra al integrarlo — en view3 detalle del evento?
+2. ¿Redimensionar piezas con botones An±/Al± o con tiradores en las esquinas?
+   (pendiente de probarlo en el móvil)
+3. Los botones ⟳ TEMPORALES de recarga (app y editor) hay que quitarlos al
+   terminar las pruebas en móvil.
+
+---
+
 ## 5. Stack técnico
 
 | Pieza | Tecnología | Notas |
