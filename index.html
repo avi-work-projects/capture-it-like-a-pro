@@ -257,8 +257,7 @@ body{
 .card::before{top:8px;left:8px;border-top-width:2px;border-left-width:2px}
 .card::after{bottom:8px;right:8px;border-bottom-width:2px;border-right-width:2px}
 .card .ico{line-height:0}
-.card .ico .icn{width:40px;height:40px;display:block;color:var(--text);transition:color .18s}
-.card:hover .ico .icn,.card:active .ico .icn{color:var(--accent)}
+.card .ico .icn{width:40px;height:40px;display:block;color:var(--hac, var(--text));transition:color .18s}
 .card .name{
   font-family:var(--display);
   font-size:30px;
@@ -266,14 +265,18 @@ body{
   text-transform:uppercase;
 }
 .card .sub{color:var(--muted);font-size:14px}
+/* las cards usan su acento propio (--hac) si lo tienen; si no, el de pantalla */
 .card:hover,.card:active{
   transform:scale(1.02);
-  border-color:var(--accent);
-  box-shadow:0 0 26px var(--accent-glow);
+  border-color:var(--hac, var(--accent));
+  box-shadow:0 0 26px var(--hglow, var(--accent-glow));
 }
 .card:hover::before,.card:hover::after,
-.card:active::before,.card:active::after{border-color:var(--accent);opacity:1}
-.card:hover .src,.card:active .src{color:var(--accent)}
+.card:active::before,.card:active::after{border-color:var(--hac, var(--accent));opacity:1}
+.card:hover .src,.card:active .src{color:var(--hac, var(--accent))}
+/* acentos de las cards de rol */
+.card[data-role="cam"]{--hac:#ff3b30;--hglow:rgba(255,59,48,.30)}
+.card[data-role="dancer"]{--hac:#c46bff;--hglow:rgba(196,107,255,.30)}
 
 /* entradas con stagger */
 .enter{opacity:0;animation:rise .5s var(--ease) forwards}
@@ -531,6 +534,7 @@ body{
   padding:12px 18px;
 }
 .hub-row .card .icn-hub{grid-row:1 / span 2;align-self:center;width:28px;height:28px}
+.hub .card.big .icn-hub{width:24px;height:24px}
 .hub-row .card .name{font-size:19px}
 .hub-row .card .sub{font-size:12px}
 /* cada acción del hub tiene su acento: el color de la sección que abre */
@@ -582,6 +586,101 @@ body{
 .cam-stats .tier{color:var(--accent)}
 .cam-extra{display:none;margin-top:8px;font-size:12.5px;color:var(--muted)}
 .cam.dir.sel .cam-extra{display:block;animation:rise .25s var(--ease) both}
+
+/* saldo del bailarín */
+.saldo{
+  display:none;align-items:center;gap:6px;
+  margin-top:8px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  color:var(--muted);text-transform:uppercase;
+  border:1px solid var(--line);border-radius:3px;
+  padding:4px 9px;
+  transition:background-color .35s;
+}
+.saldo.show{display:inline-flex}
+.saldo b{color:#c6ff00;font-weight:400}
+.app.light .saldo b{color:#7da300}
+
+/* próximos eventos dentro de la card expandida del directorio */
+.cam-evts{display:none;flex-direction:column;gap:6px;margin-top:8px;width:100%}
+.cam.dir.sel .cam-evts{display:flex}
+.mini-evt{
+  display:flex;justify-content:space-between;align-items:center;gap:8px;
+  padding:8px 10px;
+  background:var(--surface-2);
+  border:1px solid var(--line);border-radius:4px;
+  color:var(--text);font:inherit;font-size:12.5px;
+  cursor:pointer;text-align:left;
+  transition:border-color .15s, box-shadow .15s, background-color .35s;
+}
+.mini-evt:hover,.mini-evt:active{border-color:var(--accent);box-shadow:0 0 10px var(--accent-glow)}
+.mini-evt .me-when{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;flex:none}
+
+/* acciones al seleccionar un camarógrafo (favorito / reservar / cola) */
+.cam{flex-wrap:wrap}
+.cam-actions{display:none;width:100%;margin-top:10px;flex-direction:column;gap:8px}
+.cam.sel .cam-actions{display:flex;animation:rise .25s var(--ease) both}
+.cam.sel{border-color:var(--accent);box-shadow:0 0 16px var(--accent-glow)}
+.act{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:11px;width:100%;
+  background:transparent;
+  border:1px solid var(--line);border-radius:4px;
+  color:var(--text);
+  font-family:var(--opt-font);font-weight:600;
+  font-size:13px;letter-spacing:.06em;text-transform:uppercase;
+  cursor:pointer;
+  transition:border-color .15s, color .15s, box-shadow .15s, background-color .35s;
+}
+.act:hover:not(:disabled),.act:active:not(:disabled){border-color:var(--accent);box-shadow:0 0 12px var(--accent-glow)}
+.act.primary{background:var(--accent);color:#0a0a0a;border-color:var(--accent)}
+.act.done{border-color:#c6ff00;color:#c6ff00;cursor:default;background:transparent}
+.app.light .act.done{border-color:#7da300;color:#7da300}
+.act:disabled{opacity:.45;cursor:not-allowed}
+.act-hint{
+  font-family:var(--mono);font-size:9px;letter-spacing:.1em;
+  color:var(--muted);text-transform:uppercase;text-align:center;
+}
+
+/* badge de evento en directo */
+.evt-live{
+  position:absolute;top:13px;right:76px;
+  display:inline-flex;align-items:center;gap:5px;
+  font-family:var(--mono);font-size:9px;letter-spacing:.12em;
+  color:#ff3b30;border:1px solid #ff3b30;border-radius:3px;
+  padding:3px 6px;
+}
+.evt-live::before{content:'';width:6px;height:6px;border-radius:50%;background:#ff3b30;animation:blink 1.2s infinite}
+
+/* vincular pareja (Mis bailes) */
+.linkrow{display:flex;align-items:center;gap:8px;margin-top:2px;flex-wrap:wrap}
+.linkbtn{
+  background:transparent;
+  border:1px solid var(--line);border-radius:3px;
+  color:var(--muted);
+  font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+  padding:4px 8px;cursor:pointer;
+  transition:border-color .15s, color .15s;
+}
+.linkbtn:hover,.linkbtn:active{border-color:var(--accent);color:var(--text)}
+.linkform{display:flex;gap:6px;width:100%;margin-top:6px}
+.linkform input{
+  flex:1;min-width:0;
+  background:var(--surface-2);
+  border:1px solid var(--line);border-radius:4px;
+  color:var(--text);font:inherit;font-size:13px;
+  padding:8px 10px;outline:none;
+  transition:border-color .15s, background-color .35s;
+}
+.linkform input:focus{border-color:var(--accent)}
+.lk{
+  font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+  border:1px solid var(--line);border-radius:3px;padding:3px 6px;color:var(--muted);
+}
+.lk.ok{color:#c6ff00;border-color:#c6ff00}
+.lk.pend{color:#ffd60a;border-color:#ffd60a}
+.app.light .lk.ok{color:#7da300;border-color:#7da300}
+.app.light .lk.pend{color:#b08900;border-color:#b08900}
 
 /* ───────────────────────── mis bailes / mis sesiones ───────────────────── */
 #mineList{margin-top:16px;display:flex;flex-direction:column;gap:10px}
@@ -782,6 +881,7 @@ body{
       <div>
         <h2 class="v2-title">¿Qué buscas?</h2>
         <p class="v2-sub" id="hubSub">—</p>
+        <span class="saldo" id="hubSaldo"></span>
       </div>
     </div>
     <div class="hub">
@@ -991,6 +1091,8 @@ body{
       <p id="camEmptyTxt">Aún no hay camarógrafos en este evento.</p>
     </div>
     <button class="cta" id="joinBtn" hidden>Apuntarme como camarógrafo</button>
+    <button class="cta" id="checkinBtn" hidden>He llegado · abrir cola</button>
+    <p class="act-hint" id="checkinHint" hidden style="margin-top:10px"></p>
   </section>
 
 </div>
@@ -1025,57 +1127,85 @@ body{
   var SUB_LABELS  = { all:'Todos', terraza:'Terraza', playa:'Playa', parque:'Parque' };
 
   /* rating = media de notas ENTERAS 0-6 de los bailarines;
-     price = lo declara el camarógrafo (mín 4 € · máx 20 €) */
+     price = tasa por vídeo declarada por el camarógrafo (mín 4 € · máx 20 €);
+     reserve = coste de reservar plaza, lo elige el camarógrafo (0 € o 2 €)
+               y se DESCUENTA de la tasa al apuntarse a la cola */
   var CAMS = [
-    { id:'juan',   name:'Juan Pérez',     city:'mad', desc:'5 años de experiencia · 4K',        rating:5.5, videos:132, price:9 },
-    { id:'ana',    name:'Ana López',      city:'mad', desc:'Estilo cinematográfico',            rating:5.7, videos:87,  price:14 },
-    { id:'carlos', name:'Carlos Ruiz',    city:'mad', desc:'Estabilizador pro · entrega 48h',   rating:5.2, videos:210, price:6 },
-    { id:'lucia',  name:'Lucía Martín',   city:'bcn', desc:'Vídeos en 48h',                     rating:5.4, videos:64,  price:8 },
-    { id:'david',  name:'David Soto',     city:'bcn', desc:'2 cámaras',                         rating:4.8, videos:45,  price:5 },
-    { id:'marta',  name:'Marta Gil',      city:'sev', desc:'Equipo doble · drones',             rating:5.9, videos:156, price:15 },
-    { id:'piotr',  name:'Piotr Nowak',    city:'waw', desc:'Slow-motion · 4K',                  rating:5.0, videos:38,  price:6 },
-    { id:'magda',  name:'Magda Kowalska', city:'kra', desc:'Multicámara',                       rating:5.3, videos:71,  price:10 }
+    { id:'juan',   name:'Juan Pérez',     city:'mad', desc:'5 años de experiencia · 4K',        rating:5.5, videos:132, price:9,  reserve:2 },
+    { id:'ana',    name:'Ana López',      city:'mad', desc:'Estilo cinematográfico',            rating:5.7, videos:87,  price:14, reserve:2 },
+    { id:'carlos', name:'Carlos Ruiz',    city:'mad', desc:'Estabilizador pro · entrega 48h',   rating:5.2, videos:210, price:6,  reserve:0 },
+    { id:'lucia',  name:'Lucía Martín',   city:'bcn', desc:'Vídeos en 48h',                     rating:5.4, videos:64,  price:8,  reserve:2 },
+    { id:'david',  name:'David Soto',     city:'bcn', desc:'2 cámaras',                         rating:4.8, videos:45,  price:5,  reserve:0 },
+    { id:'marta',  name:'Marta Gil',      city:'sev', desc:'Equipo doble · drones',             rating:5.9, videos:156, price:15, reserve:2 },
+    { id:'piotr',  name:'Piotr Nowak',    city:'waw', desc:'Slow-motion · 4K',                  rating:5.0, videos:38,  price:6,  reserve:0 },
+    { id:'magda',  name:'Magda Kowalska', city:'kra', desc:'Multicámara',                       rating:5.3, videos:71,  price:10, reserve:2 }
   ];
   var CAMS_BY_ID = {};
   CAMS.forEach(function(c){ CAMS_BY_ID[c.id] = c; });
   /* tier de precio automático: <7 → $ · 7-12 → $$ · >12 → $$$ */
   function priceTier(p){ return p < 7 ? '$' : (p > 12 ? '$$$' : '$$'); }
 
+  /* liveCams = camarógrafos que YA han hecho check-in (cola abierta) */
   var EVENTS = [
     { id:'fri',   name:'Bachata Friday Night',  country:'es', city:'mad', type:'sala',
-      venue:'Sala Tropic',          when:'Vie · 23:00',          camIds:['juan','ana'] },
+      venue:'Sala Tropic',          when:'Vie',     camIds:['juan','ana'], liveCams:['juan'] },
     { id:'acad',  name:'Open Class SBK',        country:'es', city:'mad', type:'sala',
-      venue:'Academia Ritmo',       when:'Jue · 20:30',          camIds:[] },
+      venue:'Academia Ritmo',       when:'Jue',     camIds:[] },
     { id:'sunset',name:'Bachata Sunset Madrid', country:'es', city:'mad', type:'exterior', sub:'terraza',
-      venue:'Terraza Plaza España', when:'Sáb · 19:30',          camIds:['carlos'] },
+      venue:'Terraza Plaza España', when:'Sáb',     camIds:['carlos'] },
     { id:'beach', name:'Bachata Beach Party',   country:'es', city:'bcn', type:'exterior', sub:'playa',
-      venue:'Playa Bogatell',       when:'Dom · 18:00',          camIds:['lucia','david'] },
+      venue:'Playa Bogatell',       when:'Dom',     camIds:['lucia','david'] },
     { id:'club',  name:'Caribbean Late Night',  country:'es', city:'bcn', type:'sala',
-      venue:'Sala Caribbean',       when:'Sáb · 00:30',          camIds:[] },
+      venue:'Sala Caribbean',       when:'Sáb',     camIds:[] },
     { id:'cong',  name:'Congreso Bachatísimo',  country:'es', city:'sev', type:'congreso',
-      venue:'Palacio de Congresos', when:'31 may · todo el día', camIds:['marta'] },
+      venue:'Palacio de Congresos', when:'31 may',  camIds:['marta'] },
     { id:'wknd',  name:'Sevilla Weekender',     country:'es', city:'sev', type:'congreso',
-      venue:'Hotel Triana',         when:'13–15 jun',            camIds:[] },
+      venue:'Hotel Triana',         when:'13–15 jun', camIds:[] },
     { id:'waw1',  name:'Warsaw Bachata Social', country:'pl', city:'waw', type:'sala',
-      venue:'Klub Mokotów',         when:'Vie · 21:00',          camIds:['piotr'] },
+      venue:'Klub Mokotów',         when:'Vie',     camIds:['piotr'] },
     { id:'waw2',  name:'Vistula Open Air',      country:'pl', city:'waw', type:'exterior', sub:'parque',
-      venue:'Park Vístula',         when:'Dom · 17:00',          camIds:[] },
+      venue:'Park Vístula',         when:'Dom',     camIds:[] },
     { id:'kra1',  name:'Kraków Bachata Fest',   country:'pl', city:'kra', type:'congreso',
-      venue:'ICE Kraków',           when:'20–22 jun',            camIds:['magda'] }
+      venue:'ICE Kraków',           when:'20–22 jun', camIds:['magda'] }
   ];
   var EVENTS_BY_ID = {};
   EVENTS.forEach(function(e){ EVENTS_BY_ID[e.id] = e; });
 
-  /* mis bailes (rol bailarín) — el vídeo NO se guarda aquí: llega por WeTransfer */
+  /* horarios mock RELATIVOS a ahora, para poder probar los tres estados:
+     fri y waw1 están EN DIRECTO ahora mismo; acad ya terminó; el resto, futuro */
+  (function(){
+    var H = 3600e3, D = 24 * H, now = Date.now();
+    var T = { fri:[-1*H, 3*H],      acad:[-3*D, -3*D + 2*H],
+              sunset:[D + 6*H, D + 10*H], beach:[2*D, 2*D + 5*H],
+              club:[3*D, 3*D + 5*H],     cong:[5*D, 5*D + 12*H],
+              wknd:[8*D, 10*D],          waw1:[-0.5*H, 3.5*H],
+              waw2:[4*D, 4*D + 4*H],     kra1:[12*D, 14*D] };
+    EVENTS.forEach(function(e){
+      e.startsAt = now + T[e.id][0];
+      e.endsAt   = now + T[e.id][1];
+    });
+  })();
+  function pad2(n){ return (n < 10 ? '0' : '') + n; }
+  function fmtTime(t){ var d = new Date(t); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+  function evHours(ev){ return fmtTime(ev.startsAt) + '–' + fmtTime(ev.endsAt); }
+  /* estado del evento respecto a ahora: previo | directo | terminado */
+  function eventStatus(ev){
+    var n = Date.now();
+    return n < ev.startsAt ? 'previo' : (n > ev.endsAt ? 'terminado' : 'directo');
+  }
+
+  /* mis bailes (rol bailarín) — el vídeo NO se guarda aquí: llega por WeTransfer.
+     partner.link: none (solo texto) | pending (correo enviado, falta que la
+     pareja confirme el baile) | ok (vinculada). La confirmación real es futura. */
   var MY_DANCES = [
     { eventId:'fri',    date:'23 may 2026', song:'Romeo Santos — Propuesta Indecente',
-      partner:'Lucía',  camId:'juan',   status:'recibido' },
+      partner:{ name:'Lucía', link:'ok' },                            camId:'juan',   status:'recibido' },
     { eventId:'fri',    date:'23 may 2026', song:'Prince Royce — Darte un Beso',
-      partner:'Sofía',  camId:'ana',    status:'enviado' },
+      partner:{ name:'Sofía', link:'none' },                          camId:'ana',    status:'enviado' },
     { eventId:'sunset', date:'24 may 2026', song:'Aventura — Obsesión',
-      partner:'Marta',  camId:'carlos', status:'pendiente' },
+      partner:{ name:'Marta', link:'pending', email:'marta@mail.com' }, camId:'carlos', status:'pendiente' },
     { eventId:'cong',   date:'31 may 2026', song:'Juan Luis Guerra — Bachata Rosa',
-      partner:'Elena',  camId:'marta',  status:'recibido' }
+      partner:{ name:'Elena', link:'none' },                          camId:'marta',  status:'recibido' }
   ];
 
   /* mis sesiones (rol camarógrafo): cuántas parejas grabé por evento */
@@ -1085,9 +1215,24 @@ body{
     { eventId:'beach',  date:'1 jun 2026',  couples:11, sent:0 }
   ];
 
-  /* eventos en los que TÚ estás apuntado como camarógrafo */
-  var joined = {};
-  try{ joined = JSON.parse(localStorage.getItem('cilap-joined') || '{}'); }catch(e){}
+  /* ── persistencia ligera en localStorage ──────────────────────────── */
+  function store(k, def){ try{ var v = JSON.parse(localStorage.getItem(k)); return v === null ? def : v; }catch(e){ return def; } }
+  function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  var joined   = store('cilap-joined',  {});   // eventos donde TÚ estás de camarógrafo
+  var favs     = store('cilap-favs',    {});   // camarógrafos favoritos ("me interesa")
+  var resv     = store('cilap-resv',    {});   // plazas reservadas (clave eventId_camId)
+  var queue    = store('cilap-queue',   {});   // colas a las que te has apuntado
+  var checkins = store('cilap-checkin', {});   // eventos donde TÚ abriste cola
+  var saldo    = store('cilap-saldo',   20);   // saldo mock del bailarín (20 € de regalo)
+  function fmtEur(x){ return x.toFixed(2).replace('.', ',') + ' €'; }
+  function charge(x){
+    saldo = Math.round((saldo - x) * 100) / 100;
+    save('cilap-saldo', saldo);
+    renderSaldo();
+  }
+  function renderSaldo(){
+    $('#hubSaldo').innerHTML = 'Saldo <b>' + fmtEur(saldo) + '</b>';
+  }
   var currentEvent = null;
 
   /* ── acento por pantalla ──────────────────────────────────────────── */
@@ -1286,18 +1431,19 @@ body{
   /* ── transición genérica entre vistas ─────────────────────────────── */
   var VIEW_IDS = ['view1','viewHub','view2','viewCams','viewMine','view3'];
   function goView(toId, accent){
-    var to = $('#'+toId), from = null;
+    var to = $('#'+toId);
+    if(accent) setAccent(accent);
+    // oculta TODAS las vistas visibles que no sean el destino (las
+    // transiciones solapadas podían dejar dos vistas a la vez)
+    var froms = [];
     VIEW_IDS.forEach(function(id){
       var v = $('#'+id);
-      if(!v.classList.contains('hidden')) from = v;
+      if(v !== to && !v.classList.contains('hidden')) froms.push(v);
     });
-    if(accent) setAccent(accent);
-    if(from === to) return;
-    from.classList.remove('in');
-    from.classList.add('out');
+    if(!froms.length) return;
+    froms.forEach(function(f){ f.classList.remove('in'); f.classList.add('out'); });
     setTimeout(function(){
-      from.classList.add('hidden');
-      from.classList.remove('out');
+      froms.forEach(function(f){ f.classList.add('hidden'); f.classList.remove('out'); });
       to.classList.remove('hidden');
       void to.offsetHeight;
       to.classList.add('in');
@@ -1374,8 +1520,9 @@ body{
       b.className = 'evt';
       b.innerHTML =
         '<span class="evt-name">' + ev.name + '</span>' +
-        '<span class="evt-meta">' + ev.venue + ' · ' + ev.when + ' · ' +
+        '<span class="evt-meta">' + ev.venue + ' · ' + ev.when + ' ' + evHours(ev) + ' · ' +
           CITY_LABELS[ev.city] + '</span>' +
+        (eventStatus(ev) === 'directo' ? '<span class="evt-live">Directo</span>' : '') +
         '<span class="evt-cams' + (n ? ' on' : '') + '">CAM ×' + n + '</span>';
       b.addEventListener('click', function(){ openEvent(ev); });
       box.appendChild(b);
@@ -1388,39 +1535,146 @@ body{
   /* ── vista 3: detalle del evento + camarógrafos ───────────────────── */
   var CAM_SVG = '<svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="M15.5 10.8l6-3.3v9l-6-3.3"/><circle cx="7.5" cy="12" r="2.2"/></svg>';
 
+  var camSelEv = null;     // camarógrafo desplegado dentro del detalle
+  /* ¿este camarógrafo ya abrió cola en este evento? (mock + tu check-in) */
+  function camLiveIn(ev, c){
+    if(c.you) return !!checkins[ev.id];
+    return (ev.liveCams || []).indexOf(c.id) !== -1;
+  }
+  /* acciones del bailarín sobre un camarógrafo según el momento del evento */
+  function buildCamActions(ev, c, st){
+    var key = ev.id + '_' + c.id;
+    var a = '<span class="cam-actions">';
+    a += '<button class="act" data-act="fav" data-cam="' + c.id + '">' +
+         (favs[c.id] ? '♥ En favoritos · quitar' : '♥ Me interesa grabar contigo') + '</button>';
+    if(queue[key]){
+      a += '<span class="act done">En su cola ✓</span>';
+    } else if(st === 'previo'){
+      if(resv[key]){
+        a += '<span class="act done">Plaza reservada ✓</span>';
+      } else {
+        var ok = saldo >= c.reserve;
+        a += '<button class="act primary" data-act="resv" data-cam="' + c.id + '"' +
+             (ok ? '' : ' disabled') + '>Reservar plaza · ' +
+             (c.reserve ? fmtEur(c.reserve) : 'gratis') + '</button>';
+        if(!ok) a += '<span class="act-hint">Saldo insuficiente (' + fmtEur(saldo) + ')</span>';
+      }
+    } else if(st === 'directo'){
+      if(camLiveIn(ev, c)){
+        var fee = Math.max(0, c.price - (resv[key] ? c.reserve : 0));
+        var ok2 = saldo >= fee;
+        a += '<button class="act primary" data-act="queue" data-cam="' + c.id + '"' +
+             (ok2 ? '' : ' disabled') + '>Apuntarme a la cola · ' + fmtEur(fee) +
+             (resv[key] ? ' (reserva descontada)' : '') + '</button>';
+        if(!ok2) a += '<span class="act-hint">Saldo insuficiente (' + fmtEur(saldo) + ')</span>';
+      } else {
+        a += '<span class="act-hint">Aún no ha llegado al evento — cola sin abrir</span>';
+      }
+    } else {
+      a += '<span class="act-hint">Evento terminado</span>';
+    }
+    return a + '</span>';
+  }
   function renderEventDetail(){
     var ev = currentEvent;
+    var st = eventStatus(ev);
+    var soyCam = state.role && state.role.value === 'cam';
     $('#evName').textContent = ev.name;
-    $('#evMeta').textContent = ev.venue + ' · ' + ev.when;
+    $('#evMeta').textContent = ev.venue + ' · ' + ev.when + ' · ' + evHours(ev);
     $('#evTags').innerHTML =
+      (st === 'directo'   ? '<span class="tag2 hl">● En directo</span>' : '') +
+      (st === 'terminado' ? '<span class="tag2">Terminado</span>' : '') +
       '<span class="tag2">' + CITY_LABELS[ev.city] + '</span>' +
       '<span class="tag2">' + TYPE_LABELS[ev.type] + '</span>' +
       (ev.sub ? '<span class="tag2 hl">' + SUB_LABELS[ev.sub] + '</span>' : '');
     var cams = ev.camIds.map(function(id){ return CAMS_BY_ID[id]; });
-    if(joined[ev.id]) cams = cams.concat({ name:'Tú', desc:'Apuntado desde este móvil', you:true });
+    if(joined[ev.id]) cams = cams.concat({ id:'you', name:'Tú', desc:'Apuntado desde este móvil', you:true });
     var html = '';
     cams.forEach(function(c){
-      html += '<div class="cam' + (c.you ? ' you' : '') + '">' + CAM_SVG +
-        '<div class="cam-info"><b>' + c.name + '</b><small>' + c.desc + '</small></div>' +
-        (c.you ? '<span class="you-tag">Tú</span>' : '') + '</div>';
+      var clickable = !soyCam && !c.you;
+      var sel = clickable && camSelEv === c.id;
+      html += '<div class="cam' + (c.you ? ' you' : '') + (clickable ? ' dir' : '') +
+        (sel ? ' sel' : '') + '" data-cam="' + c.id + '">' + CAM_SVG +
+        '<div class="cam-info"><b>' +
+        (favs[c.id] ? '<span class="you-tag">♥</span> ' : '') + c.name + '</b>' +
+        '<small>' + c.desc +
+        (c.you ? '' : ' · tasa ' + fmtEur(c.price) +
+          (c.reserve ? ' · reserva ' + fmtEur(c.reserve) : ' · reserva gratis')) +
+        '</small></div>' +
+        (c.you ? '<span class="you-tag">Tú</span>' : '') +
+        (sel ? buildCamActions(ev, c, st) : '') +
+        '</div>';
     });
     $('#camList').innerHTML = html;
     $('#camCount').textContent = '×' + cams.length;
-    var soyCam = state.role && state.role.value === 'cam';
     $('#camEmptyTxt').textContent = soyCam
       ? 'Nadie se ha apuntado aún — sé el primero.'
       : 'Aún no hay camarógrafos en este evento.';
     $('#camEmpty').style.display = cams.length ? 'none' : 'flex';
+    /* bailarín: tap en un camarógrafo despliega sus acciones */
+    if(!soyCam){
+      $('#camList').querySelectorAll('.cam.dir').forEach(function(el){
+        el.addEventListener('click', function(){
+          camSelEv = (camSelEv === el.dataset.cam) ? null : el.dataset.cam;
+          renderEventDetail();
+        });
+      });
+      $('#camList').querySelectorAll('[data-act]').forEach(function(b){
+        b.addEventListener('click', function(e){
+          e.stopPropagation();
+          if(b.disabled) return;
+          var c = CAMS_BY_ID[b.dataset.cam];
+          var key = ev.id + '_' + c.id;
+          if(b.dataset.act === 'fav'){
+            if(favs[c.id]) delete favs[c.id]; else favs[c.id] = true;
+            save('cilap-favs', favs);
+          } else if(b.dataset.act === 'resv'){
+            resv[key] = true; save('cilap-resv', resv);
+            charge(c.reserve);
+          } else if(b.dataset.act === 'queue'){
+            queue[key] = true; save('cilap-queue', queue);
+            charge(Math.max(0, c.price - (resv[key] ? c.reserve : 0)));
+          }
+          renderEventDetail();
+        });
+      });
+    }
+    /* CTA del camarógrafo: apuntarse al evento */
     var btn = $('#joinBtn');
     btn.hidden = !soyCam;
     if(soyCam){
       if(joined[ev.id]){ btn.classList.add('leave');    btn.textContent = 'Quitarme de este evento'; }
       else             { btn.classList.remove('leave'); btn.textContent = 'Apuntarme como camarógrafo'; }
     }
+    /* check-in del camarógrafo: solo entre el inicio y el fin del evento */
+    var ck = $('#checkinBtn'), hint = $('#checkinHint');
+    ck.hidden = true; hint.hidden = true;
+    if(soyCam && joined[ev.id]){
+      ck.hidden = false;
+      ck.disabled = false;
+      ck.classList.remove('leave');
+      if(checkins[ev.id]){
+        ck.classList.add('leave');
+        ck.disabled = true;
+        ck.textContent = 'Cola abierta ✓';
+        hint.hidden = false;
+        hint.textContent = 'Los bailarines ya pueden apuntarse a tu cola';
+      } else if(st === 'directo'){
+        ck.textContent = 'He llegado · abrir cola';
+      } else {
+        ck.disabled = true;
+        ck.textContent = 'He llegado · abrir cola';
+        hint.hidden = false;
+        hint.textContent = (st === 'previo')
+          ? 'Disponible a partir de las ' + fmtTime(ev.startsAt)
+          : 'El evento ya terminó';
+      }
+    }
   }
 
   function openEvent(ev){
     currentEvent = ev;
+    camSelEv = null;
     renderEventDetail();
     goView('view3', 'ac-red');
   }
@@ -1438,12 +1692,23 @@ body{
     renderEventDetail();
   });
 
+  /* check-in del camarógrafo (validado también aquí, no solo en la UI) */
+  $('#checkinBtn').addEventListener('click', function(){
+    if(!currentEvent || checkins[currentEvent.id]) return;
+    if(eventStatus(currentEvent) !== 'directo') return;   // solo dentro de la ventana
+    checkins[currentEvent.id] = true;
+    save('cilap-checkin', checkins);
+    renderEventDetail();
+  });
+
   /* ── hub: ¿qué buscas? ────────────────────────────────────────────── */
   function updateHub(){
     var dancer = state.role && state.role.value === 'dancer';
     $('#hubSub').textContent = dancer ? 'Entraste como bailarín.' : 'Entraste como camarógrafo.';
     $('#hubMineName').textContent = dancer ? 'Mis bailes' : 'Mis sesiones';
     $('#hubMineSub').textContent = dancer ? 'Quién te grabó y qué' : 'Lo que has grabado';
+    renderSaldo();
+    $('#hubSaldo').classList.toggle('show', dancer);   // el saldo es cosa del bailarín
   }
   $('#hubBack').addEventListener('click', function(){ goView('view1','ac-red'); });
   $('#hubEvent').addEventListener('click', function(){
@@ -1464,6 +1729,9 @@ body{
   function renderCamDir(){
     var list = CAMS.filter(function(c){ return camCity === 'all' || c.city === camCity; });
     list.sort(function(a, b){
+      // favoritos siempre arriba; dentro de cada grupo, el criterio elegido
+      var f = (favs[b.id] ? 1 : 0) - (favs[a.id] ? 1 : 0);
+      if(f) return f;
       if(camSort === 'videos') return b.videos - a.videos;
       if(camSort === 'price')  return a.price - b.price;
       return b.rating - a.rating;          // popularidad
@@ -1471,24 +1739,51 @@ body{
     var box = $('#camDir');
     box.innerHTML = '';
     list.forEach(function(c){
-      var evs = EVENTS.filter(function(e){ return e.camIds.indexOf(c.id) !== -1; })
-                      .map(function(e){ return e.name; });
+      var evs = EVENTS.filter(function(e){
+        return e.camIds.indexOf(c.id) !== -1 && eventStatus(e) !== 'terminado';
+      });
       var el = document.createElement('button');
       el.className = 'cam dir' + (camSel === c.id ? ' sel' : '');
       el.innerHTML = CAM_SVG +
-        '<div class="cam-info"><b>' + c.name + '</b>' +
+        '<div class="cam-info"><b>' +
+        (favs[c.id] ? '<span class="tier">♥</span> ' : '') + c.name + '</b>' +
         '<small>' + CITY_LABELS[c.city] + ' · ' + c.desc + '</small>' +
         '<span class="cam-stats">★ ' + c.rating.toFixed(1) + '/6 · ' + c.videos +
           ' vídeos · <span class="tier">' + priceTier(c.price) + '</span></span>' +
         '<span class="cam-extra">' +
-          (evs.length ? 'Graba en: ' + evs.join(' · ') : 'Sin eventos próximos') +
+          (evs.length ? 'Próximos eventos — toca uno para apuntarte con él:'
+                      : 'Sin eventos próximos') + '</span>' +
+        '<span class="cam-evts">' +
+          evs.map(function(e){
+            return '<span class="mini-evt" data-ev="' + e.id + '">' + e.name +
+              '<span class="me-when">' + e.when + ' · ' + evHours(e) + '</span></span>';
+          }).join('') +
+          '<span class="act" data-fav="' + c.id + '">' +
+            (favs[c.id] ? '♥ En favoritos · quitar' : '♥ Me interesa grabar contigo') +
           '</span>' +
+        '</span>' +
         '</div>';
       el.addEventListener('click', function(){
         camSel = (camSel === c.id) ? null : c.id;   // tap: seleccionar / soltar
         renderCamDir();
       });
       box.appendChild(el);
+    });
+    /* taps internos de la card expandida, sin plegarla */
+    box.querySelectorAll('.mini-evt').forEach(function(me){
+      me.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        openEvent(EVENTS_BY_ID[me.dataset.ev]);
+      });
+    });
+    box.querySelectorAll('[data-fav]').forEach(function(fb){
+      fb.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        var id = fb.dataset.fav;
+        if(favs[id]) delete favs[id]; else favs[id] = true;
+        save('cilap-favs', favs);
+        renderCamDir();
+      });
     });
     $('#camDirEmpty').style.display = list.length ? 'none' : 'flex';
   }
@@ -1524,17 +1819,43 @@ body{
     var box = $('#mineList');
     box.innerHTML = '';
     if(dancer){
-      MY_DANCES.forEach(function(d){
+      MY_DANCES.forEach(function(d, i){
         var ev = EVENTS_BY_ID[d.eventId], cam = CAMS_BY_ID[d.camId];
         var st = DANCE_STATUS[d.status];
+        var p = d.partner;
+        var linkHtml;
+        if(p.link === 'ok')           linkHtml = '<span class="lk ok">Pareja vinculada ✓</span>';
+        else if(p.link === 'pending') linkHtml = '<span class="lk pend">Esperando confirmación de ' + p.name + '</span>';
+        else                          linkHtml = '<button class="linkbtn" data-link="' + i + '">Vincular pareja</button>';
         var el = document.createElement('div');
         el.className = 'dance';
         el.innerHTML =
           '<b>' + d.song + '</b>' +
           '<span class="dmeta">' + ev.name + ' · ' + d.date + '</span>' +
-          '<span class="dinfo">Te grabó ' + cam.name + ' · bailaste con ' + d.partner + '</span>' +
+          '<span class="dinfo">Te grabó ' + cam.name + ' · bailaste con ' + p.name + '</span>' +
+          '<span class="linkrow">' + linkHtml + '</span>' +
           '<span class="st ' + st.cls + '">' + st.txt + '</span>';
         box.appendChild(el);
+      });
+      /* vincular pareja: basta su correo; queda pendiente de que ELLA confirme
+         el baile (la verificación real se construirá más adelante) */
+      box.querySelectorAll('[data-link]').forEach(function(lb){
+        lb.addEventListener('click', function(){
+          var d = MY_DANCES[Number(lb.dataset.link)];
+          var row = lb.parentElement;
+          row.innerHTML =
+            '<span class="linkform">' +
+            '<input type="email" placeholder="correo de ' + d.partner.name + '">' +
+            '<button class="linkbtn">Enviar</button></span>';
+          row.querySelector('input').focus();
+          row.querySelector('.linkbtn').addEventListener('click', function(){
+            var val = row.querySelector('input').value.trim();
+            if(!val || val.indexOf('@') === -1) return;
+            d.partner.email = val;
+            d.partner.link = 'pending';
+            renderMine();
+          });
+        });
       });
     } else {
       MY_SESSIONS.forEach(function(s){

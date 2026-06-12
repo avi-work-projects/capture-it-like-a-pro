@@ -179,6 +179,7 @@ Cada paso elegido queda como breadcrumb pulsable arriba.
 | name | string | |
 | email | string | para recibir el WeTransfer |
 | profiles | `{ cam?, dancer? }` | ✅ DECIDIDO: una misma cuenta puede tener AMBOS perfiles y moverse libremente por el menú. El registro en sí queda fuera del MVP. |
+| balance | number € | saldo del bailarín para reservas y colas. Mock: 20 € de regalo en localStorage; la recarga real es futura. |
 
 **CAM (camarógrafo)** — perfil público
 | Campo | Tipo | Notas |
@@ -190,12 +191,14 @@ Cada paso elegido queda como breadcrumb pulsable arriba.
 | rating | number 0-6 | ✅ DECIDIDO: media de las notas de los bailarines; cada voto es un ENTERO de 0 a 6 (futura entidad VOTE: dancerId, camId, value 0-6) |
 | videos | int | nº de vídeos entregados (sube con cada sesión) |
 | price | number € | ✅ DECIDIDO: lo declara el camarógrafo, mínimo 4 y máximo 20 €. **Derivado**: tier `$` (<7) / `$$` (7-12) / `$$$` (>12) |
+| reserve | 0 € \| 2 € | ✅ DECIDIDO: coste de "Reservar plaza", lo elige el camarógrafo (gratis o 2 €). Al apuntarse a la cola se DESCUENTA de la tasa. |
 
 **EVENT**
 | Campo | Tipo | Notas |
 |---|---|---|
 | id | string | |
-| name, venue, when | string | `when` pasará a datetime real |
+| name, venue, when | string | `when` = día; el horario va aparte |
+| startsAt / endsAt | datetime | ✅ hora de inicio y fin (por defecto en la ficha del evento). Estado **derivado**: `previo` / `directo` / `terminado` |
 | country / city | ref | filtros en cascada |
 | type | `sala` \| `congreso` \| `exterior` | |
 | sub | `terraza` \| `playa` \| `parque` | **solo si type=exterior** |
@@ -209,7 +212,7 @@ Cada paso elegido queda como breadcrumb pulsable arriba.
 | dancerId | ref USER | (mock: siempre "tú") |
 | date | date | |
 | song | string | título identificado por AudD en directo |
-| partner | string | con quién bailaste ❓ (¿ref USER si la pareja también usa la app?) |
+| partner | `{name, email?, link}` | ✅ DECIDIDO: opcionalmente VINCULABLE a otro usuario introduciendo su correo. `link`: `none` (solo texto) → `pending` (correo enviado, falta que la pareja CONFIRME el baile) → `confirmed`. El flujo de confirmación se construirá más adelante; la UI ya lo presenta. |
 | status | `pendiente` → `enviado` → `recibido` | el vídeo viaja por WeTransfer, NUNCA se almacena en la app |
 
 **SESSION (sesión de grabación)** → alimenta "Mis sesiones" del camarógrafo
@@ -226,12 +229,20 @@ Cada paso elegido queda como breadcrumb pulsable arriba.
 - SESSION es agregable desde DANCE (couples = nº de DANCEs de ese cam en ese
   evento) ❓ — ¿mantenemos ambas o derivamos SESSION al vuelo?
 
+**Entidades nuevas del flujo "apuntarse con un camarógrafo"** (mock en localStorage):
+
+| Entidad | Campos | Notas |
+|---|---|---|
+| FAVORITE | dancerId, camId | "Me interesa grabar contigo" → el cam sale arriba del directorio con ♥ |
+| RESERVATION | dancerId, camId, eventId, amount | solo ANTES del evento; cuesta `CAM.reserve` (0 o 2 €), se cobra del saldo |
+| CHECKIN | camId, eventId, at | "He llegado · abrir cola". ✅ REGLA: solo válido entre `startsAt` y `endsAt` |
+| QUEUE_ENTRY | dancerId, camId, eventId, feePaid | solo si hay CHECKIN del cam. `feePaid = CAM.price − (RESERVATION.amount si existe)` |
+
 ### Dudas abiertas para decidir
-1. ¿`partner` (la persona con la que bailaste) como texto libre o como
-   referencia a otro USER? Con texto libre solo es un apunte informativo;
-   con referencia, el mismo baile aparecería automáticamente también en el
-   "Mis bailes" de tu pareja y el camarógrafo enviaría el vídeo a ambos.
-   (Mientras no haya registro, será texto libre por fuerza.)
+1. Flujo de confirmación de pareja (correo real + pantalla de "confirma este
+   baile") — presentado en UI, pendiente de construir.
+2. Recarga de saldo real (pasarela de pago) — hoy es un número mock de 20 €.
+3. ¿La reserva caduca/se devuelve si el camarógrafo no se presenta al evento?
 
 ---
 
