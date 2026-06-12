@@ -178,7 +178,7 @@ Cada paso elegido queda como breadcrumb pulsable arriba.
 | id | string | |
 | name | string | |
 | email | string | para recibir el WeTransfer |
-| role | `cam` \| `dancer` | un mismo usuario podría ser ambos ❓ |
+| profiles | `{ cam?, dancer? }` | ✅ DECIDIDO: una misma cuenta puede tener AMBOS perfiles y moverse libremente por el menú. El registro en sí queda fuera del MVP. |
 
 **CAM (camarógrafo)** — perfil público
 | Campo | Tipo | Notas |
@@ -187,9 +187,9 @@ Cada paso elegido queda como breadcrumb pulsable arriba.
 | name | string | |
 | city | ref CITY | localización base, para el filtro del directorio |
 | desc | string | una línea de venta ("4K · entrega 48h") |
-| rating | number 0-5 | popularidad ❓ (¿estrellas de usuarios o nº de "me gusta"?) |
+| rating | number 0-6 | ✅ DECIDIDO: media de las notas de los bailarines; cada voto es un ENTERO de 0 a 6 (futura entidad VOTE: dancerId, camId, value 0-6) |
 | videos | int | nº de vídeos entregados (sube con cada sesión) |
-| price | number € | precio medio por vídeo. **Derivado**: tier `$` (<7) / `$$` (7-12) / `$$$` (>12) |
+| price | number € | ✅ DECIDIDO: lo declara el camarógrafo, mínimo 4 y máximo 20 €. **Derivado**: tier `$` (<7) / `$$` (7-12) / `$$$` (>12) |
 
 **EVENT**
 | Campo | Tipo | Notas |
@@ -227,10 +227,11 @@ Cada paso elegido queda como breadcrumb pulsable arriba.
   evento) ❓ — ¿mantenemos ambas o derivamos SESSION al vuelo?
 
 ### Dudas abiertas para decidir
-1. ¿`rating` lo puntúan los bailarines tras recibir su vídeo (1-5★)?
-2. ¿`price` lo declara el camarógrafo o se calcula de precios por evento?
-3. ¿Una persona puede tener los dos roles a la vez (cambiar sin cerrar sesión)?
-4. ¿`partner` como texto libre o como referencia a otro usuario de la app?
+1. ¿`partner` (la persona con la que bailaste) como texto libre o como
+   referencia a otro USER? Con texto libre solo es un apunte informativo;
+   con referencia, el mismo baile aparecería automáticamente también en el
+   "Mis bailes" de tu pareja y el camarógrafo enviaría el vídeo a ambos.
+   (Mientras no haya registro, será texto libre por fuerza.)
 
 ---
 

@@ -1008,8 +1008,9 @@ body{
 
   /* ════════════════════════ MODELO DE DATOS (mock) ════════════════════
      Entidades y relaciones (detalle completo en PROYECTO.md):
-       CAM (camarógrafo): id, name, city, desc, rating (popularidad 0-5),
-            videos (nº entregados), price (€ medio/vídeo → tier $/$$/$$$).
+       CAM (camarógrafo): id, name, city, desc, rating (media de notas
+            enteras 0-6), videos (nº entregados), price (€/vídeo declarado
+            por el camarógrafo, 4-20 → tier $/$$/$$$).
        EVENT: id, name, country, city, type, sub (solo exterior), venue,
             when, camIds[] → referencia a CAM.
        DANCE (baile grabado, para "Mis bailes"): eventId→EVENT, camId→CAM,
@@ -1023,15 +1024,17 @@ body{
   var TYPE_LABELS = { sala:'Salas de baile', congreso:'Congresos', exterior:'Al exterior' };
   var SUB_LABELS  = { all:'Todos', terraza:'Terraza', playa:'Playa', parque:'Parque' };
 
+  /* rating = media de notas ENTERAS 0-6 de los bailarines;
+     price = lo declara el camarógrafo (mín 4 € · máx 20 €) */
   var CAMS = [
-    { id:'juan',   name:'Juan Pérez',     city:'mad', desc:'5 años de experiencia · 4K',        rating:4.8, videos:132, price:9 },
-    { id:'ana',    name:'Ana López',      city:'mad', desc:'Estilo cinematográfico',            rating:4.9, videos:87,  price:14 },
-    { id:'carlos', name:'Carlos Ruiz',    city:'mad', desc:'Estabilizador pro · entrega 48h',   rating:4.5, videos:210, price:6 },
-    { id:'lucia',  name:'Lucía Martín',   city:'bcn', desc:'Vídeos en 48h',                     rating:4.7, videos:64,  price:8 },
-    { id:'david',  name:'David Soto',     city:'bcn', desc:'2 cámaras',                         rating:4.2, videos:45,  price:5 },
-    { id:'marta',  name:'Marta Gil',      city:'sev', desc:'Equipo doble · drones',             rating:5.0, videos:156, price:15 },
-    { id:'piotr',  name:'Piotr Nowak',    city:'waw', desc:'Slow-motion · 4K',                  rating:4.4, videos:38,  price:6 },
-    { id:'magda',  name:'Magda Kowalska', city:'kra', desc:'Multicámara',                       rating:4.6, videos:71,  price:10 }
+    { id:'juan',   name:'Juan Pérez',     city:'mad', desc:'5 años de experiencia · 4K',        rating:5.5, videos:132, price:9 },
+    { id:'ana',    name:'Ana López',      city:'mad', desc:'Estilo cinematográfico',            rating:5.7, videos:87,  price:14 },
+    { id:'carlos', name:'Carlos Ruiz',    city:'mad', desc:'Estabilizador pro · entrega 48h',   rating:5.2, videos:210, price:6 },
+    { id:'lucia',  name:'Lucía Martín',   city:'bcn', desc:'Vídeos en 48h',                     rating:5.4, videos:64,  price:8 },
+    { id:'david',  name:'David Soto',     city:'bcn', desc:'2 cámaras',                         rating:4.8, videos:45,  price:5 },
+    { id:'marta',  name:'Marta Gil',      city:'sev', desc:'Equipo doble · drones',             rating:5.9, videos:156, price:15 },
+    { id:'piotr',  name:'Piotr Nowak',    city:'waw', desc:'Slow-motion · 4K',                  rating:5.0, videos:38,  price:6 },
+    { id:'magda',  name:'Magda Kowalska', city:'kra', desc:'Multicámara',                       rating:5.3, videos:71,  price:10 }
   ];
   var CAMS_BY_ID = {};
   CAMS.forEach(function(c){ CAMS_BY_ID[c.id] = c; });
@@ -1475,7 +1478,7 @@ body{
       el.innerHTML = CAM_SVG +
         '<div class="cam-info"><b>' + c.name + '</b>' +
         '<small>' + CITY_LABELS[c.city] + ' · ' + c.desc + '</small>' +
-        '<span class="cam-stats">★ ' + c.rating.toFixed(1) + ' · ' + c.videos +
+        '<span class="cam-stats">★ ' + c.rating.toFixed(1) + '/6 · ' + c.videos +
           ' vídeos · <span class="tier">' + priceTier(c.price) + '</span></span>' +
         '<span class="cam-extra">' +
           (evs.length ? 'Graba en: ' + evs.join(' · ') : 'Sin eventos próximos') +
