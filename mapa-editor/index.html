@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#050505">
+<title>Editor de mapa · Capture it like a pro</title>
+<style>
+:root{
+  --body:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --mono:'Cascadia Mono', Consolas, 'SF Mono', 'Roboto Mono', monospace;
+  --ease:cubic-bezier(.22,.9,.3,1);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:#000;font-family:var(--body);overflow:hidden}
+
+.app{
+  --bg:#050505;
+  --surface:#101010;
+  --surface-2:#181818;
+  --line:#262626;
+  --text:#f2f2f2;
+  --muted:#7e7e7e;
+  --accent:#3da9ff;
+  --accent-glow:rgba(61,169,255,.30);
+  /* colores por tipo de elemento */
+  --c-acceso:#c6ff00;
+  --c-columna:#9a9a9a;
+  --c-cam:#ffd60a;
+  --c-dj:#c46bff;
+  --c-bar:#3da9ff;
+  --c-esc:#ff9f0a;
+  --c-gen:#f2f2f2;
+
+  position:relative;
+  width:100%;max-width:430px;height:100dvh;margin:0 auto;
+  background:var(--bg);color:var(--text);
+  overflow:hidden;
+  display:flex;flex-direction:column;
+}
+.app::before{
+  content:'';position:absolute;inset:0;
+  background-color:var(--accent);opacity:.12;
+  -webkit-mask-image:radial-gradient(120% 46% at 50% -8%, #000, transparent 62%);
+  mask-image:radial-gradient(120% 46% at 50% -8%, #000, transparent 62%);
+  pointer-events:none;
+}
+@media (min-width:768px){
+  body{display:flex;align-items:center;justify-content:center;min-height:100vh}
+  .app{height:min(844px,94vh);border:1px solid #262626;border-radius:28px;box-shadow:0 40px 120px rgba(0,0,0,.7)}
+}
+
+/* ───────────── CABECERA ───────────── */
+header{
+  position:relative;z-index:2;
+  padding:calc(12px + env(safe-area-inset-top)) 18px 8px;
+  display:flex;align-items:center;gap:10px;
+}
+header h1{
+  flex:1;
+  font-family:var(--mono);font-size:13px;font-weight:600;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--text);
+}
+header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-align:2px}
+.hd-btn{
+  background:var(--surface);border:1px solid var(--line);border-radius:9px;
+  color:var(--text);font-family:var(--mono);font-size:12px;letter-spacing:.06em;
+  padding:7px 11px;cursor:pointer;text-decoration:none;display:inline-block;
+}
+.hd-btn:active{transform:scale(.96)}
+
+.name-row{position:relative;z-index:2;padding:0 18px 8px}
+.name-row input{
+  width:100%;background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  color:var(--text);font-family:var(--mono);font-size:13px;letter-spacing:.05em;
+  padding:8px 12px;outline:none;
+}
+.name-row input:focus{border-color:var(--accent)}
+.name-row input::placeholder{color:var(--muted)}
+
+/* ───────────── PIEZAS DE SALA ───────────── */
+.shapes-row{position:relative;z-index:2;display:flex;align-items:center;gap:8px;padding:0 18px 8px}
+.shapes-row .rl{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;writing-mode:vertical-rl;transform:rotate(180deg)}
+.shapes{display:flex;gap:8px;flex:1}
+.shape-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:6px 2px 4px;cursor:pointer;color:var(--muted);
+  transition:border-color .2s,color .2s;
+}
+.shape-btn svg{width:24px;height:24px;display:block}
+.shape-btn svg .fl{fill:none;stroke:currentColor;stroke-width:7}
+.shape-btn span{font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase}
+.shape-btn:active{border-color:var(--accent);color:var(--accent)}
+
+/* ───────────── LIENZO ───────────── */
+.canvas-wrap{position:relative;z-index:1;flex:1;min-height:0;padding:0 18px}
+#canvas{
+  position:relative;width:100%;height:100%;
+  background:var(--surface);
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size:11.11% 11.11%;
+  border:1px solid var(--line);border-radius:14px;
+  overflow:hidden;touch-action:none;
+}
+#floor{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+/* unión visual de piezas: trazos debajo, rellenos opacos encima →
+   las líneas interiores quedan tapadas y solo se ve la silueta exterior */
+#floor .pst{fill:none;stroke:var(--accent);stroke-width:4;vector-effect:non-scaling-stroke;filter:drop-shadow(0 0 7px var(--accent-glow))}
+#floor .pfl{fill:#161616;pointer-events:auto;cursor:grab}
+#floor .psel{fill:none;stroke:#fff;stroke-width:1.5;stroke-dasharray:6 5;vector-effect:non-scaling-stroke;pointer-events:none}
+
+/* elementos colocados */
+.el{
+  position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1px;
+  cursor:grab;touch-action:none;user-select:none;
+  color:var(--el-c);
+}
+.el:active{cursor:grabbing}
+.el .ic{
+  position:relative;
+  width:30px;height:30px;border-radius:9px;
+  background:var(--surface-2);border:1.5px solid var(--el-c);
+  display:flex;align-items:center;justify-content:center;
+  transform:rotate(var(--rot,0deg));
+  transition:transform .15s var(--ease);
+}
+.el .ic svg{width:17px;height:17px;display:block;stroke:var(--el-c);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.el .lb{
+  font-family:var(--mono);font-size:7.5px;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--el-c);opacity:.85;pointer-events:none;max-width:70px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.el.t-columna .ic{border-radius:50%}
+.el.t-gen_circulo .ic{border-radius:50%}
+/* escenario: rectángulo más grande que el resto */
+.el.t-escenario{width:66px;margin-left:-33px}
+.el.t-escenario .ic{width:60px;height:26px;border-radius:6px}
+/* cámara: baliza roja parpadeante para localizarla de un vistazo */
+.el.t-camarografo .ic{animation:camHalo 1.4s ease-in-out infinite}
+@keyframes camHalo{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,59,48,0)}
+  50%{box-shadow:0 0 16px 5px rgba(255,59,48,.8)}
+}
+.el.t-camarografo .ic::after{
+  content:'';position:absolute;top:-4px;right:-4px;width:9px;height:9px;border-radius:50%;
+  background:#ff3b30;box-shadow:0 0 6px rgba(255,59,48,.9);
+  animation:camDot 1.4s steps(2,jump-none) infinite;
+}
+@keyframes camDot{0%,49%{opacity:1}50%,100%{opacity:.12}}
+.el.sel .ic{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--el-c),0 0 16px var(--el-c)}
+.el.dragging{opacity:.85;z-index:10}
+
+/* fantasma al arrastrar desde la paleta */
+#ghost{
+  position:fixed;z-index:99;width:44px;height:44px;margin:-22px 0 0 -22px;
+  pointer-events:none;display:none;opacity:.9;
+}
+
+/* ───────────── BARRA DE SELECCIÓN ───────────── */
+.sel-bar{
+  position:relative;z-index:2;
+  display:flex;align-items:center;gap:6px;
+  padding:7px 18px 0;min-height:42px;
+}
+.sel-bar .info{
+  flex:1;min-width:0;font-family:var(--mono);font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.sel-bar .info b{color:var(--text);font-weight:600}
+.sel-bar button{
+  background:var(--surface);border:1px solid var(--line);border-radius:8px;
+  color:var(--text);font-family:var(--mono);font-size:11px;letter-spacing:.03em;
+  padding:6px 9px;cursor:pointer;display:none;flex:none;
+}
+.sel-bar button:active{transform:scale(.95)}
+.sel-bar #btn-del{color:#ff3b30;border-color:rgba(255,59,48,.4)}
+
+/* ───────────── PALETA ───────────── */
+.palette{
+  position:relative;z-index:2;
+  display:grid;grid-template-columns:repeat(5,1fr);gap:7px;
+  padding:7px 18px 4px;
+}
+.pal-item{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:var(--surface);border:1px solid var(--line);border-radius:11px;
+  padding:7px 2px 5px;cursor:grab;touch-action:none;user-select:none;
+  color:var(--pal-c);
+}
+.pal-item:active{cursor:grabbing}
+.pal-item .ic{
+  width:26px;height:26px;border-radius:8px;
+  background:var(--surface-2);border:1.5px solid var(--pal-c);
+  display:flex;align-items:center;justify-content:center;
+}
+.pal-item[data-type="columna"] .ic,
+.pal-item[data-type="gen_circulo"] .ic{border-radius:50%}
+.pal-item .ic svg{width:15px;height:15px;stroke:var(--pal-c);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.pal-item span{font-family:var(--mono);font-size:7.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--pal-c)}
+.pal-hint{
+  font-family:var(--mono);font-size:8.5px;color:var(--muted);letter-spacing:.06em;
+  text-align:center;padding:2px 18px 4px;
+}
+
+/* ───────────── PIE ───────────── */
+footer{
+  position:relative;z-index:2;
+  display:flex;gap:8px;
+  padding:4px 18px calc(12px + env(safe-area-inset-bottom));
+}
+footer button{
+  flex:1;background:var(--surface);border:1px solid var(--line);border-radius:11px;
+  color:var(--text);font-family:var(--mono);font-size:11px;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;padding:10px 0;cursor:pointer;
+}
+footer button:active{transform:scale(.97)}
+footer #btn-save{border-color:var(--accent);color:var(--accent)}
+footer #btn-clear{color:var(--muted)}
+
+/* ───────────── PANEL MIS MAPAS ───────────── */
+#maps-panel{
+  position:absolute;inset:0;z-index:60;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(2px);
+  display:flex;align-items:flex-end;
+  opacity:0;pointer-events:none;transition:opacity .2s var(--ease);
+}
+#maps-panel.open{opacity:1;pointer-events:auto}
+#maps-panel .sheet{
+  width:100%;max-height:70%;overflow:auto;
+  background:var(--bg);border-top:1px solid var(--line);
+  border-radius:18px 18px 0 0;
+  padding:14px 18px calc(18px + env(safe-area-inset-bottom));
+  transform:translateY(12px);transition:transform .2s var(--ease);
+}
+#maps-panel.open .sheet{transform:translateY(0)}
+.sheet-head{
+  display:flex;align-items:center;justify-content:space-between;
+  font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--text);
+  text-transform:uppercase;padding-bottom:10px;
+}
+.sheet-head button{
+  background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;padding:4px 8px;
+}
+.map-row{
+  display:flex;align-items:center;gap:10px;
+  background:var(--surface);border:1px solid var(--line);border-radius:11px;
+  padding:10px 12px;margin-bottom:8px;cursor:pointer;
+}
+.map-row.current{border-color:var(--accent)}
+.map-row .mn{flex:1;min-width:0;font-family:var(--mono);font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.map-row .md{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.05em}
+.map-row .mx{background:none;border:none;color:#ff3b30;font-size:13px;cursor:pointer;padding:4px 6px}
+#maps-new{
+  width:100%;background:var(--surface);border:1px dashed var(--line);border-radius:11px;
+  color:var(--accent);font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;padding:11px 0;cursor:pointer;margin-top:2px;
+}
+.maps-empty{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.06em;padding:6px 2px 10px}
+
+/* aviso flotante */
+#toast{
+  position:absolute;left:50%;bottom:130px;transform:translateX(-50%) translateY(8px);
+  background:var(--surface-2);border:1px solid var(--accent);border-radius:10px;
+  color:var(--text);font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+  padding:9px 16px;opacity:0;pointer-events:none;z-index:50;
+  transition:opacity .25s var(--ease),transform .25s var(--ease);
+  white-space:nowrap;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <header>
+    <a class="hd-btn" href="../" title="Volver a la app">←</a>
+    <h1>Editor de mapa</h1>
+    <!-- TEMPORAL: recarga rápida para pruebas en el móvil (quitar al acabar) -->
+    <button class="hd-btn" onclick="location.href=location.pathname+'?r='+Date.now()" title="Recargar">⟳</button>
+    <button class="hd-btn" id="btn-maps">Mapas</button>
+  </header>
+
+  <div class="name-row">
+    <input id="map-name" type="text" placeholder="Nombre de la sala (p. ej. Sala principal)" maxlength="40">
+  </div>
+
+  <div class="shapes-row">
+    <span class="rl">Añadir pieza</span>
+    <div class="shapes" id="shapes">
+      <button class="shape-btn" data-kind="rect">
+        <svg viewBox="0 0 100 100"><rect class="fl" x="12" y="22" width="76" height="56"/></svg>
+        <span>Rect</span>
+      </button>
+      <button class="shape-btn" data-kind="ele">
+        <svg viewBox="0 0 100 100"><path class="fl" d="M22 14 H58 V52 H86 V86 H22 Z"/></svg>
+        <span>En L</span>
+      </button>
+      <button class="shape-btn" data-kind="te">
+        <svg viewBox="0 0 100 100"><path class="fl" d="M14 16 H86 V44 H64 V86 H36 V44 H14 Z"/></svg>
+        <span>En T</span>
+      </button>
+      <button class="shape-btn" data-kind="semi">
+        <svg viewBox="0 0 100 100"><path class="fl" d="M14 78 A36 44 0 0 1 86 78 Z"/></svg>
+        <span>Semi</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="canvas-wrap">
+    <div id="canvas">
+      <svg id="floor" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+
+  <div class="sel-bar" id="sel-bar">
+    <div class="info" id="sel-info"></div>
+    <button id="btn-text">Aa</button>
+    <button id="btn-rot">⟳</button>
+    <button id="btn-wm">An−</button>
+    <button id="btn-wp">An+</button>
+    <button id="btn-hm">Al−</button>
+    <button id="btn-hp">Al+</button>
+    <button id="btn-del">✕</button>
+  </div>
+
+  <div class="palette" id="palette"></div>
+  <div class="pal-hint">Piezas: toca para añadir y arrastra para componer la sala · Elementos: arrastra al plano o toca</div>
+
+  <footer>
+    <button id="btn-save">Guardar</button>
+    <button id="btn-export">Copiar JSON</button>
+    <button id="btn-clear">Limpiar</button>
+  </footer>
+
+  <div id="maps-panel">
+    <div class="sheet">
+      <div class="sheet-head"><span>Mis mapas</span><button id="maps-close">✕</button></div>
+      <div id="maps-list"></div>
+      <button id="maps-new">+ Nuevo mapa</button>
+    </div>
+  </div>
+
+  <div id="ghost"></div>
+  <div id="toast"></div>
+</div>
+
+<script>
+'use strict';
+/* ══════════════════════════════════════════════════════════════
+   EDITOR DE MAPA — módulo independiente (v0.2)
+   Sin dependencias. Pensado para integrarse luego en index.html.
+
+   Modelo: { id, name,
+             pieces:[{id,kind,x,y,w,h,rot}],      ← planta componible
+             elements:[{id,type,x,y,rot,text?}] } ← objetos encima
+   x,y centro en % (0–100) del lienzo; w,h en %; rot en grados.
+   La planta se compone solapando piezas: los rellenos opacos se
+   pintan encima de los trazos, así las líneas interiores quedan
+   ocultas y solo se ve la silueta exterior de la unión.
+
+   localStorage:
+     cip_mapa_editor_v1 → borrador de trabajo (autosave)
+     cip_mapas_v1       → biblioteca "Mis mapas" (botón Guardar)
+   ══════════════════════════════════════════════════════════════ */
+
+const DRAFT_KEY = 'cip_mapa_editor_v1';
+const LIB_KEY   = 'cip_mapas_v1';
+
+/* piezas de planta — path unitario (0..1), tamaño % por defecto */
+const PIECES_DEF = {
+  rect:{ label:'Rect',  path:'M0 0 H1 V1 H0 Z',                         w:60, h:50 },
+  ele: { label:'En L',  path:'M0 0 H0.62 V0.5 H1 V1 H0 Z',              w:65, h:60 },
+  te:  { label:'En T',  path:'M0 0 H1 V0.38 H0.66 V1 H0.34 V0.38 H0 Z', w:65, h:60 },
+  semi:{ label:'Semi',  path:'M0 1 A0.5 1 0 0 1 1 1 Z',                 w:60, h:40 }
+};
+
+/* tipos de elemento arrastrables */
+const TYPES = {
+  acceso:     { label:'Acceso',    color:'var(--c-acceso)',
+    icon:'<svg viewBox="0 0 24 24"><path d="M16 4h5v16h-5"/><path d="M3 12h13"/><path d="M6 9l-3 3 3 3"/><path d="M13 9l3 3-3 3"/></svg>' },
+  columna:    { label:'Columna',   color:'var(--c-columna)',
+    icon:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/></svg>' },
+  camarografo:{ label:'Cámara',    color:'var(--c-cam)',
+    icon:'<svg viewBox="0 0 24 24"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="M15 10l6-3v10l-6-3"/></svg>' },
+  dj:         { label:'DJ',        color:'var(--c-dj)',
+    icon:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="1.6"/></svg>' },
+  bar:        { label:'Bar',       color:'var(--c-bar)',
+    icon:'<svg viewBox="0 0 24 24"><path d="M4 5h16l-8 9z"/><path d="M12 14v6"/><path d="M8 20h8"/></svg>' },
+  escenario:  { label:'Escenario', color:'var(--c-esc)',
+    icon:'<svg viewBox="0 0 24 24"><rect x="3" y="10" width="18" height="9" rx="1.5"/><path d="M3 10l9-5 9 5"/></svg>' },
+  gen_estrella:{ label:'Estrella', color:'var(--c-gen)', editable:true,
+    icon:'<svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 5.9-5.3-3-5.3 3 1.2-5.9L3.4 9.3l6-.7Z"/></svg>' },
+  gen_circulo:{ label:'Círculo',   color:'var(--c-gen)', editable:true,
+    icon:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/></svg>' },
+  gen_cuadrado:{ label:'Cuadrado', color:'var(--c-gen)', editable:true,
+    icon:'<svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>' }
+};
+
+function freshMap(){
+  return { id:'m' + Date.now(), name:'',
+           pieces:[{ id:1, kind:'rect', x:50, y:50, w:80, h:85, rot:0 }],
+           elements:[] };
+}
+
+let state = freshMap();
+let selEl = null;        // id de elemento seleccionado
+let selPiece = null;     // id de pieza seleccionada
+let idSeq = 2;
+
+const $ = s => document.querySelector(s);
+const canvas = $('#canvas'), floor = $('#floor'), ghost = $('#ghost');
+
+/* ───────── persistencia ───────── */
+function loadDraft(){
+  try{
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if(!raw) return;
+    let d = JSON.parse(raw);
+    if(!d) return;
+    /* migración desde v0.1 (forma única + salida/entrada separadas) */
+    if(d.shape){
+      const kindMap = { rect:'rect', cuadrado:'rect', ele:'ele', te:'te', ovalo:'semi' };
+      d = { id:'m' + Date.now(), name:d.name || '',
+            pieces:[{ id:1, kind:kindMap[d.shape] || 'rect', x:50, y:50, w:80, h:85, rot:0 }],
+            elements:(d.elements || []).map(e => ({
+              ...e, type:(e.type === 'salida' || e.type === 'entrada') ? 'acceso' : e.type
+            })).filter(e => TYPES[e.type]) };
+    }
+    if(Array.isArray(d.pieces) && Array.isArray(d.elements)){
+      state = d;
+      syncSeq();
+      saveDraft();          // persiste posibles migraciones de formato
+    }
+  }catch(e){}
+}
+function syncSeq(){
+  idSeq = 1 + Math.max(0,
+    ...state.pieces.map(p => p.id),
+    ...state.elements.map(e => e.id));
+}
+function saveDraft(){ localStorage.setItem(DRAFT_KEY, JSON.stringify(state)); }
+function loadLib(){
+  try{ return JSON.parse(localStorage.getItem(LIB_KEY)) || []; }catch(e){ return []; }
+}
+function saveToLibrary(){
+  const lib = loadLib();
+  const snap = JSON.parse(JSON.stringify(state));
+  snap.updated = Date.now();
+  const i = lib.findIndex(m => m.id === state.id);
+  if(i >= 0) lib[i] = snap; else lib.push(snap);
+  localStorage.setItem(LIB_KEY, JSON.stringify(lib));
+  saveDraft();
+  toast('Mapa guardado en Mis mapas');
+}
+
+/* ───────── render de la planta (piezas) ───────── */
+function pieceTransform(p){
+  return 'translate(' + p.x + ' ' + p.y + ') rotate(' + (p.rot||0) +
+         ') scale(' + p.w + ' ' + p.h + ') translate(-0.5 -0.5)';
+}
+function renderFloor(){
+  let strokes = '', fills = '', sel = '';
+  state.pieces.forEach(p => {
+    const d = PIECES_DEF[p.kind].path, tr = pieceTransform(p);
+    strokes += '<path class="pst" d="' + d + '" transform="' + tr + '"/>';
+    fills   += '<path class="pfl" d="' + d + '" transform="' + tr + '" data-id="' + p.id + '"/>';
+    if(p.id === selPiece)
+      sel   += '<path class="psel" d="' + d + '" transform="' + tr + '"/>';
+  });
+  floor.innerHTML = '<g>' + strokes + '</g><g>' + fills + '</g><g>' + sel + '</g>';
+  floor.querySelectorAll('.pfl').forEach(path =>
+    path.addEventListener('pointerdown', ev => startDragPiece(ev, +path.dataset.id, path)));
+}
+
+/* ───────── render de elementos ───────── */
+function renderElements(){
+  canvas.querySelectorAll('.el').forEach(n => n.remove());
+  state.elements.forEach(e => canvas.appendChild(makeNode(e)));
+}
+function makeNode(e){
+  const t = TYPES[e.type];
+  const n = document.createElement('div');
+  n.className = 'el t-' + e.type + (e.id === selEl ? ' sel' : '');
+  n.dataset.id = e.id;
+  n.style.setProperty('--el-c', t.color);
+  n.style.setProperty('--rot', (e.rot||0) + 'deg');
+  n.style.left = e.x + '%';
+  n.style.top  = e.y + '%';
+  n.innerHTML = '<div class="ic">' + t.icon + '</div><div class="lb">' +
+                escapeHtml(e.text || t.label) + '</div>';
+  n.addEventListener('pointerdown', ev => startDragEl(ev, e.id, n));
+  return n;
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+
+/* ───────── barra de selección contextual ───────── */
+function renderSelBar(){
+  const info = $('#sel-info');
+  const show = ids => {
+    ['btn-text','btn-rot','btn-wm','btn-wp','btn-hm','btn-hp','btn-del']
+      .forEach(id => $('#'+id).style.display = ids.includes(id) ? 'block' : 'none');
+  };
+  const e = state.elements.find(x => x.id === selEl);
+  const p = state.pieces.find(x => x.id === selPiece);
+  if(e){
+    const t = TYPES[e.type];
+    info.innerHTML = '<b>' + escapeHtml(e.text || t.label) + '</b>';
+    $('#btn-rot').textContent = '⟳45°';
+    show(t.editable ? ['btn-text','btn-rot','btn-del'] : ['btn-rot','btn-del']);
+  }else if(p){
+    info.innerHTML = '<b>Pieza · ' + PIECES_DEF[p.kind].label + '</b>';
+    $('#btn-rot').textContent = '⟳90°';
+    show(['btn-rot','btn-wm','btn-wp','btn-hm','btn-hp','btn-del']);
+  }else{
+    info.textContent = (state.pieces.length || state.elements.length)
+      ? 'Toca una pieza o elemento para editar'
+      : 'Plano vacío · añade piezas y elementos';
+    show([]);
+  }
+}
+function select(elId, pieceId){
+  selEl = elId; selPiece = pieceId;
+  canvas.querySelectorAll('.el').forEach(n =>
+    n.classList.toggle('sel', +n.dataset.id === elId));
+  renderFloor();          // repinta el contorno de selección de pieza
+  renderSelBar();
+}
+
+/* ───────── acciones de la barra ───────── */
+$('#btn-rot').addEventListener('click', () => {
+  const e = state.elements.find(x => x.id === selEl);
+  const p = state.pieces.find(x => x.id === selPiece);
+  if(e){
+    e.rot = ((e.rot||0) + 45) % 360;
+    const n = canvas.querySelector('.el[data-id="' + e.id + '"]');
+    if(n) n.style.setProperty('--rot', e.rot + 'deg');
+  }else if(p){
+    p.rot = ((p.rot||0) + 90) % 360;
+    renderFloor();
+  }
+  saveDraft();
+});
+function resizePiece(dw, dh){
+  const p = state.pieces.find(x => x.id === selPiece);
+  if(!p) return;
+  /* si la pieza está girada 90/270°, lo que el usuario ve como ancho es h */
+  const swapped = (p.rot||0) % 180 !== 0;
+  const kw = swapped ? 'h' : 'w', kh = swapped ? 'w' : 'h';
+  p[kw] = Math.min(100, Math.max(12, p[kw] + dw));
+  p[kh] = Math.min(100, Math.max(12, p[kh] + dh));
+  renderFloor();
+  saveDraft();
+}
+$('#btn-wm').addEventListener('click', () => resizePiece(-4, 0));
+$('#btn-wp').addEventListener('click', () => resizePiece( 4, 0));
+$('#btn-hm').addEventListener('click', () => resizePiece(0, -4));
+$('#btn-hp').addEventListener('click', () => resizePiece(0,  4));
+$('#btn-text').addEventListener('click', () => {
+  const e = state.elements.find(x => x.id === selEl);
+  if(!e || !TYPES[e.type].editable) return;
+  const v = prompt('Texto del elemento:', e.text || TYPES[e.type].label);
+  if(v === null) return;
+  e.text = v.trim().slice(0, 24);
+  renderElements();
+  renderSelBar();
+  saveDraft();
+});
+$('#btn-del').addEventListener('click', () => {
+  if(selEl != null) state.elements = state.elements.filter(x => x.id !== selEl);
+  if(selPiece != null) state.pieces = state.pieces.filter(x => x.id !== selPiece);
+  select(null, null);
+  renderElements();
+  saveDraft();
+});
+canvas.addEventListener('pointerdown', ev => {
+  if(ev.target === canvas || ev.target === floor) select(null, null);
+});
+
+/* ───────── drag: piezas de planta ───────── */
+function startDragPiece(ev, id, path){
+  ev.preventDefault();
+  ev.stopPropagation();
+  const p = state.pieces.find(x => x.id === id);
+  if(!p) return;
+  /* seleccionar SIN reconstruir el SVG: el path debe seguir vivo para el drag */
+  selEl = null; selPiece = id;
+  canvas.querySelectorAll('.el').forEach(n => n.classList.remove('sel'));
+  const selGroup = floor.children[2];
+  selGroup.innerHTML = '<path class="psel" d="' + PIECES_DEF[p.kind].path +
+                       '" transform="' + pieceTransform(p) + '"/>';
+  renderSelBar();
+  try{ path.setPointerCapture(ev.pointerId); }catch(e){}
+  const r0 = canvas.getBoundingClientRect();
+  const ox = p.x - (ev.clientX - r0.left) / r0.width  * 100;
+  const oy = p.y - (ev.clientY - r0.top)  / r0.height * 100;
+  const idx = Array.prototype.indexOf.call(path.parentNode.children, path);
+  const strokePath = floor.children[0].children[idx];
+  let moved = false;
+  const onMove = mv => {
+    moved = true;
+    const r = canvas.getBoundingClientRect();
+    p.x = Math.min(98, Math.max(2, ox + (mv.clientX - r.left) / r.width  * 100));
+    p.y = Math.min(98, Math.max(2, oy + (mv.clientY - r.top)  / r.height * 100));
+    p.x = +p.x.toFixed(2); p.y = +p.y.toFixed(2);
+    /* mover solo los transforms es más fluido que reconstruir el SVG */
+    const tr = pieceTransform(p);
+    path.setAttribute('transform', tr);
+    if(strokePath) strokePath.setAttribute('transform', tr);
+    const ps = selGroup.firstChild;
+    if(ps) ps.setAttribute('transform', tr);
+  };
+  const onUp = () => {
+    path.removeEventListener('pointermove', onMove);
+    path.removeEventListener('pointerup', onUp);
+    path.removeEventListener('pointercancel', onUp);
+    if(moved){ renderFloor(); saveDraft(); }
+  };
+  path.addEventListener('pointermove', onMove);
+  path.addEventListener('pointerup', onUp);
+  path.addEventListener('pointercancel', onUp);
+}
+
+/* ───────── drag: elementos colocados ───────── */
+function startDragEl(ev, id, node){
+  ev.preventDefault();
+  ev.stopPropagation();
+  select(id, null);
+  const e = state.elements.find(x => x.id === id);
+  if(!e) return;
+  try{ node.setPointerCapture(ev.pointerId); }catch(err){}
+  node.classList.add('dragging');
+  let moved = false;
+  const onMove = mv => {
+    moved = true;
+    const p = toPct(mv.clientX, mv.clientY);
+    e.x = p.x; e.y = p.y;
+    node.style.left = e.x + '%';
+    node.style.top  = e.y + '%';
+  };
+  const onUp = () => {
+    node.classList.remove('dragging');
+    node.removeEventListener('pointermove', onMove);
+    node.removeEventListener('pointerup', onUp);
+    node.removeEventListener('pointercancel', onUp);
+    if(moved) saveDraft();
+  };
+  node.addEventListener('pointermove', onMove);
+  node.addEventListener('pointerup', onUp);
+  node.addEventListener('pointercancel', onUp);
+}
+function toPct(cx, cy){
+  const r = canvas.getBoundingClientRect();
+  const x = Math.min(96, Math.max(4, (cx - r.left) / r.width  * 100));
+  const y = Math.min(94, Math.max(6, (cy - r.top)  / r.height * 100));
+  return { x:+x.toFixed(2), y:+y.toFixed(2) };
+}
+
+/* ───────── añadir piezas ───────── */
+$('#shapes').addEventListener('click', ev => {
+  const b = ev.target.closest('.shape-btn');
+  if(!b) return;
+  const def = PIECES_DEF[b.dataset.kind];
+  const p = { id:idSeq++, kind:b.dataset.kind, x:50, y:50, w:def.w, h:def.h, rot:0 };
+  state.pieces.push(p);
+  select(null, p.id);
+  saveDraft();
+});
+
+/* ───────── paleta de elementos ───────── */
+const pal = $('#palette');
+Object.entries(TYPES).forEach(([type, t]) => {
+  const b = document.createElement('div');
+  b.className = 'pal-item';
+  b.dataset.type = type;
+  b.style.setProperty('--pal-c', t.color);
+  b.innerHTML = '<div class="ic">' + t.icon + '</div><span>' + t.label + '</span>';
+  b.addEventListener('pointerdown', ev => startDragPal(ev, type, b));
+  pal.appendChild(b);
+});
+
+function startDragPal(ev, type, item){
+  ev.preventDefault();
+  try{ item.setPointerCapture(ev.pointerId); }catch(e){}
+  let moved = false;
+  ghost.innerHTML = '<div class="el t-' + type + '" style="--el-c:' + TYPES[type].color +
+    ';position:static;margin:0"><div class="ic">' + TYPES[type].icon + '</div></div>';
+  const onMove = mv => {
+    if(!moved && Math.hypot(mv.clientX - ev.clientX, mv.clientY - ev.clientY) < 6) return;
+    moved = true;
+    ghost.style.display = 'block';
+    ghost.style.left = mv.clientX + 'px';
+    ghost.style.top  = mv.clientY + 'px';
+  };
+  const onUp = up => {
+    ghost.style.display = 'none';
+    item.removeEventListener('pointermove', onMove);
+    item.removeEventListener('pointerup', onUp);
+    item.removeEventListener('pointercancel', onUp);
+    const r = canvas.getBoundingClientRect();
+    if(moved && up.clientX >= r.left && up.clientX <= r.right &&
+               up.clientY >= r.top  && up.clientY <= r.bottom){
+      addElement(type, toPct(up.clientX, up.clientY));        // soltado sobre el plano
+    }else if(!moved){
+      addElement(type, { x:50, y:50 });                       // toque simple → al centro
+    }
+  };
+  item.addEventListener('pointermove', onMove);
+  item.addEventListener('pointerup', onUp);
+  item.addEventListener('pointercancel', onUp);
+}
+
+function addElement(type, pos){
+  const e = { id:idSeq++, type, x:pos.x, y:pos.y, rot:0 };
+  if(TYPES[type].editable) e.text = '';
+  state.elements.push(e);
+  canvas.appendChild(makeNode(e));
+  select(e.id, null);
+  saveDraft();
+}
+
+/* ───────── nombre y pie ───────── */
+$('#map-name').addEventListener('input', ev => {
+  state.name = ev.target.value;
+  saveDraft();
+});
+$('#btn-save').addEventListener('click', saveToLibrary);
+$('#btn-clear').addEventListener('click', () => {
+  if(confirm('¿Vaciar el plano? Se quitan piezas y elementos.')){
+    state.pieces = [];
+    state.elements = [];
+    select(null, null);
+    renderElements();
+    saveDraft();
+  }
+});
+$('#btn-export').addEventListener('click', async () => {
+  const json = JSON.stringify(state, null, 2);
+  try{
+    await navigator.clipboard.writeText(json);
+    toast('JSON copiado al portapapeles');
+  }catch(e){
+    prompt('Copia el JSON del mapa:', json);
+  }
+});
+
+/* ───────── panel Mis mapas ───────── */
+const panel = $('#maps-panel');
+function renderMapsList(){
+  const lib = loadLib();
+  const list = $('#maps-list');
+  if(!lib.length){
+    list.innerHTML = '<div class="maps-empty">Aún no hay mapas guardados. Usa «Guardar» para añadir el actual.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  lib.slice().sort((a, b) => (b.updated||0) - (a.updated||0)).forEach(m => {
+    const row = document.createElement('div');
+    row.className = 'map-row' + (m.id === state.id ? ' current' : '');
+    const date = m.updated ? new Date(m.updated).toLocaleDateString('es-ES', {day:'numeric', month:'short'}) : '';
+    row.innerHTML =
+      '<span class="mn">' + escapeHtml(m.name || 'Sin nombre') + '</span>' +
+      '<span class="md">' + m.elements.length + ' elem · ' + date + '</span>' +
+      '<button class="mx" title="Borrar">✕</button>';
+    row.addEventListener('click', ev => {
+      if(ev.target.closest('.mx')){
+        if(confirm('¿Borrar «' + (m.name || 'Sin nombre') + '» de Mis mapas?')){
+          localStorage.setItem(LIB_KEY, JSON.stringify(loadLib().filter(x => x.id !== m.id)));
+          renderMapsList();
+        }
+        return;
+      }
+      state = JSON.parse(JSON.stringify(m));
+      syncSeq();
+      select(null, null);
+      $('#map-name').value = state.name || '';
+      renderElements();
+      saveDraft();
+      panel.classList.remove('open');
+      toast('Mapa cargado');
+    });
+    list.appendChild(row);
+  });
+}
+$('#btn-maps').addEventListener('click', () => {
+  renderMapsList();
+  panel.classList.add('open');
+});
+$('#maps-close').addEventListener('click', () => panel.classList.remove('open'));
+panel.addEventListener('click', ev => {
+  if(ev.target === panel) panel.classList.remove('open');
+});
+$('#maps-new').addEventListener('click', () => {
+  if(!confirm('¿Empezar un mapa nuevo? Lo que no esté guardado se pierde.')) return;
+  state = freshMap();
+  idSeq = 2;
+  select(null, null);
+  $('#map-name').value = '';
+  renderElements();
+  saveDraft();
+  panel.classList.remove('open');
+});
+
+/* ───────── toast ───────── */
+let toastTimer = null;
+function toast(msg){
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+/* ───────── arranque ───────── */
+loadDraft();
+$('#map-name').value = state.name || '';
+renderFloor();
+renderElements();
+renderSelBar();
+</script>
+</body>
+</html>

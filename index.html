@@ -226,6 +226,18 @@ body{
   text-transform:uppercase;
 }
 .cards{display:flex;flex-direction:column;gap:14px;flex:1;min-height:0}
+/* acceso al editor de mapas (módulo aparte) desde la escena 01 */
+.map-link{
+  margin-top:14px;width:100%;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  color:#c46bff;font-family:var(--mono);font-size:11px;font-weight:600;
+  letter-spacing:.14em;text-transform:uppercase;
+  padding:12px 0;cursor:pointer;
+  transition:border-color .18s, box-shadow .18s;
+}
+.map-link svg{width:16px;height:16px}
+.map-link:hover,.map-link:active{border-color:#c46bff;box-shadow:0 0 18px rgba(196,107,255,.30)}
 
 /* cards = áreas de enfoque: brackets propios que "enfocan" en hover */
 .card{
@@ -283,13 +295,13 @@ body{
 @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 
 /* ───────────────────────── VISTA 2 ─────────────────────────────────────── */
-.v2-head{display:flex;align-items:flex-start;gap:14px;margin-top:18px}
+/* botones de navegación centrados verticalmente contra el bloque del título */
+.v2-head{display:flex;align-items:center;gap:14px;margin-top:18px}
 .nav-btns{display:flex;flex-direction:column;gap:8px;flex:none}
 .nav-back .icn{width:18px;height:18px;color:currentColor}
 .nav-back{
   flex:none;
   width:42px;height:42px;
-  margin-top:3px;
   display:flex;align-items:center;justify-content:center;
   background:var(--surface);
   border:1px solid var(--line);
@@ -361,6 +373,8 @@ body{
   transition:border-color .15s, color .15s, box-shadow .15s;
 }
 .slot.filled .se,.slot.filled .sx{display:flex}
+/* si el valor ya es "Todas/Todos" no hay nada que quitar: solo editar */
+.slot.allset .sx{display:none}
 .se:hover,.se:active,
 .sx:hover,.sx:active{border-color:var(--accent);color:var(--text);box-shadow:0 0 10px var(--accent-glow)}
 
@@ -743,11 +757,40 @@ body{
   transition:transform .18s var(--ease), border-color .18s, box-shadow .18s,
              background-color .35s, color .35s;
 }
+/* acento lateral por TIPO de evento: sala violeta · congreso azul · exterior ámbar */
+.evt{border-left:3px solid var(--line)}
+.evt.t-sala{border-left-color:#c46bff}
+.evt.t-congreso{border-left-color:#3da9ff}
+.evt.t-exterior{border-left-color:#ffd60a}
 .evt:hover,.evt:active{
   transform:scale(1.02);
   border-color:var(--accent);
   box-shadow:0 0 20px var(--accent-glow);
 }
+.evt.t-sala:hover,.evt.t-sala:active{border-color:#c46bff;box-shadow:0 0 20px rgba(196,107,255,.30)}
+.evt.t-congreso:hover,.evt.t-congreso:active{border-color:#3da9ff;box-shadow:0 0 20px rgba(61,169,255,.30)}
+.evt.t-exterior:hover,.evt.t-exterior:active{border-color:#ffd60a;box-shadow:0 0 20px rgba(255,214,10,.30)}
+/* el tag del tipo en el detalle lleva el mismo código de color */
+.tag2.tt-sala{color:#c46bff;border-color:#c46bff}
+.tag2.tt-congreso{color:#3da9ff;border-color:#3da9ff}
+.tag2.tt-exterior{color:#ffd60a;border-color:#ffd60a}
+.app.light .tag2.tt-exterior{color:#b08900;border-color:#b08900}
+
+/* filtro opcional por fecha (un día o un rango) */
+.datefilter{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.datefilter .ctrl-lbl{width:auto}
+.datefilter input{
+  flex:1;min-width:0;
+  background:var(--surface);
+  border:1px solid var(--line);border-radius:4px;
+  color:var(--text);
+  font-family:var(--mono);font-size:11px;
+  padding:7px 8px;outline:none;
+  color-scheme:dark;
+  transition:border-color .15s, background-color .35s;
+}
+.app.light .datefilter input{color-scheme:light}
+.datefilter input:focus{border-color:var(--accent)}
 .evt-name{
   font-family:var(--opt-font);font-weight:600;
   font-size:15px;letter-spacing:.05em;text-transform:uppercase;
@@ -878,6 +921,10 @@ body{
         <span class="sub">Vengo a bailar</span>
       </button>
     </div>
+    <button class="map-link enter" id="mapaBtn" style="animation-delay:.40s">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6Z"/><path d="M9 4v14M15 6v14"/></svg>
+      Editor de mapas
+    </button>
   </section>
 
   <!-- ════════════════ HUB · ¿QUÉ BUSCAS? ════════════════ -->
@@ -1016,6 +1063,12 @@ body{
     <section class="step result" id="result">
       <div class="loading">Buscando eventos…</div>
       <div class="res">
+        <div class="datefilter">
+          <span class="ctrl-lbl">Fecha</span>
+          <input type="date" id="dateFrom" title="Desde">
+          <input type="date" id="dateTo" title="Hasta">
+          <button class="linkbtn" id="dateClear" title="Quitar filtro de fecha">✕</button>
+        </div>
         <p class="res-count" id="resCount"></p>
         <div class="evts" id="evtList"></div>
         <div class="notice" id="resEmpty" style="display:none">
@@ -1102,6 +1155,10 @@ body{
     <button class="cta" id="checkinBtn" hidden>He llegado · abrir cola</button>
     <p class="act-hint" id="checkinHint" hidden style="margin-top:10px"></p>
   </section>
+
+  <!-- TEMPORAL: recarga rápida para pruebas en el móvil instalado (quitar al acabar) -->
+  <button onclick="location.href=location.pathname+'?r='+Date.now()" title="Recargar la app"
+    style="position:absolute;right:12px;bottom:12px;z-index:999;width:42px;height:42px;border-radius:50%;background:rgba(16,16,16,.88);border:1px solid #3a3a3a;color:#9a9a9a;font-size:19px;line-height:1;cursor:pointer">⟳</button>
 
 </div>
 
@@ -1195,6 +1252,9 @@ body{
   })();
   function pad2(n){ return (n < 10 ? '0' : '') + n; }
   function fmtTime(t){ var d = new Date(t); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+  var DOW = ['dom','lun','mar','mié','jue','vie','sáb'];
+  var MON = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  function fmtDate(t){ var d = new Date(t); return DOW[d.getDay()] + ' ' + d.getDate() + ' ' + MON[d.getMonth()]; }
   function evHours(ev){ return fmtTime(ev.startsAt) + '–' + fmtTime(ev.endsAt); }
   /* estado del evento respecto a ahora: previo | directo | terminado */
   function eventStatus(ev){
@@ -1346,9 +1406,10 @@ body{
       slot.classList.remove('now');
       if(state[key]){
         slot.classList.add('filled');
+        slot.classList.toggle('allset', state[key].value === 'all');
         slot.querySelector('.sv').textContent = state[key].label;
       } else {
-        slot.classList.remove('filled');
+        slot.classList.remove('filled','allset');
         slot.querySelector('.sv').textContent = '—';
         if(!firstEmpty) firstEmpty = slot;
       }
@@ -1360,9 +1421,10 @@ body{
     sp.classList.remove('now');
     if(isExt && state.subtype){
       sp.classList.add('filled');
+      sp.classList.toggle('allset', state.subtype.value === 'all');
       sp.querySelector('.sv').textContent = state.subtype.label;
     } else {
-      sp.classList.remove('filled');
+      sp.classList.remove('filled','allset');
       sp.querySelector('.sv').textContent = '—';
       if(isExt && !firstEmpty) firstEmpty = sp;
     }
@@ -1372,7 +1434,20 @@ body{
      El rol no lleva ✕/✎ a propósito: una vez elegido, no se edita desde aquí. */
   document.querySelectorAll('.slot .sx').forEach(function(btn){
     btn.addEventListener('click', function(){
-      goBackTo(btn.closest('.slot').dataset.key);
+      var key = btn.closest('.slot').dataset.key;
+      /* ciudad y subtipo tienen valor por defecto: la ✕ vuelve a "Todas/Todos"
+         (si ya es "Todas", la ✕ ni se muestra — solo queda editar) */
+      if(key === 'city' && state.city){
+        state.city = { value:'all', label:'Todas' };
+        editing = null; closeAll(); renderPanel(); advance();
+        return;
+      }
+      if(key === 'subtype' && state.subtype){
+        state.subtype = { value:'all', label:'Todos' };
+        editing = null; closeAll(); renderPanel(); advance();
+        return;
+      }
+      goBackTo(key);   // país y tipo no tienen "todas": borrado en cascada
     });
   });
 
@@ -1514,22 +1589,32 @@ body{
 
   function renderResults(){
     var list = EVENTS.filter(function(ev){
+      if(eventStatus(ev) === 'terminado') return false;   // el pasado no se busca
       if(ev.country !== state.country.value) return false;
       if(state.city.value !== 'all' && ev.city !== state.city.value) return false;
       if(ev.type !== state.type.value) return false;
       if(state.subtype && state.subtype.value !== 'all' && ev.sub !== state.subtype.value) return false;
       return true;
     });
+    /* filtro opcional por día o rango de días */
+    var fv = $('#dateFrom').value, tv = $('#dateTo').value;
+    var from = fv ? new Date(fv + 'T00:00:00').getTime() : null;
+    var to   = tv ? new Date(tv + 'T23:59:59').getTime() : null;
+    list = list.filter(function(ev){
+      return (!from || ev.endsAt >= from) && (!to || ev.startsAt <= to);
+    });
+    /* siempre ordenados por fecha, del más próximo al más lejano */
+    list.sort(function(a, b){ return a.startsAt - b.startsAt; });
     var box = $('#evtList');
     box.innerHTML = '';
     list.forEach(function(ev){
       var n = camCountOf(ev);
       var b = document.createElement('button');
-      b.className = 'evt';
+      b.className = 'evt t-' + ev.type;   // acento lateral por tipo
       b.innerHTML =
         '<span class="evt-name">' + ev.name + '</span>' +
-        '<span class="evt-meta">' + ev.venue + ' · ' + ev.when + ' ' + evHours(ev) + ' · ' +
-          CITY_LABELS[ev.city] + '</span>' +
+        '<span class="evt-meta">' + fmtDate(ev.startsAt) + ' · ' + evHours(ev) + ' · ' +
+          ev.venue + ' · ' + CITY_LABELS[ev.city] + '</span>' +
         (eventStatus(ev) === 'directo' ? '<span class="evt-live">Directo</span>' : '') +
         '<span class="evt-cams' + (n ? ' on' : '') + '">CAM ×' + n + '</span>';
       b.addEventListener('click', function(){ openEvent(ev); });
@@ -1539,6 +1624,14 @@ body{
       ? '1 evento encontrado' : list.length + ' eventos encontrados';
     $('#resEmpty').style.display = list.length ? 'none' : 'flex';
   }
+  /* el filtro de fecha re-filtra en vivo */
+  $('#dateFrom').addEventListener('change', renderResults);
+  $('#dateTo').addEventListener('change', renderResults);
+  $('#dateClear').addEventListener('click', function(){
+    $('#dateFrom').value = '';
+    $('#dateTo').value = '';
+    renderResults();
+  });
 
   /* ── vista 3: detalle del evento + camarógrafos ───────────────────── */
   var CAM_SVG = '<svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="M15.5 10.8l6-3.3v9l-6-3.3"/><circle cx="7.5" cy="12" r="2.2"/></svg>';
@@ -1588,12 +1681,12 @@ body{
     var st = eventStatus(ev);
     var soyCam = state.role && state.role.value === 'cam';
     $('#evName').textContent = ev.name;
-    $('#evMeta').textContent = ev.venue + ' · ' + ev.when + ' · ' + evHours(ev);
+    $('#evMeta').textContent = fmtDate(ev.startsAt) + ' · ' + evHours(ev) + ' · ' + ev.venue;
     $('#evTags').innerHTML =
       (st === 'directo'   ? '<span class="tag2 hl">● En directo</span>' : '') +
       (st === 'terminado' ? '<span class="tag2">Terminado</span>' : '') +
       '<span class="tag2">' + CITY_LABELS[ev.city] + '</span>' +
-      '<span class="tag2">' + TYPE_LABELS[ev.type] + '</span>' +
+      '<span class="tag2 tt-' + ev.type + '">' + TYPE_LABELS[ev.type] + '</span>' +
       (ev.sub ? '<span class="tag2 hl">' + SUB_LABELS[ev.sub] + '</span>' : '');
     var cams = ev.camIds.map(function(id){ return CAMS_BY_ID[id]; });
     if(joined[ev.id]) cams = cams.concat({ id:'you', name:'Tú', desc:'Apuntado desde este móvil', you:true });
@@ -1731,6 +1824,9 @@ body{
     renderMine();
     goView('viewMine','ac-lime');
   });
+  $('#mapaBtn').addEventListener('click', function(){
+    location.href = 'mapa-editor/';   // módulo aparte; se integrará más adelante
+  });
 
   /* ── directorio de camarógrafos: ordenar, filtrar, seleccionar ────── */
   var camSort = 'rating', camCity = 'all', camSel = null;
@@ -1764,7 +1860,7 @@ body{
         '<span class="cam-evts">' +
           evs.map(function(e){
             return '<span class="mini-evt" data-ev="' + e.id + '">' + e.name +
-              '<span class="me-when">' + e.when + ' · ' + evHours(e) + '</span></span>';
+              '<span class="me-when">' + fmtDate(e.startsAt) + ' · ' + evHours(e) + '</span></span>';
           }).join('') +
           '<span class="act" data-fav="' + c.id + '">' +
             (favs[c.id] ? '♥ En favoritos · quitar' : '♥ Me interesa grabar contigo') +
