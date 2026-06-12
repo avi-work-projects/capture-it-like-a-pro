@@ -274,8 +274,8 @@ body{
 .card:hover::before,.card:hover::after,
 .card:active::before,.card:active::after{border-color:var(--hac, var(--accent));opacity:1}
 .card:hover .src,.card:active .src{color:var(--hac, var(--accent))}
-/* acentos de las cards de rol */
-.card[data-role="cam"]{--hac:#ff3b30;--hglow:rgba(255,59,48,.30)}
+/* acentos de las cards de rol (el rojo queda reservado al "PRO"/REC) */
+.card[data-role="cam"]{--hac:#ffd60a;--hglow:rgba(255,214,10,.30)}
 .card[data-role="dancer"]{--hac:#c46bff;--hglow:rgba(196,107,255,.30)}
 
 /* entradas con stagger */
@@ -521,7 +521,15 @@ body{
 
 /* ───────────────────────── HUB tras el rol ─────────────────────────────── */
 .hub{display:flex;flex-direction:column;gap:14px;flex:1;min-height:0;margin-top:18px}
-.hub .card.big{flex:1.6}
+/* botón grande: lupa a la izquierda, texto al lado */
+.hub .card.big{
+  flex:1.6;
+  display:grid;
+  grid-template-columns:auto 1fr;
+  grid-template-rows:auto auto;
+  align-content:center;
+  column-gap:16px;row-gap:4px;
+}
 /* los dos botones menores van apilados, repartiéndose el alto de antes */
 .hub-row{display:flex;flex-direction:column;gap:14px;flex:1}
 .hub-row .card{
@@ -534,7 +542,7 @@ body{
   padding:12px 18px;
 }
 .hub-row .card .icn-hub{grid-row:1 / span 2;align-self:center;width:28px;height:28px}
-.hub .card.big .icn-hub{width:24px;height:24px}
+.hub .card.big .icn-hub{grid-row:1 / span 2;align-self:center;width:30px;height:30px}
 .hub-row .card .name{font-size:19px}
 .hub-row .card .sub{font-size:12px}
 /* cada acción del hub tiene su acento: el color de la sección que abre */
