@@ -1158,7 +1158,7 @@ body{
 
   <!-- TEMPORAL: recarga rápida para pruebas en el móvil instalado (quitar al acabar) -->
   <button onclick="location.href=location.pathname+'?r='+Date.now()" title="Recargar la app"
-    style="position:absolute;right:12px;bottom:12px;z-index:999;width:42px;height:42px;border-radius:50%;background:rgba(16,16,16,.88);border:1px solid #3a3a3a;color:#9a9a9a;font-size:19px;line-height:1;cursor:pointer">⟳</button>
+    style="position:absolute;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:999;width:42px;height:42px;border-radius:50%;background:rgba(16,16,16,.88);border:1px solid #3a3a3a;color:#9a9a9a;font-size:19px;line-height:1;cursor:pointer">⟳</button>
 
 </div>
 
