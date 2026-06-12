@@ -281,7 +281,7 @@ body{
 
 /* ───────────────────────── VISTA 2 ─────────────────────────────────────── */
 .v2-head{display:flex;align-items:flex-start;gap:14px;margin-top:18px}
-.nav-btns{display:flex;gap:8px;flex:none}
+.nav-btns{display:flex;flex-direction:column;gap:8px;flex:none}
 .nav-back .icn{width:18px;height:18px;color:currentColor}
 .nav-back{
   flex:none;
@@ -519,12 +519,31 @@ body{
 /* ───────────────────────── HUB tras el rol ─────────────────────────────── */
 .hub{display:flex;flex-direction:column;gap:14px;flex:1;min-height:0;margin-top:18px}
 .hub .card.big{flex:1.6}
-.hub-row{display:flex;gap:14px;flex:1}
-.hub-row .card{flex:1;padding:18px;gap:8px}
+/* los dos botones menores van apilados, repartiéndose el alto de antes */
+.hub-row{display:flex;flex-direction:column;gap:14px;flex:1}
+.hub-row .card{
+  flex:1;
+  display:grid;
+  grid-template-columns:auto 1fr;
+  grid-template-rows:auto auto;
+  align-content:center;
+  column-gap:14px;row-gap:2px;
+  padding:12px 18px;
+}
+.hub-row .card .icn-hub{grid-row:1 / span 2;align-self:center;width:28px;height:28px}
 .hub-row .card .name{font-size:19px}
-.hub-row .card .sub{font-size:12.5px}
-.card .icn-hub{width:34px;height:34px;color:var(--text);transition:color .18s}
-.card:hover .icn-hub,.card:active .icn-hub{color:var(--accent)}
+.hub-row .card .sub{font-size:12px}
+/* cada acción del hub tiene su acento: el color de la sección que abre */
+#hubEvent{--hac:#3da9ff;--hglow:rgba(61,169,255,.30)}   /* azul = país */
+#hubCams {--hac:#ffd60a;--hglow:rgba(255,214,10,.30)}   /* ámbar = directorio */
+#hubMine {--hac:#c6ff00;--hglow:rgba(198,255,0,.30)}    /* lima = historial */
+.card .icn-hub{color:var(--hac, var(--text));transition:color .18s}
+.hub .card:hover,.hub .card:active{
+  border-color:var(--hac);
+  box-shadow:0 0 26px var(--hglow);
+}
+.hub .card:hover::before,.hub .card:hover::after,
+.hub .card:active::before,.hub .card:active::after{border-color:var(--hac)}
 
 /* ───────────────────────── directorio de camarógrafos ──────────────────── */
 .ctrl{display:flex;align-items:center;gap:10px;margin-top:12px}
@@ -790,8 +809,8 @@ body{
   <section class="view hidden" id="view2">
     <div class="v2-head">
       <div class="nav-btns">
-        <button class="nav-back" id="navBack" title="Subir un nivel">←</button>
         <button class="nav-back" id="homeBtn2" title="Inicio"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10.5V20h12v-9.5"/></svg></button>
+        <button class="nav-back" id="navBack" title="Subir un nivel">←</button>
       </div>
       <div>
         <h2 class="v2-title">Encuentra tu pista</h2>
@@ -903,8 +922,8 @@ body{
   <section class="view hidden" id="viewCams">
     <div class="v2-head">
       <div class="nav-btns">
-        <button class="nav-back" id="camsBack" title="Subir un nivel">←</button>
         <button class="nav-back" id="camsHome" title="Inicio"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10.5V20h12v-9.5"/></svg></button>
+        <button class="nav-back" id="camsBack" title="Subir un nivel">←</button>
       </div>
       <div>
         <h2 class="v2-title">Camarógrafos</h2>
@@ -941,8 +960,8 @@ body{
   <section class="view hidden" id="viewMine">
     <div class="v2-head">
       <div class="nav-btns">
-        <button class="nav-back" id="mineBack" title="Subir un nivel">←</button>
         <button class="nav-back" id="mineHome" title="Inicio"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10.5V20h12v-9.5"/></svg></button>
+        <button class="nav-back" id="mineBack" title="Subir un nivel">←</button>
       </div>
       <div>
         <h2 class="v2-title" id="mineTitle">Mis bailes</h2>
@@ -956,8 +975,8 @@ body{
   <section class="view hidden" id="view3">
     <div class="v2-head">
       <div class="nav-btns">
-        <button class="nav-back" id="backToEvents" title="Volver a la lista">←</button>
         <button class="nav-back" id="homeBtn3" title="Inicio"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10.5V20h12v-9.5"/></svg></button>
+        <button class="nav-back" id="backToEvents" title="Volver a la lista">←</button>
       </div>
       <div>
         <h2 class="v2-title" id="evName">—</h2>
