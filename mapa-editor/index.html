@@ -24,14 +24,18 @@ body{background:#000;font-family:var(--body);overflow:hidden}
   --muted:#7e7e7e;
   --accent:#3da9ff;
   --accent-glow:rgba(61,169,255,.30);
+  /* color por sección (tabs) */
+  --c-estructura:#3da9ff;
+  --c-elementos:#c6ff00;
+  --c-camaras:#ffd60a;
   /* colores por tipo de elemento */
   --c-acceso:#c6ff00;
+  --c-bano:#2dd4bf;
   --c-columna:#9a9a9a;
   --c-cam:#ffd60a;
   --c-dj:#c46bff;
   --c-bar:#3da9ff;
   --c-esc:#ff9f0a;
-  --c-bano:#2dd4bf;
   --c-gen:#f2f2f2;
 
   position:relative;
@@ -80,20 +84,27 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
 .name-row input:focus{border-color:var(--accent)}
 .name-row input::placeholder{color:var(--muted)}
 
-/* ───────────── PIEZAS DE SALA ───────────── */
-.shapes-row{position:relative;z-index:2;display:flex;align-items:center;gap:8px;padding:0 18px 8px}
-.shapes-row .rl{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;writing-mode:vertical-rl;transform:rotate(180deg)}
-.shapes{display:flex;gap:8px;flex:1}
-.shape-btn{
-  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
-  background:var(--surface);border:1px solid var(--line);border-radius:10px;
-  padding:6px 2px 4px;cursor:pointer;color:var(--muted);
-  transition:border-color .2s,color .2s;
+/* ───────────── SECCIONES (tabs) ───────────── */
+.tabs{
+  position:relative;z-index:2;
+  display:flex;gap:6px;padding:0 18px 8px;
 }
-.shape-btn svg{width:24px;height:24px;display:block}
-.shape-btn svg .fl{fill:none;stroke:currentColor;stroke-width:7}
-.shape-btn span{font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase}
-.shape-btn:active{border-color:var(--accent);color:var(--accent)}
+.tab{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  color:var(--muted);font-family:var(--mono);font-size:9.5px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;
+  padding:9px 4px;cursor:pointer;
+  transition:border-color .2s,color .2s,box-shadow .2s;
+}
+.tab svg{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tab .num{
+  width:14px;height:14px;border-radius:50%;border:1px solid currentColor;
+  display:flex;align-items:center;justify-content:center;font-size:8px;flex:none;
+}
+.tab[data-tab="estructura"].is-on{color:var(--c-estructura);border-color:var(--c-estructura);box-shadow:0 0 16px rgba(61,169,255,.30)}
+.tab[data-tab="elementos"].is-on{color:var(--c-elementos);border-color:var(--c-elementos);box-shadow:0 0 16px rgba(198,255,0,.30)}
+.tab[data-tab="camaras"].is-on{color:var(--c-camaras);border-color:var(--c-camaras);box-shadow:0 0 16px rgba(255,214,10,.30)}
 
 /* ───────────── LIENZO ───────────── */
 .canvas-wrap{position:relative;z-index:1;flex:1;min-height:0;padding:0 18px}
@@ -173,37 +184,92 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
   pointer-events:none;display:none;opacity:.9;
 }
 
-/* ───────────── BARRA DE SELECCIÓN ───────────── */
-.sel-bar{
-  position:relative;z-index:2;
-  display:flex;align-items:center;gap:6px;
-  padding:7px 18px 0;min-height:42px;
+/* aviso flotante (dentro del mapa, arriba) */
+#toast{
+  position:absolute;left:50%;top:14px;transform:translateX(-50%) translateY(-8px);
+  background:var(--surface-2);border:1px solid var(--accent);border-radius:10px;
+  color:var(--text);font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+  padding:9px 16px;opacity:0;pointer-events:none;z-index:30;
+  transition:opacity .25s var(--ease),transform .25s var(--ease);
+  white-space:nowrap;
 }
-.sel-bar .info{
-  flex:1;min-width:0;font-family:var(--mono);font-size:10px;letter-spacing:.08em;
-  text-transform:uppercase;color:var(--muted);
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* barra de deshacer — dentro del mapa, abajo, bien visible */
+#undobar{
+  position:absolute;left:50%;bottom:14px;transform:translateX(-50%) translateY(10px);
+  display:flex;align-items:center;gap:12px;
+  background:rgba(18,18,18,.97);border:1.5px solid var(--accent);border-radius:12px;
+  padding:9px 9px 9px 16px;
+  box-shadow:0 10px 30px rgba(0,0,0,.55),0 0 18px var(--accent-glow);
+  opacity:0;pointer-events:none;z-index:31;
+  transition:opacity .22s var(--ease),transform .22s var(--ease);
+  white-space:nowrap;
+}
+#undobar.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+#undobar-txt{font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;color:var(--text)}
+#undobar-btn{
+  background:var(--accent);border:none;border-radius:8px;
+  color:#04121f;font-family:var(--mono);font-size:11px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;padding:8px 14px;cursor:pointer;
+}
+#undobar-btn:active{transform:scale(.95)}
+
+/* ───────────── PANEL DE EDICIÓN (sección separada) ───────────── */
+.edit-panel{
+  position:relative;z-index:2;
+  margin:9px 18px 0;
+  display:none;align-items:center;gap:8px;
+  background:var(--surface);border:1px solid var(--line);
+  border-left:3px solid var(--accent);border-radius:12px;
+  padding:8px 10px;
+}
+.edit-panel.show{display:flex}
+.ep-title{
+  flex:none;max-width:84px;
+  font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--text);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
-.sel-bar .info b{color:var(--text);font-weight:600}
-.sel-bar button{
-  background:var(--surface);border:1px solid var(--line);border-radius:8px;
-  color:var(--text);font-family:var(--mono);font-size:11px;letter-spacing:.03em;
-  padding:6px 9px;cursor:pointer;display:none;flex:none;
+.ep-actions{display:flex;gap:6px;flex:1;justify-content:flex-end}
+.edit-panel button{
+  background:var(--surface-2);border:1px solid var(--line);border-radius:8px;
+  color:var(--text);cursor:pointer;display:none;flex:none;
+  width:32px;height:32px;align-items:center;justify-content:center;padding:0;
 }
-.sel-bar button:active{transform:scale(.95)}
-.sel-bar button svg{width:15px;height:15px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.sel-bar #btn-del{color:#ff3b30;border-color:rgba(255,59,48,.4)}
+.edit-panel button.on{display:flex}
+.edit-panel button:active{transform:scale(.93)}
+.edit-panel button svg{width:16px;height:16px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.edit-panel #btn-del{color:#ff3b30;border-color:rgba(255,59,48,.4)}
 
-/* ───────────── PALETA ───────────── */
-.palette{
-  position:relative;z-index:2;
-  display:grid;grid-template-columns:repeat(5,1fr);gap:7px;
-  padding:7px 18px 4px;
+/* ───────────── CUERPO DE LA SECCIÓN ACTIVA ───────────── */
+.tab-body{position:relative;z-index:2;padding:9px 18px 4px}
+.tab-pane{display:flex;flex-direction:column;gap:7px}
+.tab-pane.hidden{display:none}
+.pane-hint{
+  font-family:var(--mono);font-size:8.5px;color:var(--muted);letter-spacing:.05em;
+  text-align:center;padding-top:2px;line-height:1.5;
 }
+
+/* piezas de estructura */
+.shapes{display:flex;gap:8px}
+.shape-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:7px 2px 5px;cursor:pointer;color:var(--muted);
+  transition:border-color .2s,color .2s;
+}
+.shape-btn svg{width:24px;height:24px;display:block}
+.shape-btn svg .fl{fill:none;stroke:currentColor;stroke-width:7}
+.shape-btn span{font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase}
+.shape-btn:active{border-color:var(--c-estructura);color:var(--c-estructura)}
+
+/* paleta de elementos / cámara */
+.el-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
 .pal-item{
   display:flex;flex-direction:column;align-items:center;gap:3px;
   background:var(--surface);border:1px solid var(--line);border-radius:11px;
-  padding:7px 2px 5px;cursor:grab;touch-action:none;user-select:none;
+  padding:8px 2px 6px;cursor:grab;touch-action:none;user-select:none;
   color:var(--pal-c);
 }
 .pal-item:active{cursor:grabbing}
@@ -215,17 +281,26 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
 .pal-item[data-type="columna"] .ic,
 .pal-item[data-type="gen_circulo"] .ic{border-radius:50%}
 .pal-item .ic svg{width:15px;height:15px;stroke:var(--pal-c);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.pal-item span{font-family:var(--mono);font-size:7.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--pal-c)}
-.pal-hint{
-  font-family:var(--mono);font-size:8.5px;color:var(--muted);letter-spacing:.06em;
-  text-align:center;padding:2px 18px 4px;
+.pal-item span{font-family:var(--mono);font-size:8px;letter-spacing:.03em;text-transform:uppercase;color:var(--pal-c)}
+
+/* subsección "Otros" (figuras genéricas sin texto) */
+.otros{display:flex;align-items:center;gap:10px;margin-top:2px;padding-top:8px;border-top:1px solid var(--line)}
+.otros-lbl{flex:none;font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.otros-row{display:flex;gap:7px;flex:1}
+.pal-item.icon-only{flex:none;width:46px;padding:8px 0}
+
+/* cámara: botón ancho destacado */
+.pal-item.cam-big{
+  flex-direction:row;gap:12px;justify-content:center;padding:13px 2px;
 }
+.pal-item.cam-big .ic{width:30px;height:30px}
+.pal-item.cam-big span{font-size:11px;letter-spacing:.08em}
 
 /* ───────────── PIE ───────────── */
 footer{
   position:relative;z-index:2;
   display:flex;gap:8px;
-  padding:4px 18px calc(12px + env(safe-area-inset-bottom));
+  padding:6px 18px calc(12px + env(safe-area-inset-bottom));
 }
 footer button{
   flex:1;background:var(--surface);border:1px solid var(--line);border-radius:11px;
@@ -275,36 +350,6 @@ footer #btn-clear{color:var(--muted)}
   text-transform:uppercase;padding:11px 0;cursor:pointer;margin-top:2px;
 }
 .maps-empty{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.06em;padding:6px 2px 10px}
-
-/* aviso flotante */
-#toast{
-  position:absolute;left:50%;bottom:130px;transform:translateX(-50%) translateY(8px);
-  background:var(--surface-2);border:1px solid var(--accent);border-radius:10px;
-  color:var(--text);font-family:var(--mono);font-size:11px;letter-spacing:.08em;
-  padding:9px 16px;opacity:0;pointer-events:none;z-index:50;
-  transition:opacity .25s var(--ease),transform .25s var(--ease);
-  white-space:nowrap;
-}
-#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-/* barra de deshacer tras borrar */
-#undobar{
-  position:absolute;left:50%;bottom:130px;transform:translateX(-50%) translateY(8px);
-  display:flex;align-items:center;gap:12px;
-  background:var(--surface-2);border:1px solid var(--line);border-radius:10px;
-  padding:7px 8px 7px 14px;
-  opacity:0;pointer-events:none;z-index:51;
-  transition:opacity .25s var(--ease),transform .25s var(--ease);
-  white-space:nowrap;
-}
-#undobar.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
-#undobar-txt{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--text)}
-#undobar-btn{
-  background:none;border:1px solid var(--accent);border-radius:8px;
-  color:var(--accent);font-family:var(--mono);font-size:11px;font-weight:600;
-  letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;cursor:pointer;
-}
-#undobar-btn:active{transform:scale(.95)}
 </style>
 </head>
 <body>
@@ -322,47 +367,82 @@ footer #btn-clear{color:var(--muted)}
     <input id="map-name" type="text" placeholder="Nombre de la sala (p. ej. Sala principal)" maxlength="40">
   </div>
 
-  <div class="shapes-row">
-    <span class="rl">Añadir pieza</span>
-    <div class="shapes" id="shapes">
-      <button class="shape-btn" data-kind="rect">
-        <svg viewBox="0 0 100 100"><rect class="fl" x="12" y="22" width="76" height="56"/></svg>
-        <span>Rect</span>
-      </button>
-      <button class="shape-btn" data-kind="ele">
-        <svg viewBox="0 0 100 100"><path class="fl" d="M22 14 H58 V52 H86 V86 H22 Z"/></svg>
-        <span>En L</span>
-      </button>
-      <button class="shape-btn" data-kind="te">
-        <svg viewBox="0 0 100 100"><path class="fl" d="M14 16 H86 V44 H64 V86 H36 V44 H14 Z"/></svg>
-        <span>En T</span>
-      </button>
-      <button class="shape-btn" data-kind="semi">
-        <svg viewBox="0 0 100 100"><path class="fl" d="M14 78 A36 44 0 0 1 86 78 Z"/></svg>
-        <span>Semi</span>
-      </button>
-    </div>
+  <!-- ── Tres secciones ── -->
+  <div class="tabs" id="tabs">
+    <button class="tab is-on" data-tab="estructura">
+      <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M4 11h9v8"/></svg>
+      Estructura
+    </button>
+    <button class="tab" data-tab="elementos">
+      <svg viewBox="0 0 24 24"><circle cx="7" cy="7" r="3"/><rect x="14" y="4" width="6" height="6" rx="1"/><path d="M7 14l3 6H4z"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>
+      Elementos
+    </button>
+    <button class="tab" data-tab="camaras">
+      <svg viewBox="0 0 24 24"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="M15 10l6-3v10l-6-3"/></svg>
+      Cámaras
+    </button>
   </div>
 
   <div class="canvas-wrap">
     <div id="canvas">
       <svg id="floor" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+      <div id="toast"></div>
+      <div id="undobar"><span id="undobar-txt"></span><button id="undobar-btn">Deshacer</button></div>
     </div>
   </div>
 
-  <div class="sel-bar" id="sel-bar">
-    <div class="info" id="sel-info"></div>
-    <button id="btn-text" title="Editar texto"><svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M13.5 6.5l3 3"/></svg></button>
-    <button id="btn-rot" title="Rotar"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 1 2.4 5.7"/><path d="M4 20v-5h5"/></svg></button>
-    <button id="btn-wm" title="Estrechar"><svg viewBox="0 0 24 24"><path d="M8 8l4 4-4 4"/><path d="M16 8l-4 4 4 4"/></svg></button>
-    <button id="btn-wp" title="Ensanchar"><svg viewBox="0 0 24 24"><path d="M3 12h18"/><path d="M6 8l-4 4 4 4"/><path d="M18 8l4 4-4 4"/></svg></button>
-    <button id="btn-hm" title="Reducir alto"><svg viewBox="0 0 24 24"><path d="M8 8l4 4 4-4"/><path d="M8 16l4-4 4 4"/></svg></button>
-    <button id="btn-hp" title="Aumentar alto"><svg viewBox="0 0 24 24"><path d="M12 3v18"/><path d="M8 7l4-4 4 4"/><path d="M8 17l4 4 4-4"/></svg></button>
-    <button id="btn-del" title="Quitar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <!-- panel de edición (aparece al seleccionar, sección aparte) -->
+  <div class="edit-panel" id="edit-panel">
+    <span class="ep-title" id="ep-title"></span>
+    <div class="ep-actions">
+      <button id="btn-text" title="Editar texto"><svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M13.5 6.5l3 3"/></svg></button>
+      <button id="btn-rot" title="Rotar"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 1 2.4 5.7"/><path d="M4 20v-5h5"/></svg></button>
+      <button id="btn-wm" title="Estrechar"><svg viewBox="0 0 24 24"><path d="M12 6v12"/><path d="M6 9l3 3-3 3"/><path d="M18 9l-3 3 3 3"/></svg></button>
+      <button id="btn-wp" title="Ensanchar"><svg viewBox="0 0 24 24"><path d="M3 7v10"/><path d="M21 7v10"/><path d="M8 12h8"/><path d="M10 9l-3 3 3 3"/><path d="M14 9l3 3-3 3"/></svg></button>
+      <button id="btn-hm" title="Reducir alto"><svg viewBox="0 0 24 24"><path d="M6 12h12"/><path d="M9 6l3 3 3-3"/><path d="M9 18l3-3 3 3"/></svg></button>
+      <button id="btn-hp" title="Aumentar alto"><svg viewBox="0 0 24 24"><path d="M7 3h10"/><path d="M7 21h10"/><path d="M12 8v8"/><path d="M9 10l3-3 3 3"/><path d="M9 14l3 3 3-3"/></svg></button>
+      <button id="btn-del" title="Quitar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
   </div>
 
-  <div class="palette" id="palette"></div>
-  <div class="pal-hint">Piezas: toca para añadir y arrastra para componer la sala · Elementos: arrastra al plano o toca</div>
+  <!-- cuerpo de la sección activa -->
+  <div class="tab-body">
+    <div class="tab-pane" data-tab="estructura" id="pane-estructura">
+      <div class="shapes" id="shapes">
+        <button class="shape-btn" data-kind="rect">
+          <svg viewBox="0 0 100 100"><rect class="fl" x="12" y="22" width="76" height="56"/></svg>
+          <span>Rect</span>
+        </button>
+        <button class="shape-btn" data-kind="ele">
+          <svg viewBox="0 0 100 100"><path class="fl" d="M22 14 H58 V52 H86 V86 H22 Z"/></svg>
+          <span>En L</span>
+        </button>
+        <button class="shape-btn" data-kind="te">
+          <svg viewBox="0 0 100 100"><path class="fl" d="M14 16 H86 V44 H64 V86 H36 V44 H14 Z"/></svg>
+          <span>En T</span>
+        </button>
+        <button class="shape-btn" data-kind="semi">
+          <svg viewBox="0 0 100 100"><path class="fl" d="M14 78 A36 44 0 0 1 86 78 Z"/></svg>
+          <span>Semi</span>
+        </button>
+      </div>
+      <p class="pane-hint">Toca una forma para añadirla · arrástrala y solapa varias para componer la planta de la sala.</p>
+    </div>
+
+    <div class="tab-pane hidden" data-tab="elementos" id="pane-elementos">
+      <div class="el-grid" id="pal-main"></div>
+      <div class="otros">
+        <span class="otros-lbl">Otros</span>
+        <div class="otros-row" id="pal-otros"></div>
+      </div>
+      <p class="pane-hint">Arrastra un elemento al plano, o tócalo para soltarlo en el centro.</p>
+    </div>
+
+    <div class="tab-pane hidden" data-tab="camaras" id="pane-camaras">
+      <div id="pal-cam"></div>
+      <p class="pane-hint">Coloca dónde estará el camarógrafo. Parpadea en rojo para localizarlo de un vistazo.</p>
+    </div>
+  </div>
 
   <footer>
     <button id="btn-save">Guardar</button>
@@ -379,15 +459,15 @@ footer #btn-clear{color:var(--muted)}
   </div>
 
   <div id="ghost"></div>
-  <div id="toast"></div>
-  <div id="undobar"><span id="undobar-txt"></span><button id="undobar-btn">Deshacer</button></div>
 </div>
 
 <script>
 'use strict';
 /* ══════════════════════════════════════════════════════════════
-   EDITOR DE MAPA — módulo independiente (v0.3)
+   EDITOR DE MAPA — módulo independiente (v0.4)
    Sin dependencias. Pensado para integrarse luego en index.html.
+
+   Tres secciones (tabs): ESTRUCTURA (planta) · ELEMENTOS · CÁMARAS.
 
    Modelo: { id, name,
              pieces:[{id,kind,x,y,w,h,rot}],          ← planta componible
@@ -395,9 +475,6 @@ footer #btn-clear{color:var(--muted)}
    Piezas: x,y centro y w,h en % (0–100) del lienzo; rot múltiplo de 90.
    Elementos: x,y centro en % del lienzo; w,h tamaño en px (redimensionable);
    rot en pasos de 45°; text solo en genéricos (estrella/círculo/cuadrado).
-   La planta se compone solapando piezas: los rellenos opacos se
-   pintan encima de los trazos, así las líneas interiores quedan
-   ocultas y solo se ve la silueta exterior de la unión.
 
    localStorage:
      cip_mapa_editor_v1 → borrador de trabajo (autosave)
@@ -415,7 +492,7 @@ const PIECES_DEF = {
   semi:{ label:'Semi',  path:'M0 1 A0.5 1 0 0 1 1 1 Z',                 w:60, h:40 }
 };
 
-/* tipos de elemento arrastrables — w/h = tamaño por defecto en px (redimensionable) */
+/* tipos de elemento — w/h = tamaño por defecto en px (redimensionable) */
 const TYPES = {
   acceso:     { label:'Acceso',    color:'var(--c-acceso)', w:30, h:30,
     icon:'<svg viewBox="0 0 24 24"><path d="M16 4h5v16h-5"/><path d="M3 12h13"/><path d="M6 9l-3 3 3 3"/><path d="M13 9l3 3-3 3"/></svg>' },
@@ -423,8 +500,6 @@ const TYPES = {
     icon:'<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><path d="M12 8v6"/><path d="M8 12h8"/><path d="M9.5 21l2.5-5 2.5 5"/></svg>' },
   columna:    { label:'Columna',   color:'var(--c-columna)', w:30, h:30,
     icon:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/></svg>' },
-  camarografo:{ label:'Cámara',    color:'var(--c-cam)',    w:30, h:30,
-    icon:'<svg viewBox="0 0 24 24"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="M15 10l6-3v10l-6-3"/></svg>' },
   dj:         { label:'DJ',        color:'var(--c-dj)',     w:30, h:30,
     icon:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="1.6"/></svg>' },
   bar:        { label:'Bar',       color:'var(--c-bar)',    w:62, h:26,
@@ -436,9 +511,18 @@ const TYPES = {
   gen_circulo:{ label:'Círculo',   color:'var(--c-gen)', editable:true, w:30, h:30,
     icon:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/></svg>' },
   gen_cuadrado:{ label:'Cuadrado', color:'var(--c-gen)', editable:true, w:30, h:30,
-    icon:'<svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>' }
+    icon:'<svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>' },
+  camarografo:{ label:'Cámara',    color:'var(--c-cam)',    w:30, h:30,
+    icon:'<svg viewBox="0 0 24 24"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="M15 10l6-3v10l-6-3"/></svg>' }
 };
 const ELEM_MIN = 18, ELEM_MAX = 150, ELEM_STEP = 6;   // límites de tamaño de elemento (px)
+
+/* reparto de la paleta por sección */
+const GROUP = {
+  main:  ['acceso','banos','columna','dj','bar','escenario'],
+  otros: ['gen_estrella','gen_circulo','gen_cuadrado'],
+  cam:   ['camarografo']
+};
 
 function freshMap(){
   return { id:'m' + Date.now(), name:'',
@@ -550,28 +634,28 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 }
 
-/* ───────── barra de selección contextual ───────── */
-function renderSelBar(){
-  const info = $('#sel-info');
+/* ───────── panel de edición contextual ───────── */
+function renderEditPanel(){
+  const panel = $('#edit-panel'), title = $('#ep-title');
   const show = ids => {
     ['btn-text','btn-rot','btn-wm','btn-wp','btn-hm','btn-hp','btn-del']
-      .forEach(id => $('#'+id).style.display = ids.includes(id) ? 'block' : 'none');
+      .forEach(id => $('#'+id).classList.toggle('on', ids.includes(id)));
   };
   const e = state.elements.find(x => x.id === selEl);
   const p = state.pieces.find(x => x.id === selPiece);
   if(e){
     const t = TYPES[e.type];
-    info.innerHTML = '<b>' + escapeHtml(e.text || t.label) + '</b>';
+    title.textContent = t.editable ? 'Figura' : t.label;
+    panel.classList.add('show');
     show(t.editable
       ? ['btn-text','btn-rot','btn-wm','btn-wp','btn-hm','btn-hp','btn-del']
       : ['btn-rot','btn-wm','btn-wp','btn-hm','btn-hp','btn-del']);
   }else if(p){
-    info.innerHTML = '<b>Pieza · ' + PIECES_DEF[p.kind].label + '</b>';
+    title.textContent = 'Forma';
+    panel.classList.add('show');
     show(['btn-rot','btn-wm','btn-wp','btn-hm','btn-hp','btn-del']);
   }else{
-    info.textContent = (state.pieces.length || state.elements.length)
-      ? 'Toca una pieza o elemento para editar'
-      : 'Plano vacío · añade piezas y elementos';
+    panel.classList.remove('show');
     show([]);
   }
 }
@@ -580,10 +664,10 @@ function select(elId, pieceId){
   canvas.querySelectorAll('.el').forEach(n =>
     n.classList.toggle('sel', +n.dataset.id === elId));
   renderFloor();          // repinta el contorno de selección de pieza
-  renderSelBar();
+  renderEditPanel();
 }
 
-/* ───────── acciones de la barra ───────── */
+/* ───────── acciones del panel ───────── */
 $('#btn-rot').addEventListener('click', () => {
   const e = state.elements.find(x => x.id === selEl);
   const p = state.pieces.find(x => x.id === selPiece);
@@ -627,11 +711,11 @@ $('#btn-hp').addEventListener('click', () => resizeSel(0,  1));
 $('#btn-text').addEventListener('click', () => {
   const e = state.elements.find(x => x.id === selEl);
   if(!e || !TYPES[e.type].editable) return;
-  const v = prompt('Texto del elemento:', e.text || TYPES[e.type].label);
+  const v = prompt('Texto del elemento:', e.text || '');
   if(v === null) return;
   e.text = v.trim().slice(0, 24);
   renderElements();
-  renderSelBar();
+  renderEditPanel();
   saveDraft();
 });
 $('#btn-del').addEventListener('click', () => {
@@ -700,7 +784,7 @@ function startDragPiece(ev, id, path){
   const selGroup = floor.children[2];
   selGroup.innerHTML = '<path class="psel" d="' + PIECES_DEF[p.kind].path +
                        '" transform="' + pieceTransform(p) + '"/>';
-  renderSelBar();
+  renderEditPanel();
   try{ path.setPointerCapture(ev.pointerId); }catch(e){}
   const r0 = canvas.getBoundingClientRect();
   const ox = p.x - (ev.clientX - r0.left) / r0.width  * 100;
@@ -767,7 +851,17 @@ function toPct(cx, cy){
   return { x:+x.toFixed(2), y:+y.toFixed(2) };
 }
 
-/* ───────── añadir piezas ───────── */
+/* ───────── secciones (tabs) ───────── */
+$('#tabs').addEventListener('click', ev => {
+  const t = ev.target.closest('.tab');
+  if(!t) return;
+  const name = t.dataset.tab;
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('is-on', x === t));
+  document.querySelectorAll('.tab-pane').forEach(p =>
+    p.classList.toggle('hidden', p.dataset.tab !== name));
+});
+
+/* ───────── añadir piezas (estructura) ───────── */
 $('#shapes').addEventListener('click', ev => {
   const b = ev.target.closest('.shape-btn');
   if(!b) return;
@@ -778,17 +872,23 @@ $('#shapes').addEventListener('click', ev => {
   saveDraft();
 });
 
-/* ───────── paleta de elementos ───────── */
-const pal = $('#palette');
-Object.entries(TYPES).forEach(([type, t]) => {
+/* ───────── paletas de elementos / cámara ───────── */
+function buildPalItem(type, opts){
+  opts = opts || {};
+  const t = TYPES[type];
   const b = document.createElement('div');
-  b.className = 'pal-item';
+  b.className = 'pal-item' + (opts.iconOnly ? ' icon-only' : '') + (opts.big ? ' cam-big' : '');
   b.dataset.type = type;
+  b.title = t.label;
   b.style.setProperty('--pal-c', t.color);
-  b.innerHTML = '<div class="ic">' + t.icon + '</div><span>' + t.label + '</span>';
+  b.innerHTML = '<div class="ic">' + t.icon + '</div>' +
+                (opts.iconOnly ? '' : '<span>' + t.label + '</span>');
   b.addEventListener('pointerdown', ev => startDragPal(ev, type, b));
-  pal.appendChild(b);
-});
+  return b;
+}
+GROUP.main.forEach(tp => $('#pal-main').appendChild(buildPalItem(tp)));
+GROUP.otros.forEach(tp => $('#pal-otros').appendChild(buildPalItem(tp, { iconOnly:true })));
+GROUP.cam.forEach(tp => $('#pal-cam').appendChild(buildPalItem(tp, { big:true })));
 
 function startDragPal(ev, type, item){
   ev.preventDefault();
@@ -929,7 +1029,7 @@ loadDraft();
 $('#map-name').value = state.name || '';
 renderFloor();
 renderElements();
-renderSelBar();
+renderEditPanel();
 </script>
 </body>
 </html>
