@@ -154,6 +154,17 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
 }
 @keyframes camDot{0%,49%{opacity:1}50%,100%{opacity:.12}}
 .el.sel .ic{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--el-c),0 0 16px var(--el-c)}
+/* al seleccionar, X roja en la esquina para borrar desde el propio elemento */
+.el .del-badge{
+  position:absolute;top:-9px;right:-9px;z-index:6;
+  width:18px;height:18px;border-radius:50%;padding:0;
+  background:#ff3b30;border:1.5px solid var(--bg);
+  color:#fff;font-size:11px;line-height:1;cursor:pointer;
+  display:none;align-items:center;justify-content:center;
+  box-shadow:0 0 8px rgba(255,59,48,.6);
+}
+.el.sel .del-badge{display:flex}
+.el.t-camarografo.sel .ic::after{opacity:0}   /* evita el doble rojo con la X */
 .el.dragging{opacity:.85;z-index:10}
 
 /* fantasma al arrastrar desde la paleta */
@@ -275,6 +286,25 @@ footer #btn-clear{color:var(--muted)}
   white-space:nowrap;
 }
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* barra de deshacer tras borrar */
+#undobar{
+  position:absolute;left:50%;bottom:130px;transform:translateX(-50%) translateY(8px);
+  display:flex;align-items:center;gap:12px;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:10px;
+  padding:7px 8px 7px 14px;
+  opacity:0;pointer-events:none;z-index:51;
+  transition:opacity .25s var(--ease),transform .25s var(--ease);
+  white-space:nowrap;
+}
+#undobar.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+#undobar-txt{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--text)}
+#undobar-btn{
+  background:none;border:1px solid var(--accent);border-radius:8px;
+  color:var(--accent);font-family:var(--mono);font-size:11px;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;cursor:pointer;
+}
+#undobar-btn:active{transform:scale(.95)}
 </style>
 </head>
 <body>
@@ -350,6 +380,7 @@ footer #btn-clear{color:var(--muted)}
 
   <div id="ghost"></div>
   <div id="toast"></div>
+  <div id="undobar"><span id="undobar-txt"></span><button id="undobar-btn">Deshacer</button></div>
 </div>
 
 <script>
@@ -504,8 +535,15 @@ function makeNode(e){
   /* genéricos: sin texto hasta que el usuario lo escriba; el resto, su etiqueta */
   const labelText = t.editable ? (e.text || '') : (e.text || t.label);
   n.innerHTML = '<div class="ic">' + t.icon + '</div>' +
-                (labelText ? '<div class="lb">' + escapeHtml(labelText) + '</div>' : '');
+                (labelText ? '<div class="lb">' + escapeHtml(labelText) + '</div>' : '') +
+                '<button class="del-badge" title="Quitar" aria-label="Quitar">✕</button>';
   n.addEventListener('pointerdown', ev => startDragEl(ev, e.id, n));
+  /* la X de la esquina borra sin arrastrar (stopPropagation corta el drag) */
+  n.querySelector('.del-badge').addEventListener('pointerdown', ev => {
+    ev.stopPropagation();
+    ev.preventDefault();
+    deleteElementById(e.id);
+  });
   return n;
 }
 function escapeHtml(s){
@@ -597,10 +635,53 @@ $('#btn-text').addEventListener('click', () => {
   saveDraft();
 });
 $('#btn-del').addEventListener('click', () => {
-  if(selEl != null) state.elements = state.elements.filter(x => x.id !== selEl);
-  if(selPiece != null) state.pieces = state.pieces.filter(x => x.id !== selPiece);
-  select(null, null);
+  if(selEl != null) deleteElementById(selEl);
+  else if(selPiece != null) deletePieceById(selPiece);
+});
+
+/* ───────── borrar con deshacer ───────── */
+let lastDeleted = null, undoTimer = null;
+function deleteElementById(id){
+  const idx = state.elements.findIndex(e => e.id === id);
+  if(idx < 0) return;
+  lastDeleted = { kind:'element', data:state.elements[idx], index:idx };
+  state.elements.splice(idx, 1);
+  if(selEl === id) select(null, null);
   renderElements();
+  saveDraft();
+  showUndo('Elemento eliminado');
+}
+function deletePieceById(id){
+  const idx = state.pieces.findIndex(p => p.id === id);
+  if(idx < 0) return;
+  lastDeleted = { kind:'piece', data:state.pieces[idx], index:idx };
+  state.pieces.splice(idx, 1);
+  if(selPiece === id) select(null, null);
+  renderFloor();
+  saveDraft();
+  showUndo('Pieza eliminada');
+}
+function showUndo(msg){
+  $('#undobar-txt').textContent = msg;
+  $('#undobar').classList.add('show');
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(() => { $('#undobar').classList.remove('show'); lastDeleted = null; }, 5000);
+}
+$('#undobar-btn').addEventListener('click', () => {
+  if(!lastDeleted) return;
+  const { kind, data, index } = lastDeleted;
+  if(kind === 'element'){
+    state.elements.splice(Math.min(index, state.elements.length), 0, data);
+    renderElements();
+    select(data.id, null);
+  }else{
+    state.pieces.splice(Math.min(index, state.pieces.length), 0, data);
+    renderFloor();
+    select(null, data.id);
+  }
+  lastDeleted = null;
+  clearTimeout(undoTimer);
+  $('#undobar').classList.remove('show');
   saveDraft();
 });
 canvas.addEventListener('pointerdown', ev => {
