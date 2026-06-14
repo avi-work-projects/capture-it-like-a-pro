@@ -119,10 +119,13 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
   overflow:hidden;touch-action:none;
 }
 #floor{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-/* unión visual de piezas: trazos debajo, rellenos opacos encima →
-   las líneas interiores quedan tapadas y solo se ve la silueta exterior */
-#floor .pst{fill:none;stroke:var(--accent);stroke-width:4;vector-effect:non-scaling-stroke;filter:drop-shadow(0 0 7px var(--accent-glow))}
-#floor .pfl{fill:#161616;pointer-events:auto;cursor:grab}
+/* unión SIN costuras: capa inferior de "blobs" en color de acento (relleno+trazo)
+   y, encima, los rellenos opacos exactos. Como cada capa es de un solo color, las
+   piezas que se solapan se fusionan sin línea interior; solo asoma el contorno de
+   acento en el perímetro exterior de la unión. */
+#floor .glowg{filter:drop-shadow(0 0 7px var(--accent-glow))}
+#floor .pglow{fill:var(--accent);stroke:var(--accent);stroke-width:4;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+#floor .pfl{fill:#161616;stroke:none;pointer-events:auto;cursor:grab}
 #floor .psel{fill:none;stroke:#fff;stroke-width:1.5;stroke-dasharray:6 5;vector-effect:non-scaling-stroke;pointer-events:none}
 
 /* elementos colocados — tamaño libre vía --w/--h, centrados en su punto (x,y) */
@@ -643,15 +646,15 @@ function pieceTransform(p){
          ') scale(' + p.w + ' ' + p.h + ') translate(-0.5 -0.5)';
 }
 function renderFloor(){
-  let strokes = '', fills = '', sel = '';
+  let glow = '', fills = '', sel = '';
   state.pieces.forEach(p => {
     const d = PIECES_DEF[p.kind].path, tr = pieceTransform(p);
-    strokes += '<path class="pst" d="' + d + '" transform="' + tr + '"/>';
-    fills   += '<path class="pfl" d="' + d + '" transform="' + tr + '" data-id="' + p.id + '"/>';
+    glow  += '<path class="pglow" d="' + d + '" transform="' + tr + '"/>';
+    fills += '<path class="pfl" d="' + d + '" transform="' + tr + '" data-id="' + p.id + '"/>';
     if(p.id === selPiece)
-      sel   += '<path class="psel" d="' + d + '" transform="' + tr + '"/>';
+      sel += '<path class="psel" d="' + d + '" transform="' + tr + '"/>';
   });
-  floor.innerHTML = '<g>' + strokes + '</g><g>' + fills + '</g><g>' + sel + '</g>';
+  floor.innerHTML = '<g class="glowg">' + glow + '</g><g>' + fills + '</g><g>' + sel + '</g>';
   floor.querySelectorAll('.pfl').forEach(path =>
     path.addEventListener('pointerdown', ev => startDragPiece(ev, +path.dataset.id, path)));
 }
@@ -757,8 +760,11 @@ function resizeSel(sw, sh){
   /* si la pieza está girada 90/270°, lo que el usuario ve como ancho es h */
   const swapped = (p.rot||0) % 180 !== 0;
   const kw = swapped ? 'h' : 'w', kh = swapped ? 'w' : 'h';
-  if(sw) p[kw] = clamp(p[kw] + sw * 4, 12, 100);
-  if(sh) p[kh] = clamp(p[kh] + sh * 4, 12, 100);
+  /* paso de 5 sobre una rejilla común (todos los tamaños por defecto son múltiplos
+     de 5) → cualquier lado de una pieza puede igualarse al de otra, p. ej. el
+     diámetro del semicírculo con la altura de un rectángulo */
+  if(sw) p[kw] = clamp(p[kw] + sw * 5, 15, 100);
+  if(sh) p[kh] = clamp(p[kh] + sh * 5, 15, 100);
   renderFloor();
   saveDraft();
 }
