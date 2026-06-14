@@ -238,7 +238,7 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
 .edit-panel{
   position:relative;z-index:2;
   margin:9px 18px 0;
-  display:flex;align-items:center;gap:8px;min-height:48px;
+  display:flex;align-items:center;gap:8px;min-height:84px;   /* 2 filas fijas → el lienzo no cambia */
   background:var(--surface);border:1px solid var(--line);
   border-left:3px solid var(--accent);border-radius:12px;
   padding:8px 10px;
@@ -251,7 +251,7 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
 }
 .edit-panel.is-hint .ep-title{max-width:none;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:.02em;font-size:10.5px}
 .ep-title:empty{display:none}
-.ep-actions{display:flex;gap:5px;flex:1;justify-content:space-between}
+.ep-actions{display:flex;flex-wrap:wrap;gap:6px;flex:1;justify-content:flex-end;align-content:center}
 .edit-panel button{
   background:var(--surface-2);border:1px solid var(--line);border-radius:8px;
   color:var(--text);cursor:pointer;display:none;flex:none;
@@ -513,7 +513,7 @@ footer #btn-clear{color:var(--muted)}
 <script>
 'use strict';
 /* ══════════════════════════════════════════════════════════════
-   EDITOR DE MAPA — módulo independiente (v0.6)
+   EDITOR DE MAPA — módulo independiente (v0.7)
    Sin dependencias. Pensado para integrarse luego en index.html.
 
    Tres secciones (tabs): ESTRUCTURA (planta) · ELEMENTOS · CÁMARAS.
@@ -728,8 +728,8 @@ function renderEditPanel(){
     panel.classList.remove('is-hint');
     title.textContent = '';        // sin etiqueta al seleccionar: deja sitio a los botones
     setLock(e.locked);
-    /* elementos: escala uniforme (más/menos) + duplicar + bloquear */
-    const ids = ['btn-rot','btn-smaller','btn-bigger','btn-dup','btn-lock','btn-del'];
+    /* elementos: ejes (An/Al) + escala uniforme (más/menos) + duplicar + bloquear */
+    const ids = ['btn-rot','btn-wm','btn-wp','btn-hm','btn-hp','btn-smaller','btn-bigger','btn-dup','btn-lock','btn-del'];
     if(t.editable) ids.unshift('btn-text');
     show(ids);
   }else if(p){
@@ -770,8 +770,18 @@ $('#btn-rot').addEventListener('click', () => {
   saveDraft();
 });
 const clampN = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
-/* redimensión de PIEZAS por eje (sw/sh = sentido en cada eje) */
+/* redimensión por eje (sw/sh = sentido). Funciona en elementos y en piezas */
 function resizeSel(sw, sh){
+  const e = state.elements.find(x => x.id === selEl);
+  if(e){
+    const t = TYPES[e.type];
+    if(sw) e.w = clampN((e.w || t.w || 30) + sw * ELEM_STEP, ELEM_MIN, ELEM_MAX);
+    if(sh) e.h = clampN((e.h || t.h || 30) + sh * ELEM_STEP, ELEM_MIN, ELEM_MAX);
+    const n = canvas.querySelector('.el[data-id="' + e.id + '"]');
+    if(n){ n.style.setProperty('--w', e.w + 'px'); n.style.setProperty('--h', e.h + 'px'); }
+    saveDraft();
+    return;
+  }
   const p = state.pieces.find(x => x.id === selPiece);
   if(!p) return;
   /* semicírculo = medio círculo verdadero: solo se ajusta el diámetro (w);
@@ -915,22 +925,56 @@ function pieceBBox(p){
   const hw = (sw ? p.h : p.w) / 2, hh = (sw ? p.w : p.h) / 2;
   return { hw, hh, l:p.x-hw, r:p.x+hw, t:p.y-hh, b:p.y+hh };
 }
-const SNAP_T = 3;   // umbral de imantado en % de unidades del lienzo
-/* imanta los bordes de p a los de las demás piezas; devuelve el índice imantado o -1 */
+const SNAP_T = 3;        // umbral de imantado en % de unidades del lienzo
+const SNAP_MATCH = 25;   // si los anchos están a esta distancia, se igualan al coronar
+const upright = q => (q.rot||0) % 180 === 0;
+/* imanta los bordes de p a los de las demás piezas; al coronar una pieza con otra,
+   iguala el ancho/alto y la centra para que encajen sin esquinas. Devuelve índice o -1 */
 function snapPiece(p){
   let A = pieceBBox(p), hit = -1;
   state.pieces.forEach((q, qi) => {
     if(q.id === p.id) return;
     const B = pieceBBox(q);
+    const bothUp = upright(p) && upright(q);
     const yOv = Math.min(A.b, B.b) - Math.max(A.t, B.t);
     const xOv = Math.min(A.r, B.r) - Math.max(A.l, B.l);
-    if(yOv > 5){   // bordes verticales adyacentes/alineados
-      const pairs = [[A.r,B.l],[A.l,B.r],[A.l,B.l],[A.r,B.r]];
-      for(const [a, b] of pairs) if(Math.abs(a-b) < SNAP_T){ p.x += (b-a); A = pieceBBox(p); hit = qi; break; }
+
+    // ── coronar en VERTICAL (bordes horizontales se tocan) ──
+    if(xOv > 5){
+      const above = Math.abs(A.b - B.t) < SNAP_T;   // p encima de q
+      const below = Math.abs(A.t - B.b) < SNAP_T;   // p debajo de q
+      if(above || below){
+        hit = qi;
+        if(bothUp && Math.abs((A.r-A.l) - (B.r-B.l)) < SNAP_MATCH){
+          p.w = +(B.r - B.l).toFixed(2);            // igualar ancho
+          if(p.kind === 'semi') p.h = p.w / 2;
+          p.x = q.x;                                // y centrar
+          A = pieceBBox(p);
+        }
+        p.y += above ? (B.t - A.b) : (B.b - A.t);   // pegar el borde compartido
+        A = pieceBBox(p);
+      }else{
+        for(const [a,b] of [[A.l,B.l],[A.r,B.r]])   // si no corona, alinear lados
+          if(Math.abs(a-b) < SNAP_T){ p.x += (b-a); A = pieceBBox(p); hit = qi; break; }
+      }
     }
-    if(xOv > 5){   // bordes horizontales adyacentes/alineados
-      const pairs = [[A.b,B.t],[A.t,B.b],[A.t,B.t],[A.b,B.b]];
-      for(const [a, b] of pairs) if(Math.abs(a-b) < SNAP_T){ p.y += (b-a); A = pieceBBox(p); hit = qi; break; }
+    // ── coronar en HORIZONTAL (bordes verticales se tocan) ──
+    if(yOv > 5){
+      const rightOf = Math.abs(A.l - B.r) < SNAP_T; // p a la derecha de q
+      const leftOf  = Math.abs(A.r - B.l) < SNAP_T; // p a la izquierda de q
+      if(rightOf || leftOf){
+        hit = qi;
+        if(bothUp && p.kind !== 'semi' && Math.abs((A.b-A.t) - (B.b-B.t)) < SNAP_MATCH){
+          p.h = +(B.b - B.t).toFixed(2);
+          p.y = q.y;
+          A = pieceBBox(p);
+        }
+        p.x += rightOf ? (B.r - A.l) : (B.l - A.r);
+        A = pieceBBox(p);
+      }else{
+        for(const [a,b] of [[A.t,B.t],[A.b,B.b]])
+          if(Math.abs(a-b) < SNAP_T){ p.y += (b-a); A = pieceBBox(p); hit = qi; break; }
+      }
     }
   });
   return hit;
