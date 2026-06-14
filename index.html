@@ -65,7 +65,8 @@ body{
   position:relative;
   width:100%;
   max-width:430px;
-  height:100dvh;
+  height:100vh;          /* fallback navegadores viejos */
+  height:100svh;         /* altura visible ESTABLE: nunca sobreestima → no corta */
   margin:0 auto;
   background:var(--bg);
   color:var(--text);
@@ -184,7 +185,7 @@ body{
   inset:0;
   display:flex;
   flex-direction:column;
-  padding:58px 26px calc(60px + env(safe-area-inset-bottom));
+  padding:58px 26px calc(48px + env(safe-area-inset-bottom));
   overflow-y:auto;
   /* sin pull-to-refresh ni scroll encadenado del navegador:
      el rebote elástico lo ponemos nosotros (addRubberBand) */
