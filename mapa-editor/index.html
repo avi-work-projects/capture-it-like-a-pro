@@ -260,6 +260,8 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
 .edit-panel button.on{display:flex}
 .edit-panel button:active{transform:scale(.93)}
 .edit-panel button svg{width:16px;height:16px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* botones de eje con etiqueta de texto (más reconocibles que un icono) */
+.edit-panel .c-axis{width:auto;min-width:34px;padding:0 7px;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.01em;color:#cfe9ff;border-color:#2c4a63}
 /* color por función para que el grupo "tenga sentido" de un vistazo */
 .edit-panel .c-text{color:#3da9ff;border-color:rgba(61,169,255,.4)}
 .edit-panel .c-dup{color:#c6ff00;border-color:rgba(198,255,0,.4)}
@@ -440,10 +442,10 @@ footer #btn-clear{color:var(--muted)}
       <button id="btn-rot" title="Rotar"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 1 2.4 5.7"/><path d="M4 20v-5h5"/></svg></button>
       <button id="btn-smaller" title="Más pequeño"><svg viewBox="0 0 24 24"><path d="M21 9h-6V3"/><path d="M21 3l-6 6"/><path d="M3 15h6v6"/><path d="M3 21l6-6"/></svg></button>
       <button id="btn-bigger" title="Más grande"><svg viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M21 3l-6 6"/><path d="M9 21H3v-6"/><path d="M3 21l6-6"/></svg></button>
-      <button id="btn-wm" title="Estrechar"><svg viewBox="0 0 24 24"><path d="M12 6v12"/><path d="M6 9l3 3-3 3"/><path d="M18 9l-3 3 3 3"/></svg></button>
-      <button id="btn-wp" title="Ensanchar"><svg viewBox="0 0 24 24"><path d="M3 7v10"/><path d="M21 7v10"/><path d="M8 12h8"/><path d="M10 9l-3 3 3 3"/><path d="M14 9l3 3-3 3"/></svg></button>
-      <button id="btn-hm" title="Reducir alto"><svg viewBox="0 0 24 24"><path d="M6 12h12"/><path d="M9 6l3 3 3-3"/><path d="M9 18l3-3 3 3"/></svg></button>
-      <button id="btn-hp" title="Aumentar alto"><svg viewBox="0 0 24 24"><path d="M7 3h10"/><path d="M7 21h10"/><path d="M12 8v8"/><path d="M9 10l3-3 3 3"/><path d="M9 14l3 3-3 3"/></svg></button>
+      <button id="btn-wm" class="c-axis" title="Ancho −">An−</button>
+      <button id="btn-wp" class="c-axis" title="Ancho +">An+</button>
+      <button id="btn-hm" class="c-axis" title="Alto −">Al−</button>
+      <button id="btn-hp" class="c-axis" title="Alto +">Al+</button>
       <button id="btn-dup" class="c-dup" title="Duplicar"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/></svg></button>
       <button id="btn-lock" class="c-lock" title="Bloquear posición"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></button>
       <button id="btn-del" class="c-del" title="Quitar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -513,7 +515,7 @@ footer #btn-clear{color:var(--muted)}
 <script>
 'use strict';
 /* ══════════════════════════════════════════════════════════════
-   EDITOR DE MAPA — módulo independiente (v0.7)
+   EDITOR DE MAPA — módulo independiente (v0.8)
    Sin dependencias. Pensado para integrarse luego en index.html.
 
    Tres secciones (tabs): ESTRUCTURA (planta) · ELEMENTOS · CÁMARAS.
@@ -945,7 +947,9 @@ function snapPiece(p){
       const below = Math.abs(A.t - B.b) < SNAP_T;   // p debajo de q
       if(above || below){
         hit = qi;
-        if(bothUp && Math.abs((A.r-A.l) - (B.r-B.l)) < SNAP_MATCH){
+        // encaja el ancho si están cerca de tamaño O si una esquina ya coincide
+        if(bothUp && (Math.abs((A.r-A.l)-(B.r-B.l)) < SNAP_MATCH ||
+                      Math.abs(A.l-B.l) < SNAP_T || Math.abs(A.r-B.r) < SNAP_T)){
           p.w = +(B.r - B.l).toFixed(2);            // igualar ancho
           if(p.kind === 'semi') p.h = p.w / 2;
           p.x = q.x;                                // y centrar
@@ -964,7 +968,8 @@ function snapPiece(p){
       const leftOf  = Math.abs(A.r - B.l) < SNAP_T; // p a la izquierda de q
       if(rightOf || leftOf){
         hit = qi;
-        if(bothUp && p.kind !== 'semi' && Math.abs((A.b-A.t) - (B.b-B.t)) < SNAP_MATCH){
+        if(bothUp && p.kind !== 'semi' && (Math.abs((A.b-A.t)-(B.b-B.t)) < SNAP_MATCH ||
+                      Math.abs(A.t-B.t) < SNAP_T || Math.abs(A.b-B.b) < SNAP_T)){
           p.h = +(B.b - B.t).toFixed(2);
           p.y = q.y;
           A = pieceBBox(p);
