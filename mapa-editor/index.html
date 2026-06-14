@@ -107,9 +107,11 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
 .tab[data-tab="camaras"].is-on{color:var(--c-camaras);border-color:var(--c-camaras);box-shadow:0 0 16px rgba(255,214,10,.30)}
 
 /* ───────────── LIENZO ───────────── */
-.canvas-wrap{position:relative;z-index:1;flex:1;min-height:0;padding:0 18px}
+/* cuadrado y centrado → proporciones reales (un cuadrado se ve cuadrado,
+   el semicírculo es medio círculo de verdad). El tamaño px lo fija el JS. */
+.canvas-wrap{position:relative;z-index:1;flex:1;min-height:0;padding:0 18px;display:flex;align-items:center;justify-content:center}
 #canvas{
-  position:relative;width:100%;height:100%;
+  position:relative;width:100%;height:100%;flex:none;
   background:var(--surface);
   background-image:
     linear-gradient(var(--line) 1px, transparent 1px),
@@ -125,6 +127,9 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
    acento en el perímetro exterior de la unión. */
 #floor .glowg{filter:drop-shadow(0 0 7px var(--accent-glow))}
 #floor .pglow{fill:var(--accent);stroke:var(--accent);stroke-width:4;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+/* al imantar un borde con otra pieza, ese contorno se pinta en amarillo */
+#floor .pglow.snap{fill:#ffd60a;stroke:#ffd60a}
+#floor .glowg.snapping{filter:drop-shadow(0 0 8px rgba(255,214,10,.55))}
 #floor .pfl{fill:#161616;stroke:none;pointer-events:auto;cursor:grab}
 #floor .psel{fill:none;stroke:#fff;stroke-width:1.5;stroke-dasharray:6 5;vector-effect:non-scaling-stroke;pointer-events:none}
 
@@ -177,17 +182,16 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
 .app.sec-camaras .el.t-camarografo{pointer-events:auto}
 /* mostrar/ocultar elementos (botón de la sección Estructura) */
 #canvas.hide-els .el{display:none}
-/* al seleccionar, X roja en la esquina para borrar desde el propio elemento */
-.el .del-badge{
-  position:absolute;top:-9px;right:-9px;z-index:6;
-  width:18px;height:18px;border-radius:50%;padding:0;
-  background:#ff3b30;border:1.5px solid var(--bg);
-  color:#fff;font-size:11px;line-height:1;cursor:pointer;
+/* candado en elementos con posición bloqueada */
+.el .lock-badge{
+  position:absolute;top:-8px;right:-8px;z-index:6;
+  width:16px;height:16px;border-radius:50%;
+  background:#ffd60a;border:1.5px solid var(--bg);
   display:none;align-items:center;justify-content:center;
-  box-shadow:0 0 8px rgba(255,59,48,.6);
+  box-shadow:0 0 7px rgba(255,214,10,.6);
 }
-.el.sel .del-badge{display:flex}
-.el.t-camarografo.sel .ic::after{opacity:0}   /* evita el doble rojo con la X */
+.el .lock-badge svg{width:9px;height:9px;stroke:#1a1500;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.el.locked .lock-badge{display:flex}
 .el.dragging{opacity:.85;z-index:10}
 
 /* fantasma al arrastrar desde la paleta */
@@ -244,7 +248,8 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .edit-panel.is-hint .ep-title{max-width:none;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:.02em;font-size:10.5px}
-.ep-actions{display:flex;gap:6px;flex:1;justify-content:flex-end}
+.ep-title:empty{display:none}
+.ep-actions{display:flex;gap:5px;flex:1;justify-content:space-between}
 .edit-panel button{
   background:var(--surface-2);border:1px solid var(--line);border-radius:8px;
   color:var(--text);cursor:pointer;display:none;flex:none;
@@ -253,7 +258,15 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
 .edit-panel button.on{display:flex}
 .edit-panel button:active{transform:scale(.93)}
 .edit-panel button svg{width:16px;height:16px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.edit-panel #btn-del{color:#ff3b30;border-color:rgba(255,59,48,.4)}
+/* color por función para que el grupo "tenga sentido" de un vistazo */
+.edit-panel .c-text{color:#3da9ff;border-color:rgba(61,169,255,.4)}
+.edit-panel .c-dup{color:#c6ff00;border-color:rgba(198,255,0,.4)}
+.edit-panel .c-lock{color:#7e7e7e}
+.edit-panel .c-lock.is-locked{color:#ffd60a;border-color:rgba(255,214,10,.5);background:rgba(255,214,10,.1)}
+.edit-panel .c-del{color:#ff3b30;border-color:rgba(255,59,48,.4)}
+/* separador sutil entre grupos de acciones */
+.edit-panel .sep{width:1px;height:20px;background:var(--line);flex:none;display:none}
+.edit-panel .sep.on{display:block}
 
 /* ───────────── CUERPO DE LA SECCIÓN ACTIVA ───────────── */
 /* min-height fija (≥ la sección más alta) → el lienzo no cambia entre pestañas */
@@ -421,13 +434,17 @@ footer #btn-clear{color:var(--muted)}
   <div class="edit-panel" id="edit-panel">
     <span class="ep-title" id="ep-title"></span>
     <div class="ep-actions">
-      <button id="btn-text" title="Editar texto"><svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M13.5 6.5l3 3"/></svg></button>
+      <button id="btn-text" class="c-text" title="Editar texto"><svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M13.5 6.5l3 3"/></svg></button>
       <button id="btn-rot" title="Rotar"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 1 2.4 5.7"/><path d="M4 20v-5h5"/></svg></button>
+      <button id="btn-smaller" title="Más pequeño"><svg viewBox="0 0 24 24"><path d="M21 9h-6V3"/><path d="M21 3l-6 6"/><path d="M3 15h6v6"/><path d="M3 21l6-6"/></svg></button>
+      <button id="btn-bigger" title="Más grande"><svg viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M21 3l-6 6"/><path d="M9 21H3v-6"/><path d="M3 21l6-6"/></svg></button>
       <button id="btn-wm" title="Estrechar"><svg viewBox="0 0 24 24"><path d="M12 6v12"/><path d="M6 9l3 3-3 3"/><path d="M18 9l-3 3 3 3"/></svg></button>
       <button id="btn-wp" title="Ensanchar"><svg viewBox="0 0 24 24"><path d="M3 7v10"/><path d="M21 7v10"/><path d="M8 12h8"/><path d="M10 9l-3 3 3 3"/><path d="M14 9l3 3-3 3"/></svg></button>
       <button id="btn-hm" title="Reducir alto"><svg viewBox="0 0 24 24"><path d="M6 12h12"/><path d="M9 6l3 3 3-3"/><path d="M9 18l3-3 3 3"/></svg></button>
-      <button id="btn-hp" title="Aumentar alto"><svg viewBox="0 0 24 24"><path d="M7 3h10"/><path d="M7 21h10"/><path d="M12 8v8"/><path d="M9 10l3-3 3 3"/><path d="M9 14l3 3 3-3"/></svg></button>
-      <button id="btn-del" title="Quitar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button id="btn-hp" title="Aumentar alto"><svg viewBox="0 0 24 24"><path d="M7 3h10"/><path d="M7 21h10"/><path d="M12 8v8"/><path d="M9 10l3-3 3 3"/><path d="M9 14l3 3-3 3"/></svg></button>
+      <button id="btn-dup" class="c-dup" title="Duplicar"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/></svg></button>
+      <button id="btn-lock" class="c-lock" title="Bloquear posición"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></button>
+      <button id="btn-del" class="c-del" title="Quitar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
   </div>
 
@@ -494,7 +511,7 @@ footer #btn-clear{color:var(--muted)}
 <script>
 'use strict';
 /* ══════════════════════════════════════════════════════════════
-   EDITOR DE MAPA — módulo independiente (v0.5)
+   EDITOR DE MAPA — módulo independiente (v0.6)
    Sin dependencias. Pensado para integrarse luego en index.html.
 
    Tres secciones (tabs): ESTRUCTURA (planta) · ELEMENTOS · CÁMARAS.
@@ -667,7 +684,7 @@ function renderElements(){
 function makeNode(e){
   const t = TYPES[e.type];
   const n = document.createElement('div');
-  n.className = 'el t-' + e.type + (e.id === selEl ? ' sel' : '');
+  n.className = 'el t-' + e.type + (e.id === selEl ? ' sel' : '') + (e.locked ? ' locked' : '');
   n.dataset.id = e.id;
   n.style.setProperty('--el-c', t.color);
   n.style.setProperty('--rot', (e.rot||0) + 'deg');
@@ -679,14 +696,8 @@ function makeNode(e){
   const labelText = t.editable ? (e.text || '') : (e.text || t.label);
   n.innerHTML = '<div class="ic">' + t.icon + '</div>' +
                 (labelText ? '<div class="lb">' + escapeHtml(labelText) + '</div>' : '') +
-                '<button class="del-badge" title="Quitar" aria-label="Quitar">✕</button>';
+                '<span class="lock-badge"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>';
   n.addEventListener('pointerdown', ev => startDragEl(ev, e.id, n));
-  /* la X de la esquina borra sin arrastrar (stopPropagation corta el drag) */
-  n.querySelector('.del-badge').addEventListener('pointerdown', ev => {
-    ev.stopPropagation();
-    ev.preventDefault();
-    deleteElementById(e.id);
-  });
   return n;
 }
 function escapeHtml(s){
@@ -694,26 +705,40 @@ function escapeHtml(s){
 }
 
 /* ───────── panel de edición contextual ───────── */
+const ALL_BTNS = ['btn-text','btn-rot','btn-smaller','btn-bigger','btn-wm','btn-wp','btn-hm','btn-hp','btn-dup','btn-lock','btn-del'];
 function renderEditPanel(){
   const panel = $('#edit-panel'), title = $('#ep-title');
   panel.style.borderLeftColor = SECTION_COLOR[currentTab] || 'var(--accent)';
-  const show = ids => {
-    ['btn-text','btn-rot','btn-wm','btn-wp','btn-hm','btn-hp','btn-del']
-      .forEach(id => $('#'+id).classList.toggle('on', ids.includes(id)));
-  };
+  const show = ids => ALL_BTNS.forEach(id => $('#'+id).classList.toggle('on', ids.includes(id)));
   const e = state.elements.find(x => x.id === selEl);
   const p = state.pieces.find(x => x.id === selPiece);
+  /* refleja el estado del candado en su botón */
+  const setLock = locked => {
+    const b = $('#btn-lock');
+    b.classList.toggle('is-locked', !!locked);
+    b.title = locked ? 'Desbloquear posición' : 'Bloquear posición';
+    b.querySelector('svg').innerHTML = locked
+      ? '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'      // cerrado
+      : '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-1.5"/>';   // abierto
+  };
   if(e){
     const t = TYPES[e.type];
     panel.classList.remove('is-hint');
-    title.textContent = t.editable ? 'Figura' : t.label;
-    show(t.editable
-      ? ['btn-text','btn-rot','btn-wm','btn-wp','btn-hm','btn-hp','btn-del']
-      : ['btn-rot','btn-wm','btn-wp','btn-hm','btn-hp','btn-del']);
+    title.textContent = '';        // sin etiqueta al seleccionar: deja sitio a los botones
+    setLock(e.locked);
+    /* elementos: escala uniforme (más/menos) + duplicar + bloquear */
+    const ids = ['btn-rot','btn-smaller','btn-bigger','btn-dup','btn-lock','btn-del'];
+    if(t.editable) ids.unshift('btn-text');
+    show(ids);
   }else if(p){
     panel.classList.remove('is-hint');
-    title.textContent = 'Forma';
-    show(['btn-rot','btn-wm','btn-wp','btn-hm','btn-hp','btn-del']);
+    title.textContent = '';
+    setLock(p.locked);
+    /* piezas: ancho/alto por eje (semicírculo solo ancho) + duplicar + bloquear */
+    const ids = p.kind === 'semi'
+      ? ['btn-rot','btn-wm','btn-wp','btn-dup','btn-lock','btn-del']
+      : ['btn-rot','btn-wm','btn-wp','btn-hm','btn-hp','btn-dup','btn-lock','btn-del'];
+    show(ids);
   }else{
     panel.classList.add('is-hint');
     title.textContent = SECTION_HINT[currentTab] || 'Toca un elemento para editarlo';
@@ -742,29 +767,26 @@ $('#btn-rot').addEventListener('click', () => {
   }
   saveDraft();
 });
-/* sw/sh = sentido (-1 estrechar / +1 ensanchar) en cada eje */
+const clampN = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+/* redimensión de PIEZAS por eje (sw/sh = sentido en cada eje) */
 function resizeSel(sw, sh){
-  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
-  const e = state.elements.find(x => x.id === selEl);
-  if(e){
-    const t = TYPES[e.type];
-    if(sw) e.w = clamp((e.w || t.w || 30) + sw * ELEM_STEP, ELEM_MIN, ELEM_MAX);
-    if(sh) e.h = clamp((e.h || t.h || 30) + sh * ELEM_STEP, ELEM_MIN, ELEM_MAX);
-    const n = canvas.querySelector('.el[data-id="' + e.id + '"]');
-    if(n){ n.style.setProperty('--w', e.w + 'px'); n.style.setProperty('--h', e.h + 'px'); }
+  const p = state.pieces.find(x => x.id === selPiece);
+  if(!p) return;
+  /* semicírculo = medio círculo verdadero: solo se ajusta el diámetro (w);
+     el alto se mantiene a la mitad para que encaje con el lado de un rect */
+  if(p.kind === 'semi'){
+    if(sw){ p.w = clampN(p.w + sw * 5, 15, 100); p.h = p.w / 2; }
+    renderFloor();
     saveDraft();
     return;
   }
-  const p = state.pieces.find(x => x.id === selPiece);
-  if(!p) return;
   /* si la pieza está girada 90/270°, lo que el usuario ve como ancho es h */
   const swapped = (p.rot||0) % 180 !== 0;
   const kw = swapped ? 'h' : 'w', kh = swapped ? 'w' : 'h';
-  /* paso de 5 sobre una rejilla común (todos los tamaños por defecto son múltiplos
-     de 5) → cualquier lado de una pieza puede igualarse al de otra, p. ej. el
-     diámetro del semicírculo con la altura de un rectángulo */
-  if(sw) p[kw] = clamp(p[kw] + sw * 5, 15, 100);
-  if(sh) p[kh] = clamp(p[kh] + sh * 5, 15, 100);
+  /* paso de 5 sobre rejilla común (defaults múltiplos de 5) → cualquier lado de
+     una pieza puede igualarse al de otra (diámetro del semicírculo = lado del rect) */
+  if(sw) p[kw] = clampN(p[kw] + sw * 5, 15, 100);
+  if(sh) p[kh] = clampN(p[kh] + sh * 5, 15, 100);
   renderFloor();
   saveDraft();
 }
@@ -772,6 +794,55 @@ $('#btn-wm').addEventListener('click', () => resizeSel(-1, 0));
 $('#btn-wp').addEventListener('click', () => resizeSel( 1, 0));
 $('#btn-hm').addEventListener('click', () => resizeSel(0, -1));
 $('#btn-hp').addEventListener('click', () => resizeSel(0,  1));
+
+/* ELEMENTOS: escala uniforme (más grande / más pequeño) */
+function scaleEl(dir){
+  const e = state.elements.find(x => x.id === selEl);
+  if(!e) return;
+  const t = TYPES[e.type];
+  const f = dir > 0 ? 1.18 : 1 / 1.18;
+  e.w = Math.round(clampN((e.w || t.w || 30) * f, ELEM_MIN, ELEM_MAX));
+  e.h = Math.round(clampN((e.h || t.h || 30) * f, ELEM_MIN, ELEM_MAX));
+  const n = canvas.querySelector('.el[data-id="' + e.id + '"]');
+  if(n){ n.style.setProperty('--w', e.w + 'px'); n.style.setProperty('--h', e.h + 'px'); }
+  saveDraft();
+}
+$('#btn-bigger').addEventListener('click', () => scaleEl(1));
+$('#btn-smaller').addEventListener('click', () => scaleEl(-1));
+
+/* duplicar el elemento o la pieza seleccionada (desplazado un poco) */
+$('#btn-dup').addEventListener('click', () => {
+  if(selEl != null){
+    const e = state.elements.find(x => x.id === selEl);
+    if(!e) return;
+    const c = JSON.parse(JSON.stringify(e));
+    c.id = idSeq++; c.locked = false;
+    c.x = clampN(e.x + 6, 4, 96); c.y = clampN(e.y + 6, 6, 94);
+    state.elements.push(c);
+    canvas.appendChild(makeNode(c));
+    select(c.id, null);
+  }else if(selPiece != null){
+    const p = state.pieces.find(x => x.id === selPiece);
+    if(!p) return;
+    const c = JSON.parse(JSON.stringify(p));
+    c.id = idSeq++; c.locked = false;
+    c.x = clampN(p.x + 6, 2, 98); c.y = clampN(p.y + 6, 2, 98);
+    state.pieces.push(c);
+    select(null, c.id);
+  }
+  saveDraft();
+});
+
+/* bloquear / desbloquear la posición */
+$('#btn-lock').addEventListener('click', () => {
+  const obj = state.elements.find(x => x.id === selEl) ||
+              state.pieces.find(x => x.id === selPiece);
+  if(!obj) return;
+  obj.locked = !obj.locked;
+  if(selEl != null) renderElements(); else renderFloor();
+  renderEditPanel();
+  saveDraft();
+});
 $('#btn-text').addEventListener('click', () => {
   const e = state.elements.find(x => x.id === selEl);
   if(!e || !TYPES[e.type].editable) return;
@@ -836,6 +907,33 @@ canvas.addEventListener('pointerdown', ev => {
   if(ev.target === canvas || ev.target === floor) select(null, null);
 });
 
+/* caja contenedora (en %) de una pieza, según su rotación */
+function pieceBBox(p){
+  const sw = (p.rot||0) % 180 !== 0;
+  const hw = (sw ? p.h : p.w) / 2, hh = (sw ? p.w : p.h) / 2;
+  return { hw, hh, l:p.x-hw, r:p.x+hw, t:p.y-hh, b:p.y+hh };
+}
+const SNAP_T = 3;   // umbral de imantado en % de unidades del lienzo
+/* imanta los bordes de p a los de las demás piezas; devuelve el índice imantado o -1 */
+function snapPiece(p){
+  let A = pieceBBox(p), hit = -1;
+  state.pieces.forEach((q, qi) => {
+    if(q.id === p.id) return;
+    const B = pieceBBox(q);
+    const yOv = Math.min(A.b, B.b) - Math.max(A.t, B.t);
+    const xOv = Math.min(A.r, B.r) - Math.max(A.l, B.l);
+    if(yOv > 5){   // bordes verticales adyacentes/alineados
+      const pairs = [[A.r,B.l],[A.l,B.r],[A.l,B.l],[A.r,B.r]];
+      for(const [a, b] of pairs) if(Math.abs(a-b) < SNAP_T){ p.x += (b-a); A = pieceBBox(p); hit = qi; break; }
+    }
+    if(xOv > 5){   // bordes horizontales adyacentes/alineados
+      const pairs = [[A.b,B.t],[A.t,B.b],[A.t,B.t],[A.b,B.b]];
+      for(const [a, b] of pairs) if(Math.abs(a-b) < SNAP_T){ p.y += (b-a); A = pieceBBox(p); hit = qi; break; }
+    }
+  });
+  return hit;
+}
+
 /* ───────── drag: piezas de planta ───────── */
 function startDragPiece(ev, id, path){
   ev.preventDefault();
@@ -849,25 +947,39 @@ function startDragPiece(ev, id, path){
   selGroup.innerHTML = '<path class="psel" d="' + PIECES_DEF[p.kind].path +
                        '" transform="' + pieceTransform(p) + '"/>';
   renderEditPanel();
+  if(p.locked) return;     // posición bloqueada: solo selecciona, no arrastra
   try{ path.setPointerCapture(ev.pointerId); }catch(e){}
   const r0 = canvas.getBoundingClientRect();
   const ox = p.x - (ev.clientX - r0.left) / r0.width  * 100;
   const oy = p.y - (ev.clientY - r0.top)  / r0.height * 100;
   const idx = Array.prototype.indexOf.call(path.parentNode.children, path);
-  const strokePath = floor.children[0].children[idx];
+  const glowGroup = floor.children[0];
+  const strokePath = glowGroup.children[idx];
   let moved = false;
   const onMove = mv => {
     moved = true;
     const r = canvas.getBoundingClientRect();
-    p.x = Math.min(98, Math.max(2, ox + (mv.clientX - r.left) / r.width  * 100));
-    p.y = Math.min(98, Math.max(2, oy + (mv.clientY - r.top)  / r.height * 100));
-    p.x = +p.x.toFixed(2); p.y = +p.y.toFixed(2);
+    let nx = ox + (mv.clientX - r.left) / r.width  * 100;
+    let ny = oy + (mv.clientY - r.top)  / r.height * 100;
+    p.x = +nx.toFixed(2); p.y = +ny.toFixed(2);
+    const hit = snapPiece(p);                 // imantar bordes
+    const bb = pieceBBox(p);                   // y mantener la pieza dentro del lienzo
+    p.x = +clampN(p.x, bb.hw, 100-bb.hw).toFixed(2);
+    p.y = +clampN(p.y, bb.hh, 100-bb.hh).toFixed(2);
     /* mover solo los transforms es más fluido que reconstruir el SVG */
     const tr = pieceTransform(p);
     path.setAttribute('transform', tr);
     if(strokePath) strokePath.setAttribute('transform', tr);
     const ps = selGroup.firstChild;
     if(ps) ps.setAttribute('transform', tr);
+    /* feedback en amarillo cuando un borde queda imantado */
+    glowGroup.querySelectorAll('.pglow.snap').forEach(n => n.classList.remove('snap'));
+    glowGroup.classList.toggle('snapping', hit >= 0);
+    if(hit >= 0){
+      if(strokePath) strokePath.classList.add('snap');
+      const tgt = glowGroup.children[hit];
+      if(tgt) tgt.classList.add('snap');
+    }
   };
   const onUp = () => {
     path.removeEventListener('pointermove', onMove);
@@ -887,12 +999,13 @@ function startDragEl(ev, id, node){
   select(id, null);
   const e = state.elements.find(x => x.id === id);
   if(!e) return;
+  if(e.locked) return;     // posición bloqueada: solo selecciona, no arrastra
   try{ node.setPointerCapture(ev.pointerId); }catch(err){}
   node.classList.add('dragging');
   let moved = false;
   const onMove = mv => {
     moved = true;
-    const p = toPct(mv.clientX, mv.clientY);
+    const p = toPct(mv.clientX, mv.clientY, e);
     e.x = p.x; e.y = p.y;
     node.style.left = e.x + '%';
     node.style.top  = e.y + '%';
@@ -908,10 +1021,14 @@ function startDragEl(ev, id, node){
   node.addEventListener('pointerup', onUp);
   node.addEventListener('pointercancel', onUp);
 }
-function toPct(cx, cy){
+/* posición en % manteniendo el elemento ENTERO dentro del lienzo (margen = medio tamaño) */
+function toPct(cx, cy, e){
   const r = canvas.getBoundingClientRect();
-  const x = Math.min(96, Math.max(4, (cx - r.left) / r.width  * 100));
-  const y = Math.min(94, Math.max(6, (cy - r.top)  / r.height * 100));
+  const t = e ? TYPES[e.type] : null;
+  const mx = e ? ((e.w || t.w || 30) / 2 / r.width)  * 100 : 4;
+  const my = e ? ((e.h || t.h || 30) / 2 / r.height) * 100 : 6;
+  const x = clampN((cx - r.left) / r.width  * 100, mx, 100 - mx);
+  const y = clampN((cy - r.top)  / r.height * 100, my, 100 - my);
   return { x:+x.toFixed(2), y:+y.toFixed(2) };
 }
 
@@ -1000,6 +1117,11 @@ function addElement(type, pos){
   const t = TYPES[type];
   const e = { id:idSeq++, type, x:pos.x, y:pos.y, rot:0, w:t.w || 30, h:t.h || 30 };
   if(t.editable) e.text = '';
+  /* mantener el elemento entero dentro del lienzo */
+  const r = canvas.getBoundingClientRect();
+  const mx = (e.w / 2 / r.width) * 100, my = (e.h / 2 / r.height) * 100;
+  e.x = +clampN(e.x, mx, 100 - mx).toFixed(2);
+  e.y = +clampN(e.y, my, 100 - my).toFixed(2);
   state.elements.push(e);
   canvas.appendChild(makeNode(e));
   select(e.id, null);
@@ -1098,12 +1220,24 @@ function toast(msg){
   toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
 }
 
+/* lienzo cuadrado (lado = menor del área disponible) → proporciones reales */
+function sizeCanvas(){
+  const wrap = canvas.parentElement, cs = getComputedStyle(wrap);
+  const availW = wrap.clientWidth  - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const availH = wrap.clientHeight - parseFloat(cs.paddingTop)  - parseFloat(cs.paddingBottom);
+  const s = Math.max(40, Math.min(availW, availH));
+  canvas.style.width = s + 'px';
+  canvas.style.height = s + 'px';
+}
+window.addEventListener('resize', () => { lockTabBodyHeight(); sizeCanvas(); });
+
 /* ───────── arranque ───────── */
 loadDraft();
 $('#map-name').value = state.name || '';
 app.classList.add('sec-' + currentTab);   // sección inicial: estructura
 applyVisibility();
 lockTabBodyHeight();
+sizeCanvas();
 renderFloor();
 renderElements();
 renderEditPanel();
