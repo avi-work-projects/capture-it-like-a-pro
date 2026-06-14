@@ -126,11 +126,13 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
    piezas que se solapan se fusionan sin línea interior; solo asoma el contorno de
    acento en el perímetro exterior de la unión. */
 #floor .glowg{filter:drop-shadow(0 0 7px var(--accent-glow))}
-#floor .pglow{fill:var(--accent);stroke:var(--accent);stroke-width:4;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+#floor .pglow{fill:var(--accent);stroke:var(--accent);stroke-width:5;vector-effect:non-scaling-stroke;stroke-linejoin:round}
 /* al imantar un borde con otra pieza, ese contorno se pinta en amarillo */
 #floor .pglow.snap{fill:#ffd60a;stroke:#ffd60a}
 #floor .glowg.snapping{filter:drop-shadow(0 0 8px rgba(255,214,10,.55))}
-#floor .pfl{fill:#161616;stroke:none;pointer-events:auto;cursor:grab}
+/* el relleno lleva un trazo del MISMO color: así dos rellenos que se tocan se
+   solapan ~1px y tapan el azul de debajo (no queda raya en la costura) */
+#floor .pfl{fill:#161616;stroke:#161616;stroke-width:2.5;vector-effect:non-scaling-stroke;stroke-linejoin:round;pointer-events:auto;cursor:grab}
 #floor .psel{fill:none;stroke:#fff;stroke-width:1.5;stroke-dasharray:6 5;vector-effect:non-scaling-stroke;pointer-events:none}
 
 /* elementos colocados — tamaño libre vía --w/--h, centrados en su punto (x,y) */
