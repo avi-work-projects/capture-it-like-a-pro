@@ -551,7 +551,7 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 <script>
 'use strict';
 /* ══════════════════════════════════════════════════════════════
-   EDITOR DE MAPA — módulo independiente (v0.16)
+   EDITOR DE MAPA — módulo independiente (v0.17)
    Sin dependencias. Pensado para integrarse luego en index.html.
 
    Tres secciones (tabs): ESTRUCTURA (planta) · ELEMENTOS · CÁMARAS.
@@ -1014,7 +1014,8 @@ function pieceBBox(p){
   const hw = (sw ? p.h : p.w) / 2, hh = (sw ? p.w : p.h) / 2;
   return { hw, hh, l:p.x-hw, r:p.x+hw, t:p.y-hh, b:p.y+hh };
 }
-const SNAP_T = 1.6;      // umbral de imantado SUTIL (% ≈ 5px): solo cuando ya estás casi
+const SNAP_T = 1.6;          // umbral de imantado de BORDE (% ≈ 5px): sutil
+const SNAP_CORNER = 2.4;     // umbral de imantado de ESQUINA (% ≈ 8px): un poco más generoso
 
 /* vértices del polígono de cada pieza en coords unitarias (0..1).
    semi = solo su lado recto (diámetro): la curva no es una arista que imantar */
@@ -1046,24 +1047,35 @@ function pieceEdges(p){
   }
   return { v, h };
 }
-/* Imán por BORDES REALES (incluye los lados interiores de la L y la T): alinea una
-   arista de la pieza arrastrada con la de otra cuando casi coinciden Y se solapan de
-   verdad (no la caja exterior). Devuelve el índice de la pieza imantada o -1. */
+/* Imán por BORDES REALES (incluye los lados interiores de la L y la T) + imán de
+   ESQUINA a esquina: alinea una arista de la pieza con la de otra cuando se solapan de
+   verdad, y además hace coincidir un vértice con el vértice de otra pieza si está cerca
+   (así, con dos bases tocándose, las esquinas se cuadran solas). Devuelve el índice o -1. */
 function snapPiece(p){
-  const eA = pieceEdges(p);
-  let dx = 0, dy = 0, mdx = SNAP_T, mdy = SNAP_T, hit = -1;
+  const eA = pieceEdges(p), vA = pieceVerts(p);
+  /* mdx/mdy = mejor distancia de imantado por eje (inicia en el umbral mayor, el de esquina) */
+  let dx = 0, dy = 0, mdx = SNAP_CORNER, mdy = SNAP_CORNER, hit = -1;
   state.pieces.forEach((q, qi) => {
     if(q.id === p.id) return;
-    const eB = pieceEdges(q);
-    for(const a of eA.v) for(const b of eB.v){          // aristas verticales → imanta X
+    const eB = pieceEdges(q), vB = pieceVerts(q);
+    // alineación de BORDES (perpendicular): aristas que se solapan de verdad (umbral SNAP_T)
+    for(const a of eA.v) for(const b of eB.v){          // verticales → imanta X
       const ov = Math.min(a.y1,b.y1) - Math.max(a.y0,b.y0);
       const d = Math.abs(a.x - b.x);
-      if(ov > 1.5 && d < mdx){ mdx = d; dx = b.x - a.x; hit = qi; }
+      if(ov > 1.5 && d < SNAP_T && d < mdx){ mdx = d; dx = b.x - a.x; hit = qi; }
     }
-    for(const a of eA.h) for(const b of eB.h){          // aristas horizontales → imanta Y
+    for(const a of eA.h) for(const b of eB.h){          // horizontales → imanta Y
       const ov = Math.min(a.x1,b.x1) - Math.max(a.x0,b.x0);
       const d = Math.abs(a.y - b.y);
-      if(ov > 1.5 && d < mdy){ mdy = d; dy = b.y - a.y; hit = qi; }
+      if(ov > 1.5 && d < SNAP_T && d < mdy){ mdy = d; dy = b.y - a.y; hit = qi; }
+    }
+    // imán de ESQUINA: un vértice cerca de otro vértice EN AMBOS ejes → cuádralos (umbral mayor)
+    for(const a of vA) for(const b of vB){
+      const ddx = Math.abs(a.x - b.x), ddy = Math.abs(a.y - b.y);
+      if(ddx < SNAP_CORNER && ddy < SNAP_CORNER){
+        if(ddx < mdx){ mdx = ddx; dx = b.x - a.x; hit = qi; }
+        if(ddy < mdy){ mdy = ddy; dy = b.y - a.y; hit = qi; }
+      }
     }
   });
   if(hit >= 0){ p.x = +(p.x+dx).toFixed(2); p.y = +(p.y+dy).toFixed(2); }
