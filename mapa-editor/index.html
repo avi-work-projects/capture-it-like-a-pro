@@ -45,6 +45,8 @@ body{background:#000;font-family:var(--body);overflow:hidden}
   --c-edificio:#9aa0a6;
   --c-metro:#ff5a4d;
   --c-carretera:#8a8f96;
+  --c-iglesia:#d9b65d;
+  --c-monumento:#b8b3a8;
 
   position:relative;
   width:100%;max-width:430px;height:100dvh;margin:0 auto;
@@ -146,13 +148,17 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
    piezas que se solapan se fusionan sin línea interior; solo asoma el contorno de
    acento en el perímetro exterior de la unión. */
 #floor .glowg{filter:drop-shadow(0 0 7px var(--accent-glow))}
-#floor .pglow{fill:var(--accent);stroke:var(--accent);stroke-width:5;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+/* el COLOR (relleno+trazo) va por atributo en cada path → cada pieza puede llevar
+   el suyo (asfalto, agua, jardín…). Las reglas CSS de aquí solo fijan geometría;
+   .snap (regla CSS) gana al atributo y pinta el borde imantado en amarillo. */
+#floor .pglow{stroke-width:5;vector-effect:non-scaling-stroke;stroke-linejoin:round}
 /* al imantar un borde con otra pieza, ese contorno se pinta en amarillo */
 #floor .pglow.snap{fill:#ffd60a;stroke:#ffd60a}
 #floor .glowg.snapping{filter:drop-shadow(0 0 8px rgba(255,214,10,.55))}
 /* el relleno lleva un trazo del MISMO color: así dos rellenos que se tocan se
-   solapan ~1px y tapan el azul de debajo (no queda raya en la costura) */
-#floor .pfl{fill:#161616;stroke:#161616;stroke-width:2.5;vector-effect:non-scaling-stroke;stroke-linejoin:round;pointer-events:auto;cursor:grab}
+   solapan ~1px y tapan el acento de debajo (no queda raya en la costura).
+   Piezas del MISMO color se fusionan sin costura; distinto color = se superponen. */
+#floor .pfl{stroke-width:2.5;vector-effect:non-scaling-stroke;stroke-linejoin:round;pointer-events:auto;cursor:grab}
 #floor .psel{fill:none;stroke:#fff;stroke-width:1.5;stroke-dasharray:6 5;vector-effect:non-scaling-stroke;pointer-events:none}
 
 /* elementos colocados — tamaño libre vía --w/--h, centrados en su punto (x,y) */
@@ -322,6 +328,9 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 .shape-btn svg .fl{fill:none;stroke:currentColor;stroke-width:7}
 .shape-btn span{font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase}
 .shape-btn:active{border-color:var(--c-estructura);color:var(--c-estructura)}
+/* exterior: más piezas (carretera/camino/agua/jardín) → rejilla de 4, etiqueta a 2 líneas */
+.shapes.ext{display:grid;grid-template-columns:repeat(4,1fr)}
+.shapes.ext .shape-btn span{white-space:normal;line-height:1.05;text-align:center}
 /* botón mostrar/ocultar todos los elementos (sección Estructura) */
 .vis-toggle{
   display:flex;align-items:center;justify-content:center;gap:8px;
@@ -583,15 +592,36 @@ const EXT = new URLSearchParams(location.search).get('mode') === 'exterior';
 const DRAFT_KEY = EXT ? 'cip_mapa_ext_v1' : 'cip_mapa_editor_v1';
 const LIB_KEY   = EXT ? 'cip_mapas_ext_v1' : 'cip_mapas_v1';
 
-/* piezas de planta — path unitario (0..1), tamaño % por defecto */
+/* paths unitarios reutilizables (0..1) */
+const P_RECT  = 'M0 0 H1 V1 H0 Z';
+const P_CIRC  = 'M0.5 0 A0.5 0.5 0 1 1 0.5 1 A0.5 0.5 0 1 1 0.5 0 Z';      // círculo/elipse inscrito
+/* sector de donut (cuarto de anillo): radio exterior 1, interior 0.6, centro (0,1) →
+   carreteras/caminos curvos; al rotar 90° encaja con tramos rectos formando esquinas */
+const P_DONUT = 'M1 1 A1 1 0 0 0 0 0 L0 0.4 A0.6 0.6 0 0 1 0.6 1 Z';
+
+/* piezas de planta — path unitario (0..1), tamaño % por defecto.
+   fill/edge = color del cuerpo y del contorno (si faltan: planta interior #161616/acento). */
 const PIECES_DEF = {
-  rect:{ label:'Rect',  path:'M0 0 H1 V1 H0 Z',                         w:60, h:50 },
+  /* ── interior: habitaciones (acento azul, relleno oscuro) ── */
+  rect:{ label:'Rect',  path:P_RECT,                                     w:60, h:50 },
   ele: { label:'En L',  path:'M0 0 H0.62 V0.5 H1 V1 H0 Z',              w:65, h:60 },
   te:  { label:'En T',  path:'M0 0 H1 V0.38 H0.66 V1 H0.34 V0.38 H0 Z', w:65, h:60 },
   /* semicírculo "verdadero": alto = mitad del ancho, así su diámetro encaja con
      el lado de un rect/cuadrado del mismo ancho sin dejar esquinas */
-  semi:{ label:'Semi',  path:'M0 1 A0.5 1 0 0 1 1 1 Z',                 w:60, h:30 }
+  semi:{ label:'Semi',  path:'M0 1 A0.5 1 0 0 1 1 1 Z',                 w:60, h:30 },
+  /* ── exterior: piezas de área con color propio; las del MISMO color se fusionan
+        sin costura (un camino que corona a otro queda abierto/continuo) ── */
+  carretera:  { label:'Carretera',       path:P_RECT,  fill:'#3a3d42', edge:'#5a5f66', w:80, h:16 },
+  carretera_c:{ label:'Carretera curva', path:P_DONUT, fill:'#3a3d42', edge:'#5a5f66', w:55, h:55 },
+  camino:     { label:'Camino',          path:P_RECT,  fill:'#6e5a40', edge:'#8c7350', w:64, h:11 },
+  camino_c:   { label:'Camino curvo',    path:P_DONUT, fill:'#6e5a40', edge:'#8c7350', w:46, h:46 },
+  agua:       { label:'Agua',            path:P_RECT,  fill:'#1e6aa6', edge:'#3da9ff', w:55, h:38 },
+  agua_c:     { label:'Lago',            path:P_CIRC,  fill:'#1e6aa6', edge:'#3da9ff', w:48, h:48 },
+  jardin:     { label:'Jardín',          path:P_RECT,  fill:'#2f6b34', edge:'#5fbf57', w:55, h:45 }
 };
+/* piezas de estructura por modo: interior = habitaciones; exterior = vías/agua/jardín */
+const STRUCT_INT = ['rect','ele','te','semi'];
+const STRUCT_EXT = ['carretera','carretera_c','camino','camino_c','agua','agua_c','jardin'];
 
 /* tipos de elemento — w/h = tamaño por defecto en px (redimensionable) */
 const TYPES = {
@@ -607,27 +637,32 @@ const TYPES = {
     icon:'<svg viewBox="0 0 24 24"><path d="M4 5h16l-8 9z"/><path d="M12 14v6"/><path d="M8 20h8"/></svg>' },
   escenario:  { label:'Escenario', color:'var(--c-esc)',    w:50, h:20,
     icon:'<svg viewBox="0 0 24 24"><rect x="3" y="10" width="18" height="9" rx="1.5"/><path d="M3 10l9-5 9 5"/></svg>' },
-  gen_estrella:{ label:'Estrella', color:'var(--c-gen)', editable:true, w:24, h:24,
+  gen_estrella:{ label:'Estrella', color:'var(--c-gen)', editable:true, blankLabel:true, w:24, h:24,
     icon:'<svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 5.9-5.3-3-5.3 3 1.2-5.9L3.4 9.3l6-.7Z"/></svg>' },
-  gen_circulo:{ label:'Círculo',   color:'var(--c-gen)', editable:true, w:24, h:24,
+  gen_circulo:{ label:'Círculo',   color:'var(--c-gen)', editable:true, blankLabel:true, w:24, h:24,
     icon:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/></svg>' },
-  gen_cuadrado:{ label:'Cuadrado', color:'var(--c-gen)', editable:true, w:24, h:24,
+  gen_cuadrado:{ label:'Cuadrado', color:'var(--c-gen)', editable:true, blankLabel:true, w:24, h:24,
     icon:'<svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>' },
   camarografo:{ label:'Cámara',    color:'var(--c-cam)',    w:24, h:24,
     icon:'<svg viewBox="0 0 24 24"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="M15 10l6-3v10l-6-3"/></svg>' },
-  /* ── elementos de EXTERIOR (tamaños representativos: la carretera larga, el agua amplia…) ── */
-  arbol:     { label:'Árbol',          color:'var(--c-arbol)',     w:24, h:28,
+  /* ── elementos de EXTERIOR (texto editable: se les puede poner nombre propio) ── */
+  arbol:     { label:'Árbol',          color:'var(--c-arbol)',     editable:true, w:24, h:28,
     icon:'<svg viewBox="0 0 24 24"><path d="M12 2l4 6h-2.6l3 5h-2.6l2.4 4H7.8l2.4-4H7.6l3-5H8z"/><path d="M12 17v5"/></svg>' },
+  fuente:    { label:'Fuente',         color:'var(--c-fuente)',    editable:true, w:26, h:26,
+    icon:'<svg viewBox="0 0 24 24"><path d="M5 21h14"/><path d="M7 21l1-5h8l1 5"/><path d="M12 16V9"/><path d="M9 9a3 3 0 0 1 6 0"/><path d="M12 9V5"/></svg>' },
+  comida:    { label:'Comida',         color:'var(--c-comida)',    editable:true, w:38, h:26,
+    icon:'<svg viewBox="0 0 24 24"><path d="M3 10l2-4h14l2 4"/><path d="M5 10v11h14V10"/><path d="M3 10h18"/><path d="M9.5 21v-6h5v6"/></svg>' },
+  edificio:  { label:'Edificio',       color:'var(--c-edificio)',  editable:true, w:42, h:42,
+    icon:'<svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/></svg>' },
+  metro:     { label:'Metro',          color:'var(--c-metro)',     editable:true, w:24, h:26,
+    icon:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M7 16V8l5 6 5-6v8"/></svg>' },
+  iglesia:   { label:'Iglesia',        color:'var(--c-iglesia)',   editable:true, w:30, h:34,
+    icon:'<svg viewBox="0 0 24 24"><path d="M12 2v5M10 4h4"/><path d="M6 21V10l6-4 6 4v11"/><path d="M10 21v-5h4v5"/></svg>' },
+  monumento: { label:'Monumento',      color:'var(--c-monumento)', editable:true, w:26, h:34,
+    icon:'<svg viewBox="0 0 24 24"><path d="M10 3h4l-1 13h-2z"/><path d="M8 21l1-3h6l1 3"/><path d="M6 21h12"/></svg>' },
+  /* agua/carretera siguen definidos para no romper mapas exteriores antiguos (ya no en la paleta) */
   agua:      { label:'Agua',           color:'var(--c-agua)',      w:56, h:40,
     icon:'<svg viewBox="0 0 24 24"><path d="M3 8c2-1.5 4 1.5 6 0s4-1.5 6 0 4 1.5 6 0"/><path d="M3 13c2-1.5 4 1.5 6 0s4-1.5 6 0 4 1.5 6 0"/><path d="M3 18c2-1.5 4 1.5 6 0s4-1.5 6 0 4 1.5 6 0"/></svg>' },
-  fuente:    { label:'Fuente',         color:'var(--c-fuente)',    w:26, h:26,
-    icon:'<svg viewBox="0 0 24 24"><path d="M5 21h14"/><path d="M7 21l1-5h8l1 5"/><path d="M12 16V9"/><path d="M9 9a3 3 0 0 1 6 0"/><path d="M12 9V5"/></svg>' },
-  comida:    { label:'Comida',         color:'var(--c-comida)',    w:38, h:26,
-    icon:'<svg viewBox="0 0 24 24"><path d="M3 10l2-4h14l2 4"/><path d="M5 10v11h14V10"/><path d="M3 10h18"/><path d="M9.5 21v-6h5v6"/></svg>' },
-  edificio:  { label:'Edificio',       color:'var(--c-edificio)',  w:42, h:42,
-    icon:'<svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/></svg>' },
-  metro:     { label:'Metro',          color:'var(--c-metro)',     w:24, h:26,
-    icon:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M7 16V8l5 6 5-6v8"/></svg>' },
   carretera: { label:'Carretera',      color:'var(--c-carretera)', w:78, h:16,
     icon:'<svg viewBox="0 0 24 24"><path d="M3 6h18M3 18h18"/><path d="M7.5 12h3M13.5 12h3"/></svg>' }
 };
@@ -635,7 +670,7 @@ const ELEM_MIN = 14, ELEM_MAX = 150, ELEM_STEP = 6;   // límites de tamaño de 
 
 /* reparto de la paleta por sección (los "main" cambian según el modo) */
 const GROUP = {
-  main:  EXT ? ['arbol','agua','fuente','comida','edificio','metro','carretera']
+  main:  EXT ? ['arbol','fuente','comida','edificio','metro','iglesia','monumento']
              : ['acceso','banos','columna','dj','bar','escenario'],
   otros: ['gen_estrella','gen_circulo','gen_cuadrado'],
   cam:   ['camarografo']
@@ -780,9 +815,11 @@ function pieceTransform(p){
 function renderFloor(){
   let glow = '', fills = '', sel = '';
   state.pieces.forEach(p => {
-    const d = PIECES_DEF[p.kind].path, tr = pieceTransform(p);
-    glow  += '<path class="pglow" d="' + d + '" transform="' + tr + '"/>';
-    fills += '<path class="pfl" d="' + d + '" transform="' + tr + '" data-id="' + p.id + '"/>';
+    const def = PIECES_DEF[p.kind], d = def.path, tr = pieceTransform(p);
+    const edge = def.edge || '#3da9ff';      // contorno (acento azul si es interior)
+    const body = def.fill || '#161616';      // cuerpo opaco (oscuro si es interior)
+    glow  += '<path class="pglow" fill="' + edge + '" stroke="' + edge + '" d="' + d + '" transform="' + tr + '"/>';
+    fills += '<path class="pfl" fill="' + body + '" stroke="' + body + '" d="' + d + '" transform="' + tr + '" data-id="' + p.id + '"/>';
     if(p.id === selPiece)
       sel += '<path class="psel" d="' + d + '" transform="' + tr + '"/>';
   });
@@ -807,8 +844,10 @@ function makeNode(e){
   n.style.setProperty('--h', (e.h || t.h || 30) + 'px');
   n.style.left = e.x + '%';
   n.style.top  = e.y + '%';
-  /* genéricos: sin texto hasta que el usuario lo escriba; el resto, su etiqueta */
-  const labelText = t.editable ? (e.text || '') : (e.text || t.label);
+  /* texto: el escrito por el usuario manda; si no hay, los genéricos van en blanco
+     (blankLabel) y el resto muestra su etiqueta por defecto */
+  const hasText = e.text != null && e.text !== '';
+  const labelText = hasText ? e.text : (t.blankLabel ? '' : t.label);
   n.innerHTML = '<div class="ic">' + t.icon + '</div>' +
                 (labelText ? '<div class="lb">' + escapeHtml(labelText) + '</div>' : '') +
                 '<span class="lock-badge"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>';
@@ -1062,7 +1101,16 @@ const PIECE_VERTS = {
   rect: [[0,0],[1,0],[1,1],[0,1]],
   ele:  [[0,0],[0.62,0],[0.62,0.5],[1,0.5],[1,1],[0,1]],
   te:   [[0,0],[1,0],[1,0.38],[0.66,0.38],[0.66,1],[0.34,1],[0.34,0.38],[0,0.38]],
-  semi: [[0,1],[1,1]]
+  semi: [[0,1],[1,1]],
+  /* exterior — rectángulos: caja completa; donut: sus 4 esquinas (los 2 cortes
+     radiales son aristas rectas → imantan de lado); círculo: puntos cardinales */
+  carretera: [[0,0],[1,0],[1,1],[0,1]],
+  camino:    [[0,0],[1,0],[1,1],[0,1]],
+  agua:      [[0,0],[1,0],[1,1],[0,1]],
+  jardin:    [[0,0],[1,0],[1,1],[0,1]],
+  carretera_c: [[1,1],[0,0],[0,0.4],[0.6,1]],
+  camino_c:    [[1,1],[0,0],[0,0.4],[0.6,1]],
+  agua_c:    [[0.5,0],[1,0.5],[0.5,1],[0,0.5]]
 };
 /* vértices de la pieza en % del lienzo (posición/tamaño/rotación múltiplo de 90) */
 function pieceVerts(p){
@@ -1267,6 +1315,28 @@ function buildPalItem(type, opts){
 GROUP.main.forEach(tp => $('#pal-main').appendChild(buildPalItem(tp)));
 GROUP.otros.forEach(tp => $('#pal-otros').appendChild(buildPalItem(tp, { iconOnly:true })));
 GROUP.cam.forEach(tp => $('#pal-cam').appendChild(buildPalItem(tp, { big:true })));
+
+/* ───────── piezas de estructura (interior fijo en HTML; exterior se genera) ───────── */
+/* iconos (stroke, viewBox 0 0 100 100) de las piezas de área del exterior */
+const STRUCT_ICON = {
+  carretera:  '<rect class="fl" x="8" y="40" width="84" height="20" rx="4"/>',
+  carretera_c:'<path class="fl" d="M16 86 A62 62 0 0 1 86 16"/>',
+  camino:     '<rect class="fl" x="10" y="44" width="80" height="12" rx="3"/>',
+  camino_c:   '<path class="fl" d="M18 84 A58 58 0 0 1 84 18"/>',
+  agua:       '<rect class="fl" x="16" y="28" width="68" height="44" rx="9"/>',
+  agua_c:     '<circle class="fl" cx="50" cy="50" r="33"/>',
+  jardin:     '<rect class="fl" x="18" y="26" width="64" height="48" rx="6"/>'
+};
+if(EXT){
+  const sh = $('#shapes');
+  sh.classList.add('ext');
+  sh.innerHTML = STRUCT_EXT.map(k =>
+    '<button class="shape-btn" data-kind="' + k + '">' +
+    '<svg viewBox="0 0 100 100">' + STRUCT_ICON[k] + '</svg>' +
+    '<span>' + PIECES_DEF[k].label + '</span></button>').join('');
+  const hint = $('#pane-estructura .pane-hint');
+  if(hint) hint.textContent = 'Toca para añadir · solapa piezas del mismo tipo para fusionarlas (quedan abiertas).';
+}
 
 function startDragPal(ev, type, item){
   ev.preventDefault();
