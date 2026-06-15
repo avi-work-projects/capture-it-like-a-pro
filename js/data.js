@@ -74,67 +74,69 @@
   /* dd mmm a partir de YYYY-MM-DD (sin construir Date sin args) */
   function fmtRevDate(s){ var p = s.split('-'); return parseInt(p[2],10) + ' ' + MON[parseInt(p[1],10)-1]; }
 
-  /* recurrence: 'weekly' (salas que se repiten cada semana — van a "Horarios
-     salas") | 'oneoff' (fecha concreta: congresos/exterior — van al calendario).
-     weekly: weekday (0=dom..6=sáb) + timeLabel. liveCams = check-in hecho. */
+  /* recurrence: 'weekly' (salas reales que se repiten cada semana → "Horarios
+     salas"; weekdays JS 0=dom..6=sáb + timeLabel) | 'oneoff' (fecha concreta:
+     congresos/exterior reales con dateStart/dateEnd → calendario).
+     Datos reales: salas de sbkapp.es (Madrid), congresos de lasalsadelbaile.com.
+     liveCams = check-in ya hecho (demo). */
   var EVENTS = [
-    { id:'fri',   name:'Bachata Friday Night',  country:'es', city:'mad', type:'sala', recurrence:'weekly', weekday:5, timeLabel:'23:00–03:00',
-      venue:'Sala Tropic',          camIds:['juan','ana'], liveCams:['juan'] },
-    { id:'acad',  name:'Open Class SBK',        country:'es', city:'mad', type:'sala', recurrence:'weekly', weekday:4, timeLabel:'20:30–22:30',
-      venue:'Academia Ritmo',       camIds:[] },
-    { id:'club',  name:'Caribbean Late Night',  country:'es', city:'bcn', type:'sala', recurrence:'weekly', weekday:6, timeLabel:'00:30–05:30',
-      venue:'Sala Caribbean',       camIds:[] },
-    { id:'waw1',  name:'Warsaw Bachata Social', country:'pl', city:'waw', type:'sala', recurrence:'weekly', weekday:5, timeLabel:'21:00–00:30',
-      venue:'Klub Mokotów',         camIds:['piotr'] },
-    { id:'sunset',name:'Bachata Sunset Madrid', country:'es', city:'mad', type:'exterior', sub:'terraza', recurrence:'oneoff',
-      venue:'Terraza Plaza España', camIds:['carlos'] },
-    { id:'beach', name:'Bachata Beach Party',   country:'es', city:'bcn', type:'exterior', sub:'playa', recurrence:'oneoff',
-      venue:'Playa Bogatell',       camIds:['lucia','david'] },
-    { id:'waw2',  name:'Vistula Open Air',      country:'pl', city:'waw', type:'exterior', sub:'parque', recurrence:'oneoff',
-      venue:'Park Vístula',         camIds:[] },
-    { id:'cong',  name:'Congreso Bachatísimo',  country:'es', city:'sev', type:'congreso', recurrence:'oneoff',
-      venue:'Palacio de Congresos', camIds:['marta'] },
-    { id:'wknd',  name:'Sevilla Weekender',     country:'es', city:'sev', type:'congreso', recurrence:'oneoff',
-      venue:'Hotel Triana',         camIds:[] },
-    { id:'kra1',  name:'Kraków Bachata Fest',   country:'pl', city:'kra', type:'congreso', recurrence:'oneoff',
-      venue:'ICE Kraków',           camIds:['magda'] },
-    { id:'verano',name:'Bachata Verano Playa',  country:'es', city:'bcn', type:'exterior', sub:'playa', recurrence:'oneoff',
-      venue:'Playa Barceloneta',    camIds:['lucia'] },
-    { id:'octmd', name:'Congreso Otoño Madrid', country:'es', city:'mad', type:'congreso', recurrence:'oneoff',
-      venue:'IFEMA',                camIds:['juan','ana'] },
-    { id:'navmad',name:'Bachata Navideña',      country:'es', city:'mad', type:'exterior', sub:'terraza', recurrence:'oneoff',
-      venue:'Mercado de Navidad',   camIds:[] },
-    { id:'finsev',name:'Bachatísimo Fin de Año',country:'es', city:'sev', type:'congreso', recurrence:'oneoff',
-      venue:'Palacio de Congresos', camIds:['marta'] }
+  /* === SALAS REALES de Madrid (sbkapp.es), semanales === */
+  { id:'s_thehost', name:"The Host", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[2, 3, 4, 5], timeLabel:"23:30–04:00", venue:"C. de Ferraz, 38", camIds:["juan", "ana"], liveCams:["juan"] },
+  { id:'s_salacalips', name:"Sala Calipso", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[5, 6], timeLabel:"22:00–04:00", venue:"C. de Uruguay, 5", camIds:[] },
+  { id:'s_salsebasti', name:"Salsebastián", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[5, 6], timeLabel:"22:00–04:00", venue:"Av. Fuente Nueva, 5, Nave 16B", camIds:[] },
+  { id:'s_azucar', name:"Azúcar", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[5, 6], timeLabel:"23:00–05:00", venue:"C. de Atocha, 107", camIds:["lucia"] },
+  { id:'s_salabongos', name:"Sala Bongos", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[5, 6], timeLabel:"23:00–05:00", venue:"C. de Bravo Murillo, 52", camIds:["david"] },
+  { id:'s_laermita', name:"La Ermita", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[6, 0], timeLabel:"18:00–22:00", venue:"P.º de la Virgen del Puerto, 4", camIds:[] },
+  { id:'s_karamelosa', name:"Karamelo (Sala Cha3)", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[6], timeLabel:"23:00–05:00", venue:"Calle de San Pol de Mar, 1", camIds:[] },
+  { id:'s_catslatind', name:"Cats Latin Dance", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[0], timeLabel:"20:00–02:00", venue:"C. de Julián Romea, 4", camIds:[] },
+  { id:'s_kumarah540', name:"Kumarah 5.40", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[4, 0], timeLabel:"22:00–03:00", venue:"C. Sofía, 3", camIds:[] },
+  { id:'s_salajowke', name:"Sala Jowke", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[0], timeLabel:"20:00–02:00", venue:"Av. San Martín de Valdeiglesias, 22", camIds:[] },
+  /* === CONGRESOS REALES (lasalsadelbaile.com), fechas concretas === */
+  { id:'c_urban', name:"URBAN Bachata Festival 2026", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-06-12', dateEnd:'2026-06-14', venue:"Occidental Aranjuez", camIds:["juan", "ana"] },
+  { id:'c_madsum', name:"Madrid Summer Festival 2026", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-06-26', dateEnd:'2026-06-28', venue:"Hotel Isla de la Garena", camIds:["carlos"] },
+  { id:'c_bigsoc', name:"The Big Social Dance", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-08-09', dateEnd:'2026-08-10', venue:"Madrid", camIds:[] },
+  { id:'c_bcnsum', name:"Bachatazo Barcelona Summer 2026", country:'es', city:'bcn', type:'congreso', recurrence:'oneoff', dateStart:'2026-08-13', dateEnd:'2026-08-17', venue:"Barcelona", camIds:["lucia", "david"] },
+  { id:'c_back', name:"Back to School 2026 · Madrid", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-10-30', dateEnd:'2026-11-01', venue:"Madrid", camIds:["juan"] },
+  { id:'c_full', name:"Full Bachata 2026", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-11-27', dateEnd:'2026-11-29', venue:"Madrid", camIds:[] },
+  { id:'c_emotion', name:"E-Motion Sevilla Bachata Congress", country:'es', city:'sev', type:'congreso', recurrence:'oneoff', dateStart:'2026-11-27', dateEnd:'2026-11-29', venue:"Sevilla", camIds:["marta"] },
+  /* === EXTERIOR (al aire libre), fechas concretas === */
+  { id:'e_sunset', name:"Bachata Sunset Madrid", country:'es', city:'mad', type:'exterior', sub:'terraza', recurrence:'oneoff', dateStart:'2026-06-20', dateEnd:'2026-06-20', venue:"Terraza Plaza España", camIds:["carlos"] },
+  { id:'e_beach', name:"Bachata Beach Party", country:'es', city:'bcn', type:'exterior', sub:'playa', recurrence:'oneoff', dateStart:'2026-07-11', dateEnd:'2026-07-11', venue:"Playa Bogatell", camIds:["lucia", "david"] }
   ];
   var EVENTS_BY_ID = {};
   EVENTS.forEach(function(e){ EVENTS_BY_ID[e.id] = e; });
 
-  /* Horarios:
-     - SEMANALES → ocurrencia relativa a ahora (fri/waw1 EN DIRECTO para demo).
-     - PUNTUALES → fechas absolutas de 2026, repartidas por todo el año. */
+  /* Horarios (calculados):
+     - SEMANALES → próxima ocurrencia (día de weekdays + hora de timeLabel).
+     - PUNTUALES → fechas reales dateStart/dateEnd.
+     DEMO: la sala "The Host" se fuerza EN DIRECTO ahora para probar check-in. */
   (function(){
-    var H = 3600e3, D = 24 * H, now = Date.now();
-    var W = { fri:[-1*H, 3*H], waw1:[-0.5*H, 3.5*H], acad:[2*D, 2*D + 2*H], club:[4*D, 4*D + 5*H] };
-    function at(mo,d,hh,mm){ return new Date(2026, mo, d, hh, mm || 0).getTime(); }
-    function span(mo,d1,d2){ return [new Date(2026,mo,d1,10,0).getTime(), new Date(2026,mo,d2,23,59).getTime()]; }
-    var O = {
-      sunset:[at(5,20,19,30), at(5,20,23,30)],   // 20 jun
-      beach: [at(5,21,18,0),  at(5,21,23,0)],     // 21 jun
-      cong:  span(5,26,28),                        // 26–28 jun
-      waw2:  [at(6,5,17,0),   at(6,5,21,0)],      // 5 jul
-      wknd:  span(6,10,12),                        // 10–12 jul
-      kra1:  span(6,17,19),                        // 17–19 jul
-      verano:[at(7,8,18,0),   at(7,8,23,0)],      // 8 ago
-      octmd: null,                                 // (octmd abajo)
-      navmad:[at(11,12,18,30),at(11,12,23,0)]      // 12 dic
-    };
-    O.octmd = span(9,23,25);                        // 23–25 oct
-    O.finsev = span(11,29,31);                       // 29–31 dic
+    var H = 3600e3, now = Date.now(), nd = new Date();
+    function tlMins(tl){                 // "HH:MM–HH:MM" → [iniMin, finMin] (fin puede pasar de medianoche)
+      var p = tl.replace('–','-').split('-');
+      function m(s){ var x = s.split(':'); return (+x[0]) * 60 + (+x[1]); }
+      var s = m(p[0]), e = m(p[1]); if(e <= s) e += 1440; return [s, e];
+    }
+    function nextWeekly(weekdays, sMin, durMs){
+      for(var add = 0; add < 14; add++){
+        var d = new Date(nd.getFullYear(), nd.getMonth(), nd.getDate() + add, Math.floor(sMin/60), sMin % 60, 0, 0);
+        if(weekdays.indexOf(d.getDay()) !== -1 && d.getTime() + durMs >= now) return d.getTime();
+      }
+      return now;
+    }
     EVENTS.forEach(function(e){
-      if(W[e.id]){ e.startsAt = now + W[e.id][0]; e.endsAt = now + W[e.id][1]; }
-      else if(O[e.id]){ e.startsAt = O[e.id][0]; e.endsAt = O[e.id][1]; }
+      if(e.recurrence === 'weekly'){
+        var tl = tlMins(e.timeLabel), dur = (tl[1] - tl[0]) * 60000;
+        var st = nextWeekly(e.weekdays || [e.weekday], tl[0], dur);
+        e.startsAt = st; e.endsAt = st + dur;
+      } else if(e.dateStart){
+        var a = e.dateStart.split('-'), b = (e.dateEnd || e.dateStart).split('-');
+        e.startsAt = new Date(+a[0], +a[1]-1, +a[2], 10, 0).getTime();
+        e.endsAt   = new Date(+b[0], +b[1]-1, +b[2], 23, 59).getTime();
+      }
     });
+    var live = EVENTS_BY_ID['s_thehost'];   // demo en directo
+    if(live){ live.startsAt = now - 1 * H; live.endsAt = now + 3 * H; }
   })();
   function pad2(n){ return (n < 10 ? '0' : '') + n; }
   function fmtTime(t){ var d = new Date(t); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
@@ -160,19 +162,19 @@
      partner.link: none (solo texto) | pending (correo enviado, falta que la
      pareja confirme el baile) | ok (vinculada). La confirmación real es futura. */
   var MY_DANCES = [
-    { eventId:'fri',    date:'23 may 2026', song:'Romeo Santos — Propuesta Indecente',
-      partner:{ name:'Lucía', link:'ok' },                            camId:'juan',   status:'recibido' },
-    { eventId:'fri',    date:'23 may 2026', song:'Prince Royce — Darte un Beso',
-      partner:{ name:'Sofía', link:'none' },                          camId:'ana',    status:'enviado' },
-    { eventId:'sunset', date:'24 may 2026', song:'Aventura — Obsesión',
+    { eventId:'s_thehost', date:'12 jun 2026', song:'Romeo Santos — Propuesta Indecente',
+      partner:{ name:'Lucía', link:'ok' },                             camId:'juan',   status:'recibido' },
+    { eventId:'s_thehost', date:'12 jun 2026', song:'Prince Royce — Darte un Beso',
+      partner:{ name:'Sofía', link:'none' },                           camId:'ana',    status:'enviado' },
+    { eventId:'e_sunset',  date:'20 jun 2026', song:'Aventura — Obsesión',
       partner:{ name:'Marta', link:'pending', email:'marta@mail.com' }, camId:'carlos', status:'pendiente' },
-    { eventId:'cong',   date:'31 may 2026', song:'Juan Luis Guerra — Bachata Rosa',
-      partner:{ name:'Elena', link:'none' },                          camId:'marta',  status:'recibido' }
+    { eventId:'c_urban',   date:'13 jun 2026', song:'Juan Luis Guerra — Bachata Rosa',
+      partner:{ name:'Elena', link:'none' },                           camId:'juan',   status:'recibido' }
   ];
 
   /* mis sesiones (rol camarógrafo): cuántas parejas grabé por evento */
   var MY_SESSIONS = [
-    { eventId:'fri',    date:'23 may 2026', couples:14, sent:14 },
-    { eventId:'sunset', date:'24 may 2026', couples:9,  sent:6 },
-    { eventId:'beach',  date:'1 jun 2026',  couples:11, sent:0 }
+    { eventId:'s_thehost', date:'12 jun 2026', couples:14, sent:14 },
+    { eventId:'e_sunset',  date:'20 jun 2026', couples:9,  sent:6 },
+    { eventId:'c_urban',   date:'13 jun 2026', couples:11, sent:0 }
   ];

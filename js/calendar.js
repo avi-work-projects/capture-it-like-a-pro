@@ -184,7 +184,9 @@
   /* ───────────────────────── HORARIOS SALAS (semanales) ────────────────── */
   function renderHorarios(container, weekly, cb){
     var byDay = {};
-    weekly.forEach(function(ev){ (byDay[ev.weekday] = byDay[ev.weekday] || []).push(ev); });
+    weekly.forEach(function(ev){
+      (ev.weekdays || [ev.weekday]).forEach(function(wd){ (byDay[wd] = byDay[wd] || []).push(ev); });
+    });
     var order = [1,2,3,4,5,6,0];   // lun..dom
     var h = '<p class="res-count" style="margin-top:14px">Salas que se repiten cada semana</p>';
     var any = false;
