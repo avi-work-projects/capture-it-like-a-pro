@@ -251,7 +251,9 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
 }
 .edit-panel.is-hint .ep-title{max-width:none;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:.02em;font-size:10.5px}
 .ep-title:empty{display:none}
-.ep-actions{display:flex;flex-wrap:wrap;gap:6px;flex:1;justify-content:flex-end;align-content:center}
+/* dos filas por utilidad: arriba TAMAÑO, abajo ACCIONES */
+.ep-actions{display:flex;flex-direction:column;gap:7px;flex:1;align-items:flex-end}
+.ep-row{display:flex;gap:6px;justify-content:flex-end}
 .edit-panel button{
   background:var(--surface-2);border:1px solid var(--line);border-radius:8px;
   color:var(--text);cursor:pointer;display:none;flex:none;
@@ -260,8 +262,8 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
 .edit-panel button.on{display:flex}
 .edit-panel button:active{transform:scale(.93)}
 .edit-panel button svg{width:16px;height:16px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-/* botones de eje con etiqueta de texto (más reconocibles que un icono) */
-.edit-panel .c-axis{width:auto;min-width:34px;padding:0 7px;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.01em;color:#cfe9ff;border-color:#2c4a63}
+/* grupo TAMAÑO/forma (cian): rotar + ejes (An/Al) + escala uniforme */
+.edit-panel .c-size{color:#6fd3e6;border-color:#235862}
 /* color por función para que el grupo "tenga sentido" de un vistazo */
 .edit-panel .c-text{color:#3da9ff;border-color:rgba(61,169,255,.4)}
 .edit-panel .c-dup{color:#c6ff00;border-color:rgba(198,255,0,.4)}
@@ -438,17 +440,23 @@ footer #btn-clear{color:var(--muted)}
   <div class="edit-panel" id="edit-panel">
     <span class="ep-title" id="ep-title"></span>
     <div class="ep-actions">
-      <button id="btn-text" class="c-text" title="Editar texto"><svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M13.5 6.5l3 3"/></svg></button>
-      <button id="btn-rot" title="Rotar"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 1 2.4 5.7"/><path d="M4 20v-5h5"/></svg></button>
-      <button id="btn-smaller" title="Más pequeño"><svg viewBox="0 0 24 24"><path d="M21 9h-6V3"/><path d="M21 3l-6 6"/><path d="M3 15h6v6"/><path d="M3 21l6-6"/></svg></button>
-      <button id="btn-bigger" title="Más grande"><svg viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M21 3l-6 6"/><path d="M9 21H3v-6"/><path d="M3 21l6-6"/></svg></button>
-      <button id="btn-wm" class="c-axis" title="Ancho −">An−</button>
-      <button id="btn-wp" class="c-axis" title="Ancho +">An+</button>
-      <button id="btn-hm" class="c-axis" title="Alto −">Al−</button>
-      <button id="btn-hp" class="c-axis" title="Alto +">Al+</button>
-      <button id="btn-dup" class="c-dup" title="Duplicar"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/></svg></button>
-      <button id="btn-lock" class="c-lock" title="Bloquear posición"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></button>
-      <button id="btn-del" class="c-del" title="Quitar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <!-- fila 1: TAMAÑO/forma (cian) -->
+      <div class="ep-row">
+        <button id="btn-rot" class="c-size" title="Rotar"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 1 2.4 5.7"/><path d="M4 20v-5h5"/></svg></button>
+        <button id="btn-wm" class="c-size" title="Estrechar (ancho −)"><svg viewBox="0 0 24 24"><path d="M12 6v12"/><path d="M6 9l3 3-3 3"/><path d="M18 9l-3 3 3 3"/></svg></button>
+        <button id="btn-wp" class="c-size" title="Ensanchar (ancho +)"><svg viewBox="0 0 24 24"><path d="M3 7v10"/><path d="M21 7v10"/><path d="M8 12h8"/><path d="M10 9l-3 3 3 3"/><path d="M14 9l3 3-3 3"/></svg></button>
+        <button id="btn-hm" class="c-size" title="Reducir alto"><svg viewBox="0 0 24 24"><path d="M6 12h12"/><path d="M9 6l3 3 3-3"/><path d="M9 18l3-3 3 3"/></svg></button>
+        <button id="btn-hp" class="c-size" title="Aumentar alto"><svg viewBox="0 0 24 24"><path d="M7 3h10"/><path d="M7 21h10"/><path d="M12 8v8"/><path d="M9 10l3-3 3 3"/><path d="M9 14l3 3-3 3"/></svg></button>
+        <button id="btn-smaller" class="c-size" title="Más pequeño"><svg viewBox="0 0 24 24"><path d="M21 9h-6V3"/><path d="M21 3l-6 6"/><path d="M3 15h6v6"/><path d="M3 21l6-6"/></svg></button>
+        <button id="btn-bigger" class="c-size" title="Más grande"><svg viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M21 3l-6 6"/><path d="M9 21H3v-6"/><path d="M3 21l6-6"/></svg></button>
+      </div>
+      <!-- fila 2: ACCIONES (con color por función) -->
+      <div class="ep-row">
+        <button id="btn-text" class="c-text" title="Editar texto"><svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M13.5 6.5l3 3"/></svg></button>
+        <button id="btn-dup" class="c-dup" title="Duplicar"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/></svg></button>
+        <button id="btn-lock" class="c-lock" title="Bloquear posición"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></button>
+        <button id="btn-del" class="c-del" title="Quitar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
     </div>
   </div>
 
@@ -515,7 +523,7 @@ footer #btn-clear{color:var(--muted)}
 <script>
 'use strict';
 /* ══════════════════════════════════════════════════════════════
-   EDITOR DE MAPA — módulo independiente (v0.8)
+   EDITOR DE MAPA — módulo independiente (v0.9)
    Sin dependencias. Pensado para integrarse luego en index.html.
 
    Tres secciones (tabs): ESTRUCTURA (planta) · ELEMENTOS · CÁMARAS.
@@ -927,11 +935,12 @@ function pieceBBox(p){
   const hw = (sw ? p.h : p.w) / 2, hh = (sw ? p.w : p.h) / 2;
   return { hw, hh, l:p.x-hw, r:p.x+hw, t:p.y-hh, b:p.y+hh };
 }
-const SNAP_T = 3;        // umbral de imantado en % de unidades del lienzo
-const SNAP_MATCH = 25;   // si los anchos están a esta distancia, se igualan al coronar
+const SNAP_T = 1.6;      // umbral de imantado SUTIL (% ≈ 5px): solo cuando ya estás casi
+const SIZE_FINE = 0.7;   // solo iguala tamaños si difieren ≤ esto (% ≈ 1-2px): ayuda muy sutil
 const upright = q => (q.rot||0) % 180 === 0;
-/* imanta los bordes de p a los de las demás piezas; al coronar una pieza con otra,
-   iguala el ancho/alto y la centra para que encajen sin esquinas. Devuelve índice o -1 */
+/* Imán de bordes SUTIL: solo alinea posición cuando una base toca otra base o una
+   esquina coincide con otra esquina (estando ya muy cerca). NO cambia el tamaño,
+   salvo un retoque de 1-2px si ya eran casi idénticos. Devuelve índice imantado o -1 */
 function snapPiece(p){
   let A = pieceBBox(p), hit = -1;
   state.pieces.forEach((q, qi) => {
@@ -941,45 +950,34 @@ function snapPiece(p){
     const yOv = Math.min(A.b, B.b) - Math.max(A.t, B.t);
     const xOv = Math.min(A.r, B.r) - Math.max(A.l, B.l);
 
-    // ── coronar en VERTICAL (bordes horizontales se tocan) ──
+    // bases horizontales tocándose (una pieza sobre/bajo otra), con solape en X
     if(xOv > 5){
-      const above = Math.abs(A.b - B.t) < SNAP_T;   // p encima de q
-      const below = Math.abs(A.t - B.b) < SNAP_T;   // p debajo de q
+      const above = Math.abs(A.b - B.t) < SNAP_T, below = Math.abs(A.t - B.b) < SNAP_T;
       if(above || below){
         hit = qi;
-        // encaja el ancho si están cerca de tamaño O si una esquina ya coincide
-        if(bothUp && (Math.abs((A.r-A.l)-(B.r-B.l)) < SNAP_MATCH ||
-                      Math.abs(A.l-B.l) < SNAP_T || Math.abs(A.r-B.r) < SNAP_T)){
-          p.w = +(B.r - B.l).toFixed(2);            // igualar ancho
-          if(p.kind === 'semi') p.h = p.w / 2;
-          p.x = q.x;                                // y centrar
-          A = pieceBBox(p);
+        // retoque de tamaño SOLO si ya eran casi del mismo ancho (≤1-2px)
+        if(bothUp && Math.abs((A.r-A.l)-(B.r-B.l)) < SIZE_FINE){
+          p.w = +(B.r-B.l).toFixed(2); if(p.kind==='semi') p.h = p.w/2; p.x = q.x; A = pieceBBox(p);
         }
-        p.y += above ? (B.t - A.b) : (B.b - A.t);   // pegar el borde compartido
+        p.y += above ? (B.t - A.b) : (B.b - A.t);
         A = pieceBBox(p);
-      }else{
-        for(const [a,b] of [[A.l,B.l],[A.r,B.r]])   // si no corona, alinear lados
-          if(Math.abs(a-b) < SNAP_T){ p.x += (b-a); A = pieceBBox(p); hit = qi; break; }
       }
+      for(const [a,b] of [[A.l,B.l],[A.r,B.r]])   // alinear esquinas (lados verticales)
+        if(Math.abs(a-b) < SNAP_T){ p.x += (b-a); A = pieceBBox(p); hit = qi; break; }
     }
-    // ── coronar en HORIZONTAL (bordes verticales se tocan) ──
+    // bases verticales tocándose (una pieza a un lado de otra), con solape en Y
     if(yOv > 5){
-      const rightOf = Math.abs(A.l - B.r) < SNAP_T; // p a la derecha de q
-      const leftOf  = Math.abs(A.r - B.l) < SNAP_T; // p a la izquierda de q
+      const rightOf = Math.abs(A.l - B.r) < SNAP_T, leftOf = Math.abs(A.r - B.l) < SNAP_T;
       if(rightOf || leftOf){
         hit = qi;
-        if(bothUp && p.kind !== 'semi' && (Math.abs((A.b-A.t)-(B.b-B.t)) < SNAP_MATCH ||
-                      Math.abs(A.t-B.t) < SNAP_T || Math.abs(A.b-B.b) < SNAP_T)){
-          p.h = +(B.b - B.t).toFixed(2);
-          p.y = q.y;
-          A = pieceBBox(p);
+        if(bothUp && p.kind!=='semi' && Math.abs((A.b-A.t)-(B.b-B.t)) < SIZE_FINE){
+          p.h = +(B.b-B.t).toFixed(2); p.y = q.y; A = pieceBBox(p);
         }
         p.x += rightOf ? (B.r - A.l) : (B.l - A.r);
         A = pieceBBox(p);
-      }else{
-        for(const [a,b] of [[A.t,B.t],[A.b,B.b]])
-          if(Math.abs(a-b) < SNAP_T){ p.y += (b-a); A = pieceBBox(p); hit = qi; break; }
       }
+      for(const [a,b] of [[A.t,B.t],[A.b,B.b]])   // alinear esquinas (lados horizontales)
+        if(Math.abs(a-b) < SNAP_T){ p.y += (b-a); A = pieceBBox(p); hit = qi; break; }
     }
   });
   return hit;
