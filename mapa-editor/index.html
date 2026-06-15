@@ -37,6 +37,14 @@ body{background:#000;font-family:var(--body);overflow:hidden}
   --c-bar:#3da9ff;
   --c-esc:#ff9f0a;
   --c-gen:#f2f2f2;
+  /* colores de elementos de EXTERIOR */
+  --c-arbol:#5fbf57;
+  --c-agua:#3da9ff;
+  --c-fuente:#2dd4bf;
+  --c-comida:#ff9f0a;
+  --c-edificio:#9aa0a6;
+  --c-metro:#ff5a4d;
+  --c-carretera:#8a8f96;
 
   position:relative;
   width:100%;max-width:430px;height:100dvh;margin:0 auto;
@@ -173,7 +181,7 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 }
 .el.t-columna .ic{border-radius:50%}
 .el.t-gen_circulo .ic{border-radius:50%}
-.el.t-escenario .ic,.el.t-bar .ic{border-radius:6px}
+.el.t-escenario .ic,.el.t-bar .ic,.el.t-agua .ic,.el.t-carretera .ic,.el.t-comida .ic{border-radius:6px}
 /* cámara: baliza roja parpadeante para localizarla de un vistazo */
 .el.t-camarografo .ic{animation:camHalo 1.4s ease-in-out infinite}
 @keyframes camHalo{
@@ -428,7 +436,7 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
     <button class="hd-btn ic" id="btn-clear" title="Limpiar el plano"><svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V5h6v2"/><path d="M6 7l1 13h10l1-13"/></svg></button>
     <button class="hd-btn ic" id="btn-maps" title="Mis mapas"><svg viewBox="0 0 24 24"><path d="M12 3 3 7.5 12 12l9-4.5z"/><path d="M3 12l9 4.5L21 12"/><path d="M3 16.5 12 21l9-4.5"/></svg></button>
     <!-- TEMPORAL: recarga anti-caché para el móvil (quitar al acabar) -->
-    <button class="hd-btn ic" onclick="location.href=location.pathname+'?r='+Date.now()" title="Recargar"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-1.5 6"/><path d="M20 4v6h-6"/></svg></button>
+    <button class="hd-btn ic" id="btn-reload" title="Recargar"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-1.5 6"/><path d="M20 4v6h-6"/></svg></button>
   </header>
 
   <div class="name-row">
@@ -553,7 +561,7 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 <script>
 'use strict';
 /* ══════════════════════════════════════════════════════════════
-   EDITOR DE MAPA — módulo independiente (v0.19)
+   EDITOR DE MAPA — módulo independiente (v0.20) · interior + exterior (?mode=exterior)
    Sin dependencias. Pensado para integrarse luego en index.html.
 
    Tres secciones (tabs): ESTRUCTURA (planta) · ELEMENTOS · CÁMARAS.
@@ -570,8 +578,10 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
      cip_mapas_v1       → biblioteca "Mis mapas" (botón Guardar)
    ══════════════════════════════════════════════════════════════ */
 
-const DRAFT_KEY = 'cip_mapa_editor_v1';
-const LIB_KEY   = 'cip_mapas_v1';
+/* modo: interior (por defecto) o exterior (?mode=exterior) — reaprovecha TODO el editor */
+const EXT = new URLSearchParams(location.search).get('mode') === 'exterior';
+const DRAFT_KEY = EXT ? 'cip_mapa_ext_v1' : 'cip_mapa_editor_v1';
+const LIB_KEY   = EXT ? 'cip_mapas_ext_v1' : 'cip_mapas_v1';
 
 /* piezas de planta — path unitario (0..1), tamaño % por defecto */
 const PIECES_DEF = {
@@ -604,20 +614,37 @@ const TYPES = {
   gen_cuadrado:{ label:'Cuadrado', color:'var(--c-gen)', editable:true, w:24, h:24,
     icon:'<svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>' },
   camarografo:{ label:'Cámara',    color:'var(--c-cam)',    w:24, h:24,
-    icon:'<svg viewBox="0 0 24 24"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="M15 10l6-3v10l-6-3"/></svg>' }
+    icon:'<svg viewBox="0 0 24 24"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="M15 10l6-3v10l-6-3"/></svg>' },
+  /* ── elementos de EXTERIOR (tamaños representativos: la carretera larga, el agua amplia…) ── */
+  arbol:     { label:'Árbol',          color:'var(--c-arbol)',     w:24, h:28,
+    icon:'<svg viewBox="0 0 24 24"><path d="M12 2l4 6h-2.6l3 5h-2.6l2.4 4H7.8l2.4-4H7.6l3-5H8z"/><path d="M12 17v5"/></svg>' },
+  agua:      { label:'Agua',           color:'var(--c-agua)',      w:56, h:40,
+    icon:'<svg viewBox="0 0 24 24"><path d="M3 8c2-1.5 4 1.5 6 0s4-1.5 6 0 4 1.5 6 0"/><path d="M3 13c2-1.5 4 1.5 6 0s4-1.5 6 0 4 1.5 6 0"/><path d="M3 18c2-1.5 4 1.5 6 0s4-1.5 6 0 4 1.5 6 0"/></svg>' },
+  fuente:    { label:'Fuente',         color:'var(--c-fuente)',    w:26, h:26,
+    icon:'<svg viewBox="0 0 24 24"><path d="M5 21h14"/><path d="M7 21l1-5h8l1 5"/><path d="M12 16V9"/><path d="M9 9a3 3 0 0 1 6 0"/><path d="M12 9V5"/></svg>' },
+  comida:    { label:'Comida',         color:'var(--c-comida)',    w:38, h:26,
+    icon:'<svg viewBox="0 0 24 24"><path d="M3 10l2-4h14l2 4"/><path d="M5 10v11h14V10"/><path d="M3 10h18"/><path d="M9.5 21v-6h5v6"/></svg>' },
+  edificio:  { label:'Edificio',       color:'var(--c-edificio)',  w:42, h:42,
+    icon:'<svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/></svg>' },
+  metro:     { label:'Metro',          color:'var(--c-metro)',     w:24, h:26,
+    icon:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M7 16V8l5 6 5-6v8"/></svg>' },
+  carretera: { label:'Carretera',      color:'var(--c-carretera)', w:78, h:16,
+    icon:'<svg viewBox="0 0 24 24"><path d="M3 6h18M3 18h18"/><path d="M7.5 12h3M13.5 12h3"/></svg>' }
 };
 const ELEM_MIN = 14, ELEM_MAX = 150, ELEM_STEP = 6;   // límites de tamaño de elemento (px)
 
-/* reparto de la paleta por sección */
+/* reparto de la paleta por sección (los "main" cambian según el modo) */
 const GROUP = {
-  main:  ['acceso','banos','columna','dj','bar','escenario'],
+  main:  EXT ? ['arbol','agua','fuente','comida','edificio','metro','carretera']
+             : ['acceso','banos','columna','dj','bar','escenario'],
   otros: ['gen_estrella','gen_circulo','gen_cuadrado'],
   cam:   ['camarografo']
 };
 
 function freshMap(){
+  /* exterior: sin rectángulo de planta — se dibuja al aire libre colocando elementos */
   return { id:'m' + Date.now(), name:'',
-           pieces:[{ id:1, kind:'rect', x:50, y:50, w:80, h:85, rot:0 }],
+           pieces: EXT ? [] : [{ id:1, kind:'rect', x:50, y:50, w:80, h:85, rot:0 }],
            elements:[] };
 }
 
@@ -630,7 +657,7 @@ const $ = s => document.querySelector(s);
 const app = document.getElementById('app');
 const canvas = $('#canvas'), floor = $('#floor'), ghost = $('#ghost');
 
-let currentTab = 'estructura';   // sección activa (estructura | elementos | camaras)
+let currentTab = EXT ? 'elementos' : 'estructura';   // exterior arranca en Elementos
 let elsHidden = false;           // ocultar elementos mientras se diseña la estructura
 const SECTION_COLOR = { estructura:'#3da9ff', elementos:'#c6ff00', camaras:'#ffd60a' };
 const SECTION_HINT  = {
@@ -1401,10 +1428,20 @@ window.addEventListener('resize', relayout);
 window.addEventListener('load', relayout);
 if(document.fonts && document.fonts.ready) document.fonts.ready.then(relayout);
 
+/* recarga preservando el modo (interior/exterior) */
+$('#btn-reload').addEventListener('click', () => {
+  location.href = location.pathname + (EXT ? '?mode=exterior&' : '?') + 'r=' + Date.now();
+});
+
 /* ───────── arranque ───────── */
 loadDraft();
 $('#map-name').value = state.name || '';
-app.classList.add('sec-' + currentTab);   // sección inicial: estructura
+/* título y pestaña inicial según el modo */
+document.querySelector('header h1').textContent = EXT ? 'Mapa exterior' : 'Editor de mapa';
+$('#map-name').placeholder = EXT ? 'Nombre del lugar (p. ej. Plaza Mayor)' : 'Nombre de la sala (p. ej. Sala principal)';
+document.querySelectorAll('.tab').forEach(x => x.classList.toggle('is-on', x.dataset.tab === currentTab));
+document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('hidden', p.dataset.tab !== currentTab));
+app.classList.add('sec-' + currentTab);
 applyVisibility();
 renderFloor();
 renderElements();

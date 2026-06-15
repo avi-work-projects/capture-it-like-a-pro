@@ -220,17 +220,21 @@ body{
 }
 .cards{display:flex;flex-direction:column;gap:14px;flex:1;min-height:0}
 /* acceso al editor de mapas (módulo aparte) desde la escena 01 */
+.map-links{display:flex;gap:8px;margin-top:14px}
 .map-link{
-  margin-top:14px;width:100%;
-  display:flex;align-items:center;justify-content:center;gap:8px;
+  flex:1;min-width:0;
+  display:flex;align-items:center;justify-content:center;gap:7px;
   background:var(--surface);border:1px solid var(--line);border-radius:12px;
-  color:#c46bff;font-family:var(--mono);font-size:11px;font-weight:600;
-  letter-spacing:.14em;text-transform:uppercase;
-  padding:12px 0;cursor:pointer;
+  color:#c46bff;font-family:var(--mono);font-size:10.5px;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;text-decoration:none;
+  padding:12px 6px;cursor:pointer;
   transition:border-color .18s, box-shadow .18s;
 }
-.map-link svg{width:16px;height:16px}
+.map-link svg{width:16px;height:16px;flex:none}
 .map-link:hover,.map-link:active{border-color:#c46bff;box-shadow:0 0 18px rgba(196,107,255,.30)}
+/* variante exterior (acento verde) */
+.map-link.ext{color:#5fbf57}
+.map-link.ext:hover,.map-link.ext:active{border-color:#5fbf57;box-shadow:0 0 18px rgba(95,191,87,.30)}
 
 /* cards = áreas de enfoque: brackets propios que "enfocan" en hover */
 .card{
