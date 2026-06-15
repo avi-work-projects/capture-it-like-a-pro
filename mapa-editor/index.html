@@ -116,9 +116,11 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 /* ───────────── LIENZO ───────────── */
 /* cuadrado y centrado → proporciones reales (un cuadrado se ve cuadrado,
    el semicírculo es medio círculo de verdad). El tamaño px lo fija el JS. */
-.canvas-wrap{position:relative;z-index:1;flex:1 1 auto;min-height:150px;padding:0 18px;display:flex;align-items:center;justify-content:center}
-/* paneles de abajo: si no caben en pantallas pequeñas, se hace scroll */
-.below{flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+/* lienzo ANCLADO bajo las pestañas (alto = el del lienzo, sin huecos variables);
+   el espacio sobrante va al fondo de .below */
+.canvas-wrap{position:relative;z-index:1;flex:0 0 auto;padding:6px 18px 0;display:flex;justify-content:center}
+/* paneles de abajo: absorben el espacio sobrante y hacen scroll si no caben */
+.below{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .below::-webkit-scrollbar{width:0;height:0}
 #canvas{
   position:relative;width:100%;height:100%;flex:none;
@@ -551,7 +553,7 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 <script>
 'use strict';
 /* ══════════════════════════════════════════════════════════════
-   EDITOR DE MAPA — módulo independiente (v0.17)
+   EDITOR DE MAPA — módulo independiente (v0.18)
    Sin dependencias. Pensado para integrarse luego en index.html.
 
    Tres secciones (tabs): ESTRUCTURA (planta) · ELEMENTOS · CÁMARAS.
@@ -1363,28 +1365,46 @@ function toast(msg){
 }
 
 /* lienzo cuadrado (lado = menor del área disponible) → proporciones reales */
+/* lienzo cuadrado ANCLADO bajo las pestañas (sin huecos variables a su alrededor):
+   se dimensiona al espacio que queda tras la zona de arriba y el alto NATURAL de
+   los paneles de abajo; el espacio sobrante va al fondo de .below, no alrededor. */
 function sizeCanvas(){
   const wrap = canvas.parentElement, cs = getComputedStyle(wrap);
-  const availW = wrap.clientWidth  - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-  const availH = wrap.clientHeight - parseFloat(cs.paddingTop)  - parseFloat(cs.paddingBottom);
-  const s = Math.max(40, Math.min(availW, availH));
+  const below = document.getElementById('below');
+  const availW = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  let topH = 0;
+  [...app.children].forEach(c => {
+    if(c === wrap || c === below) return;
+    if(getComputedStyle(c).position === 'absolute') return;
+    topH += c.offsetHeight;
+  });
+  let belowNat = 0;                                   // alto natural del contenido de abajo
+  [...below.children].forEach(c => { belowNat += c.offsetHeight; });
+  belowNat += 9;                                      // margen superior del panel de edición
+  const availH = app.clientHeight - topH - belowNat - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  const s = Math.max(150, Math.min(availW, availH));
   canvas.style.width = s + 'px';
   canvas.style.height = s + 'px';
 }
-window.addEventListener('resize', () => { lockTabBodyHeight(); sizeCanvas(); });
+function relayout(){ lockTabBodyHeight(); sizeCanvas(); }
+window.addEventListener('resize', relayout);
+window.addEventListener('load', relayout);
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(relayout);
 
 /* ───────── arranque ───────── */
 loadDraft();
 $('#map-name').value = state.name || '';
 app.classList.add('sec-' + currentTab);   // sección inicial: estructura
 applyVisibility();
-lockTabBodyHeight();
-sizeCanvas();
 renderFloor();
 renderElements();
 renderEditPanel();
 pushHist();         // estado inicial en el historial
 updateUndoRedo();
+lockTabBodyHeight();
+sizeCanvas();
+/* recalcular cuando el layout ya está asentado (evita el salto al entrar) */
+requestAnimationFrame(() => requestAnimationFrame(relayout));
 </script>
 </body>
 </html>
