@@ -170,7 +170,7 @@
     var lastKey = null;
     list.forEach(function(ev){
       var d = new Date(ev.startsAt), key = d.getDate();
-      if(key !== lastKey){ h += '<div class="date-head">' + fmtDate(ev.startsAt) + '</div>'; lastKey = key; }
+      if(key !== lastKey){ h += '<div class="date-head">' + dateHeaderLabel(ev.startsAt) + '</div>'; lastKey = key; }
       var when = isMultiDay(ev) ? (fmtDate(ev.startsAt) + ' – ' + fmtDate(ev.endsAt)) : evHours(ev);
       var col = TYPE_COLOR[ev.type] || '#888';
       h += '<button class="evt" data-ev="' + ev.id + '" style="border-left-color:' + col + '">' +

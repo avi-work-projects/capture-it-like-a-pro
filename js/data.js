@@ -141,6 +141,14 @@
   var DOW = ['dom','lun','mar','mié','jue','vie','sáb'];
   var MON = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   function fmtDate(t){ var d = new Date(t); return DOW[d.getDay()] + ' ' + d.getDate() + ' ' + MON[d.getMonth()]; }
+  function sameDay(a, b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+  /* cabecera de fecha: "Hoy" / "Mañana" / fecha normal */
+  function dateHeaderLabel(t){
+    var d = new Date(t), hoy = new Date(), man = new Date(); man.setDate(hoy.getDate() + 1);
+    if(sameDay(d, hoy)) return 'Hoy';
+    if(sameDay(d, man)) return 'Mañana';
+    return fmtDate(t);
+  }
   function evHours(ev){ return fmtTime(ev.startsAt) + '–' + fmtTime(ev.endsAt); }
   /* estado del evento respecto a ahora: previo | directo | terminado */
   function eventStatus(ev){

@@ -470,7 +470,7 @@
       if(key !== lastKey){
         var h = document.createElement('div');
         h.className = 'date-head';
-        h.textContent = fmtDate(ev.startsAt);
+        h.textContent = dateHeaderLabel(ev.startsAt);
         box.appendChild(h);
         lastKey = key;
       }
