@@ -461,24 +461,30 @@
     list.sort(function(a, b){ return a.startsAt - b.startsAt; });
     var box = $('#evtList');
     box.innerHTML = '';
-    /* AGRUPADOS POR FECHA: cabecera de día + sus eventos; los días sin
-       eventos no aparecen. Multi-día (congresos) → bajo su fecha de inicio. */
-    var lastKey = null;
-    list.forEach(function(ev){
-      var d = new Date(ev.startsAt);
-      var key = d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
-      if(key !== lastKey){
-        var h = document.createElement('div');
-        h.className = 'date-head';
-        h.textContent = dateHeaderLabel(ev.startsAt);
-        box.appendChild(h);
-        lastKey = key;
-      }
+    function addHead(txt, cls){
+      var h = document.createElement('div');
+      h.className = 'date-head' + (cls ? ' ' + cls : '');
+      h.textContent = txt;
+      box.appendChild(h);
+    }
+    function addCard(ev){
       var b = document.createElement('button');
       b.className = 'evt t-' + ev.type;
       b.innerHTML = evtCardInner(ev);
       b.addEventListener('click', function(){ openEvent(ev); });
       box.appendChild(b);
+    }
+    /* "AHORA": los que están EN DIRECTO ahora mismo, agrupados arriba */
+    var live = list.filter(function(ev){ return eventStatus(ev) === 'directo'; });
+    var rest = list.filter(function(ev){ return eventStatus(ev) !== 'directo'; });
+    if(live.length){ addHead('Ahora', 'now'); live.forEach(addCard); }
+    /* el resto AGRUPADO POR FECHA (días sin eventos no aparecen) */
+    var lastKey = null;
+    rest.forEach(function(ev){
+      var d = new Date(ev.startsAt);
+      var key = d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+      if(key !== lastKey){ addHead(dateHeaderLabel(ev.startsAt)); lastKey = key; }
+      addCard(ev);
     });
     $('#resCount').textContent = list.length === 1
       ? '1 evento encontrado' : list.length + ' eventos encontrados';
@@ -769,7 +775,7 @@
   function ccInner(c){
     var nEv = upcomingOf(c).length;
     return '<div class="cc-top">' + CAM_SVG +
-        '<div class="cc-id"><b>' + c.name + '</b><small>' + CITY_LABELS[c.city] + ' · ' + c.desc + '</small></div>' +
+        '<div class="cc-id"><b>' + c.name + '</b><small>' + CITY_LABELS[c.city] + '</small></div>' +
         '<button class="cbtn follow' + (follows[c.id] ? ' on' : '') + '" data-follow="' + c.id + '">' +
           (follows[c.id] ? '✓ Siguiendo' : 'Seguir') + '</button>' +
       '</div>' +
@@ -910,7 +916,7 @@
     var c = currentProfile;
     var dancedWith = MY_DANCES.filter(function(d){ return d.camId === c.id; }).length;
     $('#profName').textContent = c.name;
-    $('#profSub').textContent = CITY_LABELS[c.city] + ' · ' + c.desc;
+    $('#profSub').textContent = CITY_LABELS[c.city];
     var bio = $('#profBio');
     bio.textContent = c.bio || '';
     bio.style.display = c.bio ? 'block' : 'none';

@@ -195,7 +195,8 @@
       evs.forEach(function(ev){
         h += '<button class="evt t-sala" data-ev="' + ev.id + '">' +
              '<div class="evt-head"><span class="evt-name">' + esc(ev.name) + '</span></div>' +
-             '<span class="evt-meta">' + (ev.timeLabel||'') + ' · ' + ev.venue + ' · ' + (CITY_LABELS[ev.city]||ev.city) + '</span></button>';
+             (ev.timeLabel ? '<span class="evt-time">🕒 ' + ev.timeLabel + '</span>' : '') +
+             '<span class="evt-meta">' + ev.venue + ' · ' + (CITY_LABELS[ev.city]||ev.city) + '</span></button>';
       });
     });
     if(!any) h += '<div class="notice" style="margin-top:12px"><span class="nosig">Sin salas</span><p>No hay salas semanales con esos filtros.</p></div>';

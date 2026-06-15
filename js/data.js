@@ -142,11 +142,11 @@
   var MON = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   function fmtDate(t){ var d = new Date(t); return DOW[d.getDay()] + ' ' + d.getDate() + ' ' + MON[d.getMonth()]; }
   function sameDay(a, b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
-  /* cabecera de fecha: "Hoy" / "Mañana" / fecha normal */
+  /* cabecera de fecha: "Hoy · lun 15 jun" / "Mañana · …" / fecha normal */
   function dateHeaderLabel(t){
     var d = new Date(t), hoy = new Date(), man = new Date(); man.setDate(hoy.getDate() + 1);
-    if(sameDay(d, hoy)) return 'Hoy';
-    if(sameDay(d, man)) return 'Mañana';
+    if(sameDay(d, hoy)) return 'Hoy · ' + fmtDate(t);
+    if(sameDay(d, man)) return 'Mañana · ' + fmtDate(t);
     return fmtDate(t);
   }
   function evHours(ev){ return fmtTime(ev.startsAt) + '–' + fmtTime(ev.endsAt); }

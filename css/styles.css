@@ -172,7 +172,9 @@ body{
   /* block + overflow-y:auto → el contenido fluye y la vista SCROLLEA.
      (Con display:flex la columna comprimía panel/resultados y no dejaba scroll) */
   display:block;
-  padding:58px 26px calc(48px + env(safe-area-inset-bottom));
+  /* sin padding-top: el espacio superior lo aporta la cabecera fija (.v2-head,
+     sticky) o, en vistas sin cabecera, un padding-top propio (#view1) */
+  padding:0 26px calc(48px + env(safe-area-inset-bottom));
   overflow-y:auto;
   /* sin pull-to-refresh ni scroll encadenado del navegador:
      el rebote elástico lo ponemos nosotros (addRubberBand) */
@@ -181,6 +183,8 @@ body{
 }
 /* solo las pantallas que llenan el alto necesitan columna flex */
 #view1,#viewHub{display:flex;flex-direction:column}
+/* view1 no tiene cabecera fija → su propio espacio superior bajo el OSD */
+#view1{padding-top:52px}
 .view.hidden{opacity:0;pointer-events:none}
 /* todas las vistas entran desde abajo (.in) y salen hacia arriba (.out) */
 .view{transform:translateY(46px)}
@@ -292,8 +296,16 @@ body{
 @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 
 /* ───────────────────────── VISTA 2 ─────────────────────────────────────── */
-/* botones de navegación centrados verticalmente contra el bloque del título */
-.v2-head{display:flex;align-items:center;gap:14px;margin-top:18px}
+/* cabecera FIJA arriba: al hacer scroll queda pegada y opaca (el contenido
+   pasa por DEBAJO, no se ve a través). Ocupa todo el ancho (margen negativo
+   que cancela el padding lateral de .view) y deja hueco para el OSD. */
+.v2-head{
+  display:flex;align-items:center;gap:14px;
+  position:sticky;top:0;z-index:6;
+  background:var(--bg);
+  margin:0 -26px;padding:48px 26px 12px;
+  transition:background-color .35s;
+}
 .nav-btns{display:flex;flex-direction:column;gap:8px;flex:none}
 .nav-back .icn{width:18px;height:18px;color:currentColor}
 .nav-back{
@@ -915,12 +927,15 @@ body{
 /* cabecera de día en la lista agrupada por fechas */
 .date-head{
   font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
-  color:var(--accent);
-  padding:6px 2px 2px;
-  margin-top:8px;
+  color:var(--text);                       /* blanco neutro, no el acento de pantalla */
+  padding:6px 2px 4px;
+  margin-top:10px;
   border-bottom:1px solid var(--line);
 }
 .date-head:first-child{margin-top:0}
+/* "Ahora" (eventos en directo): rojo señal con punto parpadeante */
+.date-head.now{color:#ff3b30;border-color:#ff3b30;display:flex;align-items:center;gap:7px}
+.date-head.now::before{content:'';width:7px;height:7px;border-radius:50%;background:#ff3b30;animation:blink 1.2s infinite}
 .evt{
   position:relative;
   display:flex;flex-direction:column;align-items:flex-start;gap:4px;
@@ -1118,3 +1133,16 @@ body{
 .cal-bar.e{border-top-right-radius:7px;border-bottom-right-radius:7px}
 .cal-bar span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cal-empty{color:var(--muted);font-size:13px;text-align:center;padding:24px 0}
+
+/* ── reserva de espacio en las pestañas del perfil (scroll aunque vacías) ── */
+#tabEvents,#tabReviews{min-height:300px}
+
+/* ── horario de sala destacado en las tarjetas (Horarios salas) ── */
+.evt-time{
+  display:inline-block;margin-bottom:3px;
+  font-family:var(--mono);font-weight:600;
+  font-size:13px;letter-spacing:.08em;
+  color:var(--accent);
+}
+.evt.t-sala .evt-time{color:#c46bff}
+.app.light .evt.t-sala .evt-time{color:#9a4fe0}
