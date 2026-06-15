@@ -124,10 +124,20 @@
     else {
       var r = $('#result');
       r.classList.remove('done');
+      defaultDateRange();          // por defecto: próximos 7 días
       renderResults();
       openStep('result');
       resultTimer = setTimeout(function(){ r.classList.add('done'); }, 1400);
     }
+  }
+  /* rellena el filtro de fecha con los próximos 7 días si está vacío */
+  var dateTouched = false;
+  function defaultDateRange(){
+    if(dateTouched || $('#dateFrom').value || $('#dateTo').value) return;
+    var iso = function(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
+    var hoy = new Date(); var fin = new Date(); fin.setDate(fin.getDate() + 7);
+    $('#dateFrom').value = iso(hoy);
+    $('#dateTo').value   = iso(fin);
   }
 
   /* ── panel de selecciones (huecos predefinidos) ───────────────────── */
@@ -364,17 +374,23 @@
         advance();
       });
     }
-    /* clic en una opción: en el checkbox (derecha) = multi; en el centro = directo */
+    /* clic en una opción: checkbox (derecha) = multi; centro = directo.
+       PERO si ya estás en modo multi (hay alguna multi-on), CUALQUIER toque
+       sigue siendo multi — solo "Todas/Todos" rompe el modo y va directo. */
     stepEl.querySelectorAll('.opt').forEach(function(opt){
       opt.addEventListener('click', function(e){
-        if(e.target.closest('.mbox')){            // multi-toggle
+        var multiActivo = !!stepEl.querySelector('.opt.multi-on');
+        var esTodas = opt.dataset.value === 'all';
+        if(!esTodas && (e.target.closest('.mbox') || multiActivo)){   // multi-toggle
+          var eraSeleccion = opt.classList.contains('selected');
           /* si venías de una selección simple (p.ej. al EDITAR), pásala a multi
-             para poder añadir más sin perder la que ya tenías */
+             para no perderla al empezar a multi-seleccionar */
           stepEl.querySelectorAll('.opt.selected').forEach(function(o){
             o.classList.remove('selected'); o.classList.add('multi-on');
           });
-          opt.classList.toggle('multi-on');
-          opt.classList.remove('dim','selected','picked');
+          /* la que ya estaba seleccionada queda multi-on (no la des-marques) */
+          if(!eraSeleccion) opt.classList.toggle('multi-on');
+          opt.classList.remove('dim','picked');
           updateContinue(stepId);
           return;
         }
@@ -445,22 +461,22 @@
     list.sort(function(a, b){ return a.startsAt - b.startsAt; });
     var box = $('#evtList');
     box.innerHTML = '';
+    /* AGRUPADOS POR FECHA: cabecera de día + sus eventos; los días sin
+       eventos no aparecen. Multi-día (congresos) → bajo su fecha de inicio. */
+    var lastKey = null;
     list.forEach(function(ev){
-      var n = camCountOf(ev);
-      var foll = ev.camIds.filter(function(id){ return follows[id]; }).length;  // seguidos que asisten
+      var d = new Date(ev.startsAt);
+      var key = d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+      if(key !== lastKey){
+        var h = document.createElement('div');
+        h.className = 'date-head';
+        h.textContent = fmtDate(ev.startsAt);
+        box.appendChild(h);
+        lastKey = key;
+      }
       var b = document.createElement('button');
-      b.className = 'evt t-' + ev.type;   // acento lateral por tipo
-      b.innerHTML =
-        '<div class="evt-head">' +
-          '<span class="evt-name">' + ev.name + '</span>' +
-          '<span class="evt-badges">' +
-            (eventStatus(ev) === 'directo' ? '<span class="evt-live">Directo</span>' : '') +
-            (foll ? '<span class="evt-follow" title="Camarógrafos que sigues">' + CAM_MINI_SVG + '×' + foll + '</span>' : '') +
-            '<span class="evt-cams' + (n ? ' on' : '') + '">CAM ×' + n + '</span>' +
-          '</span>' +
-        '</div>' +
-        '<span class="evt-meta">' + fmtDate(ev.startsAt) + ' · ' + evHours(ev) + ' · ' +
-          ev.venue + ' · ' + CITY_LABELS[ev.city] + '</span>';
+      b.className = 'evt t-' + ev.type;
+      b.innerHTML = evtCardInner(ev);
       b.addEventListener('click', function(){ openEvent(ev); });
       box.appendChild(b);
     });
@@ -468,10 +484,28 @@
       ? '1 evento encontrado' : list.length + ' eventos encontrados';
     $('#resEmpty').style.display = list.length ? 'none' : 'flex';
   }
-  /* el filtro de fecha re-filtra en vivo */
-  $('#dateFrom').addEventListener('change', renderResults);
-  $('#dateTo').addEventListener('change', renderResults);
+  /* contenido interno de una tarjeta de evento (reutilizable) */
+  function evtCardInner(ev){
+    var n = camCountOf(ev);
+    var foll = ev.camIds.filter(function(id){ return follows[id]; }).length;
+    var multi = (ev.endsAt - ev.startsAt) > 86400000 * 1.1;   // ocupa varios días
+    var when = multi ? (fmtDate(ev.startsAt) + ' – ' + fmtDate(ev.endsAt)) : evHours(ev);
+    return '<div class="evt-head">' +
+        '<span class="evt-name">' + ev.name + '</span>' +
+        '<span class="evt-badges">' +
+          (eventStatus(ev) === 'directo' ? '<span class="evt-live">Directo</span>' : '') +
+          (foll ? '<span class="evt-follow" title="Camarógrafos que sigues">' + CAM_MINI_SVG + '×' + foll + '</span>' : '') +
+          '<span class="evt-cams' + (n ? ' on' : '') + '">CAM ×' + n + '</span>' +
+        '</span>' +
+      '</div>' +
+      '<span class="evt-meta">' + when + ' · ' + ev.venue + ' · ' + CITY_LABELS[ev.city] + '</span>';
+  }
+  /* el filtro de fecha re-filtra en vivo (y marca que el usuario lo tocó,
+     para no re-imponer el rango por defecto de 7 días) */
+  $('#dateFrom').addEventListener('change', function(){ dateTouched = true; renderResults(); });
+  $('#dateTo').addEventListener('change', function(){ dateTouched = true; renderResults(); });
   $('#dateClear').addEventListener('click', function(){
+    dateTouched = true;          // "ver todo": no volver a meter los 7 días
     $('#dateFrom').value = '';
     $('#dateTo').value = '';
     renderResults();
