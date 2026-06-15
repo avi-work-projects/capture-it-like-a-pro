@@ -553,7 +553,7 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 <script>
 'use strict';
 /* ══════════════════════════════════════════════════════════════
-   EDITOR DE MAPA — módulo independiente (v0.18)
+   EDITOR DE MAPA — módulo independiente (v0.19)
    Sin dependencias. Pensado para integrarse luego en index.html.
 
    Tres secciones (tabs): ESTRUCTURA (planta) · ELEMENTOS · CÁMARAS.
@@ -703,11 +703,21 @@ function pushHist(){
 function restoreHist(){
   histLock = true;
   const keepEl = selEl, keepPiece = selPiece;
+  const prevEls = new Set(state.elements.map(e => e.id));     // ids antes de restaurar
+  const prevPieces = new Set(state.pieces.map(p => p.id));
   state = JSON.parse(history[histIdx]);
   syncSeq();
   /* conservar la selección si la figura sigue existiendo tras deshacer/rehacer */
   selEl    = state.elements.some(e => e.id === keepEl)    ? keepEl    : null;
   selPiece = state.pieces.some(p => p.id === keepPiece)   ? keepPiece : null;
+  /* si deshacer RECUPERA un único objeto que se había borrado, vuelve seleccionado */
+  if(selEl == null && selPiece == null){
+    const backEls = state.elements.filter(e => !prevEls.has(e.id));
+    const backPieces = state.pieces.filter(p => !prevPieces.has(p.id));
+    if(backEls.length + backPieces.length === 1){
+      if(backEls.length) selEl = backEls[0].id; else selPiece = backPieces[0].id;
+    }
+  }
   $('#map-name').value = state.name || '';
   renderFloor(); renderElements(); renderEditPanel();
   localStorage.setItem(DRAFT_KEY, JSON.stringify(state));
