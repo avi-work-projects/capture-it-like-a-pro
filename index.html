@@ -183,8 +183,9 @@ body{
 .view{
   position:absolute;
   inset:0;
-  display:flex;
-  flex-direction:column;
+  /* block + overflow-y:auto → el contenido fluye y la vista SCROLLEA.
+     (Con display:flex la columna comprimía panel/resultados y no dejaba scroll) */
+  display:block;
   padding:58px 26px calc(48px + env(safe-area-inset-bottom));
   overflow-y:auto;
   /* sin pull-to-refresh ni scroll encadenado del navegador:
@@ -192,6 +193,8 @@ body{
   overscroll-behavior:contain;
   transition:opacity .25s var(--ease), transform .3s var(--ease);
 }
+/* solo las pantallas que llenan el alto necesitan columna flex */
+#view1,#viewHub{display:flex;flex-direction:column}
 .view.hidden{opacity:0;pointer-events:none}
 /* todas las vistas entran desde abajo (.in) y salen hacia arriba (.out) */
 .view{transform:translateY(46px)}
@@ -638,6 +641,31 @@ body{
 }
 .app.light .fsel{color-scheme:light}
 .fsel:focus{border-color:var(--accent)}
+/* "Lugar": botón + menú propio (estilo Busco evento), en vez del select del SO */
+.placebtn{
+  flex:1;min-width:0;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  background:var(--surface);
+  border:1px solid var(--line);border-radius:4px;
+  color:var(--text);
+  font-family:var(--opt-font);font-weight:600;font-size:13px;letter-spacing:.04em;
+  padding:9px 12px;cursor:pointer;text-align:left;
+  transition:border-color .15s, box-shadow .15s, background-color .35s;
+}
+.placebtn:hover,.placebtn:active{border-color:var(--accent);box-shadow:0 0 12px var(--accent-glow)}
+.placebtn .caret{color:var(--muted);flex:none}
+.placemenu{
+  margin-top:10px;padding:14px;
+  background:var(--surface);
+  border:1px solid var(--line);border-radius:8px;
+  animation:rise .25s var(--ease) both;
+}
+.placemenu .pm-h{
+  font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 8px;
+}
+.placemenu .pm-h + .opts{margin-bottom:14px}
+.placemenu .opt{font-size:15px}
 #camDir{margin-top:16px}
 .cam.dir{
   cursor:pointer;text-align:left;font:inherit;color:inherit;width:100%;
@@ -1254,12 +1282,17 @@ body{
     </div>
     <div class="ctrl">
       <span class="ctrl-lbl">Lugar</span>
-      <select class="fsel" id="cdCountry">
-        <option value="all">Todos los países</option>
-        <option value="es">España</option>
-        <option value="pl">Polonia</option>
-      </select>
-      <select class="fsel" id="cdCity"></select>
+      <button class="placebtn" id="placeBtn"><span id="placeLbl">Todos los lugares</span><span class="caret">▾</span></button>
+    </div>
+    <div class="placemenu" id="placeMenu" hidden>
+      <div class="pm-h">País</div>
+      <div class="opts" id="pmCountries">
+        <button class="opt po" data-c="es"><span class="lbl"><b>España</b></span><span class="mbox"></span></button>
+        <button class="opt po" data-c="pl"><span class="lbl"><b>Polonia</b></span><span class="mbox"></span></button>
+      </div>
+      <div class="pm-h">Ciudad</div>
+      <div class="opts" id="pmCities"></div>
+      <button class="multi-continue" id="placeApply">Aplicar</button>
     </div>
     <div class="ctrl">
       <span class="ctrl-lbl">Filtro</span>
@@ -1885,6 +1918,11 @@ body{
     stepEl.querySelectorAll('.opt').forEach(function(opt){
       opt.addEventListener('click', function(e){
         if(e.target.closest('.mbox')){            // multi-toggle
+          /* si venías de una selección simple (p.ej. al EDITAR), pásala a multi
+             para poder añadir más sin perder la que ya tenías */
+          stepEl.querySelectorAll('.opt.selected').forEach(function(o){
+            o.classList.remove('selected'); o.classList.add('multi-on');
+          });
           opt.classList.toggle('multi-on');
           opt.classList.remove('dim','selected','picked');
           updateContinue(stepId);
@@ -2188,7 +2226,8 @@ body{
   });
 
   /* ── directorio de camarógrafos: ordenar, filtrar, seguir, ver perfil ── */
-  var camSort = { key:'rating', dir:'desc' }, camCountry = 'all', camCity = 'all', rev3On = false;
+  var camSort = { key:'rating', dir:'desc' }, rev3On = false;
+  var placeCountries = [], placeCities = [];   // vacío = todos
   var SORT_DEF = { rating:'desc', price:'asc', videos:'desc' };   // sentido inicial por criterio
   var CITY_COUNTRY = { mad:'es', sev:'es', bcn:'es', waw:'pl', kra:'pl' };
   function upcomingOf(c){
@@ -2225,8 +2264,8 @@ body{
   var backToCams = function(){ renderCamDir(); goView('viewCams','ac-amber'); };
   function renderCamDir(){
     var list = CAMS.filter(function(c){
-      if(camCountry !== 'all' && CITY_COUNTRY[c.city] !== camCountry) return false;
-      if(camCity !== 'all' && c.city !== camCity) return false;
+      if(placeCountries.length && placeCountries.indexOf(CITY_COUNTRY[c.city]) === -1) return false;
+      if(placeCities.length && placeCities.indexOf(c.city) === -1) return false;
       if(rev3On && c.reviews <= 3) return false;       // filtro +3 reseñas
       return true;
     });
@@ -2275,21 +2314,49 @@ body{
       renderCamDir();
     });
   });
-  /* desplegables de país / ciudad (la ciudad depende del país) */
-  function fillCityOptions(){
-    var sel = $('#cdCity');
-    var cities = camCountry === 'es' ? ['mad','sev','bcn']
-               : camCountry === 'pl' ? ['waw','kra']
-               : ['mad','sev','bcn','waw','kra'];
-    sel.innerHTML = '<option value="all">Todas las ciudades</option>' +
-      cities.map(function(c){ return '<option value="' + c + '">' + CITY_LABELS[c] + '</option>'; }).join('');
-    sel.value = (cities.indexOf(camCity) !== -1) ? camCity : 'all';
+  /* menú "Lugar": país + ciudad multi-seleccionables (estilo Busco evento) */
+  function placeLabel(){
+    if(placeCities.length)    return placeCities.map(function(c){ return CITY_LABELS[c]; }).join(', ');
+    if(placeCountries.length) return placeCountries.map(function(k){ return k === 'es' ? 'España' : 'Polonia'; }).join(', ');
+    return 'Todos los lugares';
   }
-  $('#cdCountry').addEventListener('change', function(){
-    camCountry = this.value; camCity = 'all'; fillCityOptions(); renderCamDir();
+  function renderPlaceMenu(){
+    document.querySelectorAll('#pmCountries .po').forEach(function(o){
+      o.classList.toggle('multi-on', placeCountries.indexOf(o.dataset.c) !== -1);
+    });
+    var cities = placeCountries.length
+      ? placeCountries.reduce(function(acc, k){ return acc.concat(k === 'es' ? ['mad','sev','bcn'] : ['waw','kra']); }, [])
+      : ['mad','sev','bcn','waw','kra'];
+    $('#pmCities').innerHTML = cities.map(function(c){
+      return '<button class="opt po" data-city="' + c + '"><span class="lbl"><b>' + CITY_LABELS[c] + '</b></span><span class="mbox"></span></button>';
+    }).join('');
+    document.querySelectorAll('#pmCities .po').forEach(function(o){
+      o.classList.toggle('multi-on', placeCities.indexOf(o.dataset.city) !== -1);
+    });
+  }
+  $('#placeBtn').addEventListener('click', function(){
+    var m = $('#placeMenu');
+    m.hidden = !m.hidden;
+    if(!m.hidden) renderPlaceMenu();
   });
-  $('#cdCity').addEventListener('change', function(){ camCity = this.value; renderCamDir(); });
-  fillCityOptions();
+  $('#pmCountries').addEventListener('click', function(e){
+    var o = e.target.closest('.po'); if(!o) return;
+    var k = o.dataset.c, i = placeCountries.indexOf(k);
+    if(i === -1) placeCountries.push(k); else placeCountries.splice(i, 1);
+    placeCities = placeCities.filter(function(c){ return !placeCountries.length || placeCountries.indexOf(CITY_COUNTRY[c]) !== -1; });
+    renderPlaceMenu();
+  });
+  $('#pmCities').addEventListener('click', function(e){
+    var o = e.target.closest('.po'); if(!o) return;
+    var c = o.dataset.city, i = placeCities.indexOf(c);
+    if(i === -1) placeCities.push(c); else placeCities.splice(i, 1);
+    renderPlaceMenu();
+  });
+  $('#placeApply').addEventListener('click', function(){
+    $('#placeMenu').hidden = true;
+    $('#placeLbl').textContent = placeLabel();
+    renderCamDir();
+  });
   $('#rev3Chip').addEventListener('click', function(){
     rev3On = !rev3On;
     this.classList.toggle('on', rev3On);
