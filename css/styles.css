@@ -115,6 +115,15 @@ body{
 
 /* ───────────────────────── ESQUINAS DE ENCUADRE ────────────────────────── */
 .vf{position:absolute;inset:10px;pointer-events:none;z-index:30}
+/* máscara opaca de la franja superior: tapa el contenido que sube al
+   scrollear, pero queda por DEBAJO del OSD (z35) y las esquinas (z30) */
+.topmask{
+  position:absolute;top:0;left:0;right:0;
+  height:48px;
+  background:var(--bg);
+  z-index:20;pointer-events:none;
+  transition:background-color .35s;
+}
 .vf i{position:absolute;width:26px;height:26px;border:0 solid var(--vf);transition:border-color .35s}
 .vf i:nth-child(1){top:0;left:0;border-top-width:2px;border-left-width:2px}
 .vf i:nth-child(2){top:0;right:0;border-top-width:2px;border-right-width:2px}
@@ -303,7 +312,7 @@ body{
   display:flex;align-items:center;gap:14px;
   position:sticky;top:0;z-index:6;
   background:var(--bg);
-  margin:0 -26px;padding:48px 26px 12px;
+  margin:0 -26px;padding:52px 26px 12px;
   transition:background-color .35s;
 }
 .nav-btns{display:flex;flex-direction:column;gap:8px;flex:none}
@@ -914,7 +923,7 @@ body{
 .app.light .st.mid{color:#b08900;border-color:#b08900}
 
 /* resultados: lista de eventos */
-#result.open{max-height:1400px}
+#result.open{max-height:6000px}
 .res{display:none}
 .result.done .loading{display:none}
 .result.done .res{display:block;animation:rise .35s var(--ease) both}
