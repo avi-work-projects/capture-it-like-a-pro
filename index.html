@@ -205,18 +205,35 @@
     <section class="step result" id="result">
       <div class="loading">Buscando eventos…</div>
       <div class="res">
-        <div class="datefilter">
-          <span class="ctrl-lbl">Fecha</span>
-          <input type="date" id="dateFrom" title="Desde">
-          <input type="date" id="dateTo" title="Hasta">
-          <button class="linkbtn" id="dateClear" title="Quitar filtro de fecha">✕</button>
+        <div class="ctrl evmode">
+          <div class="chips" id="evModeTabs">
+            <button class="fchip on" data-mode="prox">Próximos</button>
+            <button class="fchip" data-mode="cal">Calendario</button>
+            <button class="fchip" data-mode="horarios">Horarios salas</button>
+          </div>
         </div>
-        <p class="res-count" id="resCount"></p>
-        <div class="evts" id="evtList"></div>
-        <div class="notice" id="resEmpty" style="display:none">
-          <span class="nosig">Sin señal</span>
-          <p>No hay eventos con esos filtros — prueba a cambiarlos.</p>
+
+        <!-- PRÓXIMOS: lista agrupada por fecha -->
+        <div id="modeProx">
+          <div class="datefilter">
+            <span class="ctrl-lbl">Fecha</span>
+            <input type="date" id="dateFrom" title="Desde">
+            <input type="date" id="dateTo" title="Hasta">
+            <button class="linkbtn" id="dateClear" title="Quitar filtro de fecha">✕</button>
+          </div>
+          <p class="res-count" id="resCount"></p>
+          <div class="evts" id="evtList"></div>
+          <div class="notice" id="resEmpty" style="display:none">
+            <span class="nosig">Sin señal</span>
+            <p>No hay eventos con esos filtros — prueba a cambiarlos.</p>
+          </div>
         </div>
+
+        <!-- CALENDARIO: año → mes (lo pinta calendar.js) -->
+        <div id="modeCal" hidden></div>
+
+        <!-- HORARIOS SALAS: semanales por día (lo pinta calendar.js) -->
+        <div id="modeHorarios" hidden></div>
       </div>
     </section>
   </section>
@@ -362,6 +379,7 @@
 </div>
 
 <script src="js/data.js"></script>
+<script src="js/calendar.js"></script>
 <script src="js/app.js"></script>
 
 <!--

@@ -74,44 +74,66 @@
   /* dd mmm a partir de YYYY-MM-DD (sin construir Date sin args) */
   function fmtRevDate(s){ var p = s.split('-'); return parseInt(p[2],10) + ' ' + MON[parseInt(p[1],10)-1]; }
 
-  /* liveCams = camarógrafos que YA han hecho check-in (cola abierta) */
+  /* recurrence: 'weekly' (salas que se repiten cada semana — van a "Horarios
+     salas") | 'oneoff' (fecha concreta: congresos/exterior — van al calendario).
+     weekly: weekday (0=dom..6=sáb) + timeLabel. liveCams = check-in hecho. */
   var EVENTS = [
-    { id:'fri',   name:'Bachata Friday Night',  country:'es', city:'mad', type:'sala',
-      venue:'Sala Tropic',          when:'Vie',     camIds:['juan','ana'], liveCams:['juan'] },
-    { id:'acad',  name:'Open Class SBK',        country:'es', city:'mad', type:'sala',
-      venue:'Academia Ritmo',       when:'Jue',     camIds:[] },
-    { id:'sunset',name:'Bachata Sunset Madrid', country:'es', city:'mad', type:'exterior', sub:'terraza',
-      venue:'Terraza Plaza España', when:'Sáb',     camIds:['carlos'] },
-    { id:'beach', name:'Bachata Beach Party',   country:'es', city:'bcn', type:'exterior', sub:'playa',
-      venue:'Playa Bogatell',       when:'Dom',     camIds:['lucia','david'] },
-    { id:'club',  name:'Caribbean Late Night',  country:'es', city:'bcn', type:'sala',
-      venue:'Sala Caribbean',       when:'Sáb',     camIds:[] },
-    { id:'cong',  name:'Congreso Bachatísimo',  country:'es', city:'sev', type:'congreso',
-      venue:'Palacio de Congresos', when:'31 may',  camIds:['marta'] },
-    { id:'wknd',  name:'Sevilla Weekender',     country:'es', city:'sev', type:'congreso',
-      venue:'Hotel Triana',         when:'13–15 jun', camIds:[] },
-    { id:'waw1',  name:'Warsaw Bachata Social', country:'pl', city:'waw', type:'sala',
-      venue:'Klub Mokotów',         when:'Vie',     camIds:['piotr'] },
-    { id:'waw2',  name:'Vistula Open Air',      country:'pl', city:'waw', type:'exterior', sub:'parque',
-      venue:'Park Vístula',         when:'Dom',     camIds:[] },
-    { id:'kra1',  name:'Kraków Bachata Fest',   country:'pl', city:'kra', type:'congreso',
-      venue:'ICE Kraków',           when:'20–22 jun', camIds:['magda'] }
+    { id:'fri',   name:'Bachata Friday Night',  country:'es', city:'mad', type:'sala', recurrence:'weekly', weekday:5, timeLabel:'23:00–03:00',
+      venue:'Sala Tropic',          camIds:['juan','ana'], liveCams:['juan'] },
+    { id:'acad',  name:'Open Class SBK',        country:'es', city:'mad', type:'sala', recurrence:'weekly', weekday:4, timeLabel:'20:30–22:30',
+      venue:'Academia Ritmo',       camIds:[] },
+    { id:'club',  name:'Caribbean Late Night',  country:'es', city:'bcn', type:'sala', recurrence:'weekly', weekday:6, timeLabel:'00:30–05:30',
+      venue:'Sala Caribbean',       camIds:[] },
+    { id:'waw1',  name:'Warsaw Bachata Social', country:'pl', city:'waw', type:'sala', recurrence:'weekly', weekday:5, timeLabel:'21:00–00:30',
+      venue:'Klub Mokotów',         camIds:['piotr'] },
+    { id:'sunset',name:'Bachata Sunset Madrid', country:'es', city:'mad', type:'exterior', sub:'terraza', recurrence:'oneoff',
+      venue:'Terraza Plaza España', camIds:['carlos'] },
+    { id:'beach', name:'Bachata Beach Party',   country:'es', city:'bcn', type:'exterior', sub:'playa', recurrence:'oneoff',
+      venue:'Playa Bogatell',       camIds:['lucia','david'] },
+    { id:'waw2',  name:'Vistula Open Air',      country:'pl', city:'waw', type:'exterior', sub:'parque', recurrence:'oneoff',
+      venue:'Park Vístula',         camIds:[] },
+    { id:'cong',  name:'Congreso Bachatísimo',  country:'es', city:'sev', type:'congreso', recurrence:'oneoff',
+      venue:'Palacio de Congresos', camIds:['marta'] },
+    { id:'wknd',  name:'Sevilla Weekender',     country:'es', city:'sev', type:'congreso', recurrence:'oneoff',
+      venue:'Hotel Triana',         camIds:[] },
+    { id:'kra1',  name:'Kraków Bachata Fest',   country:'pl', city:'kra', type:'congreso', recurrence:'oneoff',
+      venue:'ICE Kraków',           camIds:['magda'] },
+    { id:'verano',name:'Bachata Verano Playa',  country:'es', city:'bcn', type:'exterior', sub:'playa', recurrence:'oneoff',
+      venue:'Playa Barceloneta',    camIds:['lucia'] },
+    { id:'octmd', name:'Congreso Otoño Madrid', country:'es', city:'mad', type:'congreso', recurrence:'oneoff',
+      venue:'IFEMA',                camIds:['juan','ana'] },
+    { id:'navmad',name:'Bachata Navideña',      country:'es', city:'mad', type:'exterior', sub:'terraza', recurrence:'oneoff',
+      venue:'Mercado de Navidad',   camIds:[] },
+    { id:'finsev',name:'Bachatísimo Fin de Año',country:'es', city:'sev', type:'congreso', recurrence:'oneoff',
+      venue:'Palacio de Congresos', camIds:['marta'] }
   ];
   var EVENTS_BY_ID = {};
   EVENTS.forEach(function(e){ EVENTS_BY_ID[e.id] = e; });
 
-  /* horarios mock RELATIVOS a ahora, para poder probar los tres estados:
-     fri y waw1 están EN DIRECTO ahora mismo; acad ya terminó; el resto, futuro */
+  /* Horarios:
+     - SEMANALES → ocurrencia relativa a ahora (fri/waw1 EN DIRECTO para demo).
+     - PUNTUALES → fechas absolutas de 2026, repartidas por todo el año. */
   (function(){
     var H = 3600e3, D = 24 * H, now = Date.now();
-    var T = { fri:[-1*H, 3*H],      acad:[-3*D, -3*D + 2*H],
-              sunset:[D + 6*H, D + 10*H], beach:[2*D, 2*D + 5*H],
-              club:[3*D, 3*D + 5*H],     cong:[5*D, 5*D + 12*H],
-              wknd:[8*D, 10*D],          waw1:[-0.5*H, 3.5*H],
-              waw2:[4*D, 4*D + 4*H],     kra1:[12*D, 14*D] };
+    var W = { fri:[-1*H, 3*H], waw1:[-0.5*H, 3.5*H], acad:[2*D, 2*D + 2*H], club:[4*D, 4*D + 5*H] };
+    function at(mo,d,hh,mm){ return new Date(2026, mo, d, hh, mm || 0).getTime(); }
+    function span(mo,d1,d2){ return [new Date(2026,mo,d1,10,0).getTime(), new Date(2026,mo,d2,23,59).getTime()]; }
+    var O = {
+      sunset:[at(5,20,19,30), at(5,20,23,30)],   // 20 jun
+      beach: [at(5,21,18,0),  at(5,21,23,0)],     // 21 jun
+      cong:  span(5,26,28),                        // 26–28 jun
+      waw2:  [at(6,5,17,0),   at(6,5,21,0)],      // 5 jul
+      wknd:  span(6,10,12),                        // 10–12 jul
+      kra1:  span(6,17,19),                        // 17–19 jul
+      verano:[at(7,8,18,0),   at(7,8,23,0)],      // 8 ago
+      octmd: null,                                 // (octmd abajo)
+      navmad:[at(11,12,18,30),at(11,12,23,0)]      // 12 dic
+    };
+    O.octmd = span(9,23,25);                        // 23–25 oct
+    O.finsev = span(11,29,31);                       // 29–31 dic
     EVENTS.forEach(function(e){
-      e.startsAt = now + T[e.id][0];
-      e.endsAt   = now + T[e.id][1];
+      if(W[e.id]){ e.startsAt = now + W[e.id][0]; e.endsAt = now + W[e.id][1]; }
+      else if(O[e.id]){ e.startsAt = O[e.id][0]; e.endsAt = O[e.id][1]; }
     });
   })();
   function pad2(n){ return (n < 10 ? '0' : '') + n; }

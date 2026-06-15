@@ -511,6 +511,52 @@
     renderResults();
   });
 
+  /* ── modos del resultado: Próximos · Calendario · Horarios salas ──────── */
+  var evMode = 'prox', calYear = (new Date()).getFullYear(), calMonth = null, calSub = 'cal';
+  function eventsByFilter(rec, withSub){
+    return EVENTS.filter(function(ev){
+      if(ev.recurrence !== rec) return false;
+      if(!inFilter(state.country, ev.country)) return false;
+      if(!inFilter(state.city, ev.city)) return false;
+      if(!inFilter(state.type, ev.type)) return false;
+      if(withSub && state.subtype && !inFilter(state.subtype, ev.sub)) return false;
+      return true;
+    });
+  }
+  function calEvent(id){ openEvent(EVENTS_BY_ID[id]); }
+  function renderCalMode(){
+    var c = $('#modeCal');
+    if(calMonth == null){
+      Calendar.renderYear(c, calYear, eventsByFilter('oneoff', true), {
+        onYear:  function(y){ calYear = y; renderCalMode(); },
+        onMonth: function(m){ calMonth = m; calSub = 'cal'; renderCalMode(); }
+      });
+    } else {
+      Calendar.renderMonth(c, calYear, calMonth, eventsByFilter('oneoff', true), calSub, {
+        onBack:  function(){ calMonth = null; renderCalMode(); },
+        onSub:   function(s){ calSub = s; renderCalMode(); },
+        onMonth: function(m, y){ calMonth = m; if(y != null) calYear = y; renderCalMode(); },
+        onEvent: calEvent
+      });
+    }
+  }
+  function renderHorariosMode(){
+    Calendar.renderHorarios($('#modeHorarios'), eventsByFilter('weekly', false), { onEvent: calEvent });
+  }
+  function setEvMode(mode){
+    evMode = mode;
+    document.querySelectorAll('#evModeTabs .fchip').forEach(function(t){ t.classList.toggle('on', t.dataset.mode === mode); });
+    $('#modeProx').hidden     = mode !== 'prox';
+    $('#modeCal').hidden      = mode !== 'cal';
+    $('#modeHorarios').hidden = mode !== 'horarios';
+    if(mode === 'prox')          renderResults();
+    else if(mode === 'cal')      renderCalMode();
+    else                         renderHorariosMode();
+  }
+  document.querySelectorAll('#evModeTabs .fchip').forEach(function(t){
+    t.addEventListener('click', function(){ setEvMode(t.dataset.mode); });
+  });
+
   /* ── vista 3: detalle del evento + camarógrafos ───────────────────── */
   var CAM_SVG = '<svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="M15.5 10.8l6-3.3v9l-6-3.3"/><circle cx="7.5" cy="12" r="2.2"/></svg>';
   /* cámara mini para el badge amarillo de seguidos en la lista de eventos */
