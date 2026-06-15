@@ -546,7 +546,7 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 <script>
 'use strict';
 /* ══════════════════════════════════════════════════════════════
-   EDITOR DE MAPA — módulo independiente (v0.14)
+   EDITOR DE MAPA — módulo independiente (v0.15)
    Sin dependencias. Pensado para integrarse luego en index.html.
 
    Tres secciones (tabs): ESTRUCTURA (planta) · ELEMENTOS · CÁMARAS.
@@ -1256,12 +1256,13 @@ $('#map-name').addEventListener('input', ev => {
 $('#btn-save').addEventListener('click', saveToLibrary);
 $('#btn-clear').addEventListener('click', () => {
   if(!state.pieces.length && !state.elements.length) return;
+  if(!confirm('¿Seguro que quieres borrar el plano entero?')) return;
   state.pieces = [];
   state.elements = [];
   select(null, null);
   renderElements();
   saveDraft();
-  showUndo('Plano vaciado');     // queda la opción de Deshacer
+  showUndo('Plano vaciado');     // y aun así queda la opción de Deshacer
 });
 $('#btn-undo').addEventListener('click', undo);
 $('#btn-redo').addEventListener('click', redo);
