@@ -613,6 +613,84 @@ body{
 .cam-extra{display:none;margin-top:8px;font-size:12.5px;color:var(--muted)}
 .cam.dir.sel .cam-extra{display:block;animation:rise .25s var(--ease) both}
 
+/* ── tarjeta de camarógrafo en el directorio (v2) ── */
+.camcard{
+  display:flex;flex-direction:column;gap:11px;
+  padding:15px 16px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-left:3px solid var(--line);
+  border-radius:6px;
+  cursor:pointer;
+  transition:border-color .15s, box-shadow .15s, background-color .35s;
+}
+.camcard:hover,.camcard:active{border-color:var(--accent);box-shadow:0 0 16px var(--accent-glow)}
+.camcard.followed{border-left-color:#ffd60a}
+.cc-top{display:flex;align-items:center;gap:12px}
+.cc-top .icn{width:24px;height:24px;color:var(--muted);flex:none}
+.camcard.followed .cc-top .icn{color:#ffd60a}
+.cc-id{flex:1;min-width:0}
+.cc-id b{display:block;font-family:var(--opt-font);font-weight:600;font-size:16px;letter-spacing:.04em;text-transform:uppercase}
+.cc-id small{color:var(--muted);font-size:12px}
+.cc-stats{
+  font-family:var(--mono);font-size:10px;letter-spacing:.08em;
+  color:var(--muted);text-transform:uppercase;line-height:1.6;
+}
+.cc-stats .tier{color:var(--accent)}
+.cc-stats .star{color:#ffd60a}
+.cc-foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.cc-evn{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.cbtn{
+  flex:none;
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 13px;
+  background:transparent;border:1px solid var(--line);border-radius:4px;
+  color:var(--text);
+  font-family:var(--opt-font);font-weight:600;font-size:12px;letter-spacing:.05em;text-transform:uppercase;
+  cursor:pointer;
+  transition:border-color .15s, color .15s, box-shadow .15s, background-color .2s;
+}
+.cbtn:hover,.cbtn:active{border-color:var(--accent);box-shadow:0 0 12px var(--accent-glow)}
+.cbtn.on{background:#ffd60a;border-color:#ffd60a;color:#0a0a0a}
+.cbtn .icn{width:15px;height:15px}
+
+/* badge de camarógrafos SEGUIDOS en la lista de eventos (amarillo) */
+.evt-follow{
+  position:absolute;top:13px;right:13px;
+  display:inline-flex;align-items:center;gap:4px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;
+  color:#ffd60a;border:1px solid #ffd60a;border-radius:3px;padding:3px 6px;
+}
+.evt-follow svg{width:12px;height:12px;display:block}
+.evt.has-follow .evt-cams{top:auto;bottom:13px}
+.evt.has-follow .evt-meta{padding-right:66px}
+
+/* ── vista de perfil del camarógrafo ── */
+.prof-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.pstat{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.pstat.wide{grid-column:1 / -1}
+.pstat .pk{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.pstat .pv{font-family:var(--opt-font);font-weight:600;font-size:19px;margin-top:3px}
+.pstat .pv.sm{font-size:14px;letter-spacing:.02em}
+.pstat .pv .star{color:#ffd60a}
+.pstat .pv .tier{color:var(--accent)}
+.reviews{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.review{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.review .rv-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.review .rv-by{font-family:var(--opt-font);font-weight:600;font-size:13px;letter-spacing:.04em;text-transform:uppercase}
+.review .rv-st{font-family:var(--mono);font-size:11px;color:#ffd60a;letter-spacing:.1em}
+.review .rv-tx{color:var(--muted);font-size:13.5px;line-height:1.45}
+.prof-follow{
+  margin-top:16px;width:100%;
+  padding:14px;
+  background:#ffd60a;color:#0a0a0a;border:1px solid #ffd60a;border-radius:6px;
+  font-family:var(--opt-font);font-weight:600;font-size:15px;letter-spacing:.06em;text-transform:uppercase;
+  cursor:pointer;
+  transition:transform .15s var(--ease), box-shadow .15s, background-color .2s, color .2s;
+}
+.prof-follow:hover,.prof-follow:active{transform:scale(1.02);box-shadow:0 0 20px rgba(255,214,10,.35)}
+.prof-follow.leave{background:transparent;color:var(--text);border-color:#ffd60a}
+
 /* saldo del bailarín */
 .saldo{
   display:none;align-items:center;gap:6px;
@@ -1098,9 +1176,9 @@ body{
     <div class="ctrl">
       <span class="ctrl-lbl">Ordenar</span>
       <div class="chips" id="sortChips">
-        <button class="fchip on" data-sort="rating">Popularidad</button>
+        <button class="fchip on" data-sort="rating">Puntuación</button>
+        <button class="fchip" data-sort="price">Precio medio</button>
         <button class="fchip" data-sort="videos">Nº vídeos</button>
-        <button class="fchip" data-sort="price">Precio</button>
       </div>
     </div>
     <div class="ctrl">
@@ -1114,10 +1192,40 @@ body{
         <button class="fchip" data-city="kra">Cracovia</button>
       </div>
     </div>
+    <div class="ctrl">
+      <span class="ctrl-lbl">Filtro</span>
+      <div class="chips">
+        <button class="fchip" id="rev3Chip">+3 reseñas</button>
+      </div>
+    </div>
     <div class="cams" id="camDir"></div>
     <div class="notice" id="camDirEmpty" style="display:none;margin-top:16px">
       <span class="nosig">Sin señal</span>
       <p>No hay camarógrafos en esa ciudad todavía.</p>
+    </div>
+  </section>
+
+  <!-- ════════════════ PERFIL DEL CAMARÓGRAFO ════════════════ -->
+  <section class="view hidden" id="viewProfile">
+    <div class="v2-head">
+      <div class="nav-btns">
+        <button class="nav-back" id="profHome" title="Inicio"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10.5V20h12v-9.5"/></svg></button>
+        <button class="nav-back" id="profBack" title="Volver a camarógrafos">←</button>
+      </div>
+      <div>
+        <h2 class="v2-title" id="profName">—</h2>
+        <p class="v2-sub" id="profSub">—</p>
+      </div>
+    </div>
+    <div class="prof-stats" id="profStats"></div>
+    <button class="prof-follow" id="profFollowBtn">Seguir</button>
+    <h3 class="sec-title">Reseñas <span class="count" id="profRevCount">×0</span></h3>
+    <div class="reviews" id="profReviews"></div>
+    <h3 class="sec-title">Próximos eventos</h3>
+    <div class="cams" id="profEvents"></div>
+    <div class="notice" id="profNoEvents" style="display:none">
+      <span class="nosig">Sin agenda</span>
+      <p>No tiene eventos próximos anunciados.</p>
     </div>
   </section>
 
@@ -1199,20 +1307,39 @@ body{
      price = tasa por vídeo declarada por el camarógrafo (mín 4 € · máx 20 €);
      reserve = coste de reservar plaza, lo elige el camarógrafo (0 € o 2 €)
                y se DESCUENTA de la tasa al apuntarse a la cola */
+  /* rating = media de reseñas (notas enteras 0-6); reviews = nº de reseñas;
+     topEvent = evento más concurrido que grabó (para el perfil) */
   var CAMS = [
-    { id:'juan',   name:'Juan Pérez',     city:'mad', desc:'5 años de experiencia · 4K',        rating:5.5, videos:132, price:9,  reserve:2 },
-    { id:'ana',    name:'Ana López',      city:'mad', desc:'Estilo cinematográfico',            rating:5.7, videos:87,  price:14, reserve:2 },
-    { id:'carlos', name:'Carlos Ruiz',    city:'mad', desc:'Estabilizador pro · entrega 48h',   rating:5.2, videos:210, price:6,  reserve:0 },
-    { id:'lucia',  name:'Lucía Martín',   city:'bcn', desc:'Vídeos en 48h',                     rating:5.4, videos:64,  price:8,  reserve:2 },
-    { id:'david',  name:'David Soto',     city:'bcn', desc:'2 cámaras',                         rating:4.8, videos:45,  price:5,  reserve:0 },
-    { id:'marta',  name:'Marta Gil',      city:'sev', desc:'Equipo doble · drones',             rating:5.9, videos:156, price:15, reserve:2 },
-    { id:'piotr',  name:'Piotr Nowak',    city:'waw', desc:'Slow-motion · 4K',                  rating:5.0, videos:38,  price:6,  reserve:0 },
-    { id:'magda',  name:'Magda Kowalska', city:'kra', desc:'Multicámara',                       rating:5.3, videos:71,  price:10, reserve:2 }
+    { id:'juan',   name:'Juan Pérez',     city:'mad', desc:'5 años de experiencia · 4K',      rating:5.5, reviews:24, videos:132, price:9,  reserve:2, topEvent:{name:'Bachata Friday Night',  couples:18} },
+    { id:'ana',    name:'Ana López',      city:'mad', desc:'Estilo cinematográfico',          rating:5.7, reviews:31, videos:87,  price:14, reserve:2, topEvent:{name:'Bachata Friday Night',  couples:15} },
+    { id:'carlos', name:'Carlos Ruiz',    city:'mad', desc:'Estabilizador pro · entrega 48h', rating:5.2, reviews:58, videos:210, price:6,  reserve:0, topEvent:{name:'Bachata Sunset Madrid', couples:22} },
+    { id:'lucia',  name:'Lucía Martín',   city:'bcn', desc:'Vídeos en 48h',                   rating:5.4, reviews:19, videos:64,  price:8,  reserve:2, topEvent:{name:'Bachata Beach Party',   couples:27} },
+    { id:'david',  name:'David Soto',     city:'bcn', desc:'2 cámaras',                       rating:4.8, reviews:11, videos:45,  price:5,  reserve:0, topEvent:{name:'Bachata Beach Party',   couples:14} },
+    { id:'marta',  name:'Marta Gil',      city:'sev', desc:'Equipo doble · drones',           rating:5.9, reviews:42, videos:156, price:15, reserve:2, topEvent:{name:'Congreso Bachatísimo',  couples:40} },
+    { id:'piotr',  name:'Piotr Nowak',    city:'waw', desc:'Slow-motion · 4K',                rating:5.0, reviews:2,  videos:38,  price:6,  reserve:0, topEvent:{name:'Warsaw Bachata Social', couples:12} },
+    { id:'magda',  name:'Magda Kowalska', city:'kra', desc:'Multicámara',                     rating:5.3, reviews:3,  videos:71,  price:10, reserve:2, topEvent:{name:'Kraków Bachata Fest',   couples:31} }
   ];
   var CAMS_BY_ID = {};
   CAMS.forEach(function(c){ CAMS_BY_ID[c.id] = c; });
   /* tier de precio automático: <7 → $ · 7-12 → $$ · >12 → $$$ */
   function priceTier(p){ return p < 7 ? '$' : (p > 12 ? '$$$' : '$$'); }
+
+  /* reseñas en texto (para la vista de perfil) — stars 0-6 */
+  var REVIEWS = {
+    juan:  [ {by:'Lucía', stars:6, text:'Plano impecable y me lo mandó al día siguiente.'},
+             {by:'Sofía', stars:5, text:'Muy buen ojo para el momento del giro.'} ],
+    ana:   [ {by:'Diego', stars:6, text:'Edición cinematográfica, parece una peli.'},
+             {by:'Marta', stars:6, text:'La luz y el encuadre, de otro nivel.'},
+             {by:'Hugo',  stars:5, text:'Tardó un poco pero mereció la pena.'} ],
+    carlos:[ {by:'Inés',  stars:5, text:'Estabilidad perfecta, cero tirones.'},
+             {by:'Pablo', stars:5, text:'Entrega en 48h cumplida al minuto.'} ],
+    lucia: [ {by:'Ana',   stars:6, text:'Rapidísima y súper maja.'} ],
+    david: [ {by:'Sara',  stars:4, text:'Dos cámaras, buen resultado.'} ],
+    marta: [ {by:'Elena', stars:6, text:'Los drones le dan un toque espectacular.'},
+             {by:'Juan',  stars:6, text:'La mejor del congreso, sin duda.'} ],
+    piotr: [ {by:'Kasia', stars:5, text:'Slow-motion precioso.'} ],
+    magda: [ {by:'Tomek', stars:5, text:'Multicámara muy bien sincronizada.'} ]
+  };
 
   /* liveCams = camarógrafos que YA han hecho check-in (cola abierta) */
   var EVENTS = [
@@ -1291,7 +1418,8 @@ body{
   function store(k, def){ try{ var v = JSON.parse(localStorage.getItem(k)); return v === null ? def : v; }catch(e){ return def; } }
   function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
   var joined   = store('cilap-joined',  {});   // eventos donde TÚ estás de camarógrafo
-  var favs     = store('cilap-favs',    {});   // camarógrafos favoritos ("me interesa")
+  var follows  = store('cilap-follows', {});   // camarógrafos que SIGUES (global, badge amarillo en eventos)
+  var interest = store('cilap-interest',{});   // "me interesa grabar contigo" POR EVENTO (clave eventId_camId)
   var resv     = store('cilap-resv',    {});   // plazas reservadas (clave eventId_camId)
   var queue    = store('cilap-queue',   {});   // colas a las que te has apuntado
   var checkins = store('cilap-checkin', {});   // eventos donde TÚ abriste cola
@@ -1516,7 +1644,7 @@ body{
   $('#homeBtn3').addEventListener('click', goHome);
 
   /* ── transición genérica entre vistas ─────────────────────────────── */
-  var VIEW_IDS = ['view1','viewHub','view2','viewCams','viewMine','view3'];
+  var VIEW_IDS = ['view1','viewHub','view2','viewCams','viewProfile','viewMine','view3'];
   function goView(toId, accent){
     var to = $('#'+toId);
     if(accent) setAccent(accent);
@@ -1654,13 +1782,15 @@ body{
     box.innerHTML = '';
     list.forEach(function(ev){
       var n = camCountOf(ev);
+      var foll = ev.camIds.filter(function(id){ return follows[id]; }).length;  // seguidos que asisten
       var b = document.createElement('button');
-      b.className = 'evt t-' + ev.type;   // acento lateral por tipo
+      b.className = 'evt t-' + ev.type + (foll ? ' has-follow' : '');   // acento lateral por tipo
       b.innerHTML =
         '<span class="evt-name">' + ev.name + '</span>' +
         '<span class="evt-meta">' + fmtDate(ev.startsAt) + ' · ' + evHours(ev) + ' · ' +
           ev.venue + ' · ' + CITY_LABELS[ev.city] + '</span>' +
         (eventStatus(ev) === 'directo' ? '<span class="evt-live">Directo</span>' : '') +
+        (foll ? '<span class="evt-follow" title="Camarógrafos que sigues">' + CAM_MINI_SVG + '×' + foll + '</span>' : '') +
         '<span class="evt-cams' + (n ? ' on' : '') + '">CAM ×' + n + '</span>';
       b.addEventListener('click', function(){ openEvent(ev); });
       box.appendChild(b);
@@ -1680,6 +1810,8 @@ body{
 
   /* ── vista 3: detalle del evento + camarógrafos ───────────────────── */
   var CAM_SVG = '<svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="M15.5 10.8l6-3.3v9l-6-3.3"/><circle cx="7.5" cy="12" r="2.2"/></svg>';
+  /* cámara mini para el badge amarillo de seguidos en la lista de eventos */
+  var CAM_MINI_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="M15.5 10.8l6-3.3v9l-6-3.3"/></svg>';
 
   var camSelEv = null;     // camarógrafo desplegado dentro del detalle
   /* ¿este camarógrafo ya abrió cola en este evento? (mock + tu check-in) */
@@ -1691,8 +1823,8 @@ body{
   function buildCamActions(ev, c, st){
     var key = ev.id + '_' + c.id;
     var a = '<span class="cam-actions">';
-    a += '<button class="act" data-act="fav" data-cam="' + c.id + '">' +
-         (favs[c.id] ? '♥ En favoritos · quitar' : '♥ Me interesa grabar contigo') + '</button>';
+    a += '<button class="act' + (interest[key] ? ' done' : '') + '" data-act="interest" data-cam="' + c.id + '">' +
+         (interest[key] ? '♥ Te interesa este evento ✓' : '♥ Me interesa grabar contigo') + '</button>';
     if(queue[key]){
       a += '<span class="act done">En su cola ✓</span>';
     } else if(st === 'previo'){
@@ -1742,7 +1874,7 @@ body{
       html += '<div class="cam' + (c.you ? ' you' : '') + (clickable ? ' dir' : '') +
         (sel ? ' sel' : '') + '" data-cam="' + c.id + '">' + CAM_SVG +
         '<div class="cam-info"><b>' +
-        (favs[c.id] ? '<span class="you-tag">♥</span> ' : '') + c.name + '</b>' +
+        (follows[c.id] && !c.you ? '<span class="you-tag" style="color:#ffd60a;border-color:#ffd60a">Sigues</span> ' : '') + c.name + '</b>' +
         '<small>' + c.desc +
         (c.you ? '' : ' · tasa ' + fmtEur(c.price) +
           (c.reserve ? ' · reserva ' + fmtEur(c.reserve) : ' · reserva gratis')) +
@@ -1771,9 +1903,9 @@ body{
           if(b.disabled) return;
           var c = CAMS_BY_ID[b.dataset.cam];
           var key = ev.id + '_' + c.id;
-          if(b.dataset.act === 'fav'){
-            if(favs[c.id]) delete favs[c.id]; else favs[c.id] = true;
-            save('cilap-favs', favs);
+          if(b.dataset.act === 'interest'){
+            if(interest[key]) delete interest[key]; else interest[key] = true;
+            save('cilap-interest', interest);
           } else if(b.dataset.act === 'resv'){
             resv[key] = true; save('cilap-resv', resv);
             charge(c.reserve);
@@ -1873,68 +2005,64 @@ body{
     location.href = 'mapa-editor/';   // módulo aparte; se integrará más adelante
   });
 
-  /* ── directorio de camarógrafos: ordenar, filtrar, seleccionar ────── */
-  var camSort = 'rating', camCity = 'all', camSel = null;
+  /* ── directorio de camarógrafos: ordenar, filtrar, seguir, ver perfil ── */
+  var camSort = 'rating', camCity = 'all', rev3On = false;
+  function upcomingOf(c){
+    return EVENTS.filter(function(e){
+      return e.camIds.indexOf(c.id) !== -1 && eventStatus(e) !== 'terminado';
+    });
+  }
   function renderCamDir(){
-    var list = CAMS.filter(function(c){ return camCity === 'all' || c.city === camCity; });
+    var list = CAMS.filter(function(c){
+      if(camCity !== 'all' && c.city !== camCity) return false;
+      if(rev3On && c.reviews <= 3) return false;       // filtro +3 reseñas
+      return true;
+    });
     list.sort(function(a, b){
-      // favoritos siempre arriba; dentro de cada grupo, el criterio elegido
-      var f = (favs[b.id] ? 1 : 0) - (favs[a.id] ? 1 : 0);
-      if(f) return f;
       if(camSort === 'videos') return b.videos - a.videos;
-      if(camSort === 'price')  return a.price - b.price;
-      return b.rating - a.rating;          // popularidad
+      if(camSort === 'price')  return a.price - b.price;     // precio medio asc
+      return b.rating - a.rating;                            // puntuación desc
     });
     var box = $('#camDir');
     box.innerHTML = '';
     list.forEach(function(c){
-      var evs = EVENTS.filter(function(e){
-        return e.camIds.indexOf(c.id) !== -1 && eventStatus(e) !== 'terminado';
-      });
-      var el = document.createElement('button');
-      el.className = 'cam dir' + (camSel === c.id ? ' sel' : '');
-      el.innerHTML = CAM_SVG +
-        '<div class="cam-info"><b>' +
-        (favs[c.id] ? '<span class="tier">♥</span> ' : '') + c.name + '</b>' +
-        '<small>' + CITY_LABELS[c.city] + ' · ' + c.desc + '</small>' +
-        '<span class="cam-stats">★ ' + c.rating.toFixed(1) + '/6 · ' + c.videos +
-          ' vídeos · <span class="tier">' + priceTier(c.price) + '</span></span>' +
-        '<span class="cam-extra">' +
-          (evs.length ? 'Próximos eventos — toca uno para apuntarte con él:'
-                      : 'Sin eventos próximos') + '</span>' +
-        '<span class="cam-evts">' +
-          evs.map(function(e){
-            return '<span class="mini-evt" data-ev="' + e.id + '">' + e.name +
-              '<span class="me-when">' + fmtDate(e.startsAt) + ' · ' + evHours(e) + '</span></span>';
-          }).join('') +
-          '<span class="act" data-fav="' + c.id + '">' +
-            (favs[c.id] ? '♥ En favoritos · quitar' : '♥ Me interesa grabar contigo') +
-          '</span>' +
-        '</span>' +
+      var nEv = upcomingOf(c).length;
+      var el = document.createElement('div');
+      el.className = 'camcard' + (follows[c.id] ? ' followed' : '');
+      el.dataset.cam = c.id;
+      el.innerHTML =
+        '<div class="cc-top">' + CAM_SVG +
+          '<div class="cc-id"><b>' + c.name + '</b><small>' + CITY_LABELS[c.city] + ' · ' + c.desc + '</small></div>' +
+          '<button class="cbtn follow' + (follows[c.id] ? ' on' : '') + '" data-follow="' + c.id + '">' +
+            (follows[c.id] ? '✓ Siguiendo' : 'Seguir') + '</button>' +
+        '</div>' +
+        '<div class="cc-stats"><span class="star">★</span> ' + c.rating.toFixed(1) + '/6 · ' +
+          c.reviews + ' reseñas · ' + c.videos + ' vídeos · <span class="tier">' + priceTier(c.price) + '</span></div>' +
+        '<div class="cc-foot">' +
+          '<span class="cc-evn">' + (nEv ? 'Grabará en ' + nEv + ' evento' + (nEv > 1 ? 's' : '') : 'Sin eventos próximos') + '</span>' +
+          '<button class="cbtn" data-profile="' + c.id + '">Ver perfil</button>' +
         '</div>';
-      el.addEventListener('click', function(){
-        camSel = (camSel === c.id) ? null : c.id;   // tap: seleccionar / soltar
-        renderCamDir();
-      });
       box.appendChild(el);
     });
-    /* taps internos de la card expandida, sin plegarla */
-    box.querySelectorAll('.mini-evt').forEach(function(me){
-      me.addEventListener('click', function(ev){
-        ev.stopPropagation();
-        openEvent(EVENTS_BY_ID[me.dataset.ev]);
-      });
+    /* tap en la tarjeta (fuera de botones) o en "Ver perfil" → perfil */
+    box.querySelectorAll('.camcard').forEach(function(el){
+      el.addEventListener('click', function(){ openProfile(CAMS_BY_ID[el.dataset.cam]); });
     });
-    box.querySelectorAll('[data-fav]').forEach(function(fb){
-      fb.addEventListener('click', function(ev){
-        ev.stopPropagation();
-        var id = fb.dataset.fav;
-        if(favs[id]) delete favs[id]; else favs[id] = true;
-        save('cilap-favs', favs);
+    box.querySelectorAll('[data-profile]').forEach(function(b){
+      b.addEventListener('click', function(e){ e.stopPropagation(); openProfile(CAMS_BY_ID[b.dataset.profile]); });
+    });
+    box.querySelectorAll('[data-follow]').forEach(function(b){
+      b.addEventListener('click', function(e){
+        e.stopPropagation();
+        toggleFollow(b.dataset.follow);
         renderCamDir();
       });
     });
     $('#camDirEmpty').style.display = list.length ? 'none' : 'flex';
+  }
+  function toggleFollow(id){
+    if(follows[id]) delete follows[id]; else follows[id] = true;
+    save('cilap-follows', follows);
   }
   document.querySelectorAll('#sortChips .fchip').forEach(function(ch){
     ch.addEventListener('click', function(){
@@ -1950,8 +2078,66 @@ body{
       renderCamDir();
     });
   });
+  $('#rev3Chip').addEventListener('click', function(){
+    rev3On = !rev3On;
+    this.classList.toggle('on', rev3On);
+    renderCamDir();
+  });
   $('#camsBack').addEventListener('click', function(){ goView('viewHub','ac-red'); });
   $('#camsHome').addEventListener('click', goHome);
+
+  /* ── perfil del camarógrafo (estadísticas detalladas) ─────────────── */
+  var currentProfile = null;
+  function openProfile(c){
+    currentProfile = c;
+    renderProfile();
+    goView('viewProfile','ac-amber');
+  }
+  function renderProfile(){
+    var c = currentProfile;
+    var dancedWith = MY_DANCES.filter(function(d){ return d.camId === c.id; }).length;
+    $('#profName').textContent = c.name;
+    $('#profSub').textContent = CITY_LABELS[c.city] + ' · ' + c.desc;
+    $('#profStats').innerHTML =
+      '<div class="pstat"><div class="pk">Puntuación</div><div class="pv"><span class="star">★</span> ' + c.rating.toFixed(1) + '/6</div></div>' +
+      '<div class="pstat"><div class="pk">Reseñas</div><div class="pv">' + c.reviews + '</div></div>' +
+      '<div class="pstat"><div class="pk">Vídeos entregados</div><div class="pv">' + c.videos + '</div></div>' +
+      '<div class="pstat"><div class="pk">Precio medio</div><div class="pv"><span class="tier">' + priceTier(c.price) + '</span> · ' + fmtEur(c.price) + '</div></div>' +
+      '<div class="pstat wide"><div class="pk">Has grabado con ' + c.name.split(' ')[0] + '</div><div class="pv sm">' +
+        (dancedWith ? dancedWith + (dancedWith > 1 ? ' veces' : ' vez') : 'Todavía ninguna') + '</div></div>' +
+      '<div class="pstat wide"><div class="pk">Evento más concurrido</div><div class="pv sm">' +
+        c.topEvent.name + ' · ' + c.topEvent.couples + ' parejas</div></div>';
+    /* botón seguir */
+    var fb = $('#profFollowBtn');
+    fb.classList.toggle('leave', !!follows[c.id]);
+    fb.textContent = follows[c.id] ? '✓ Siguiendo · dejar de seguir' : 'Seguir';
+    /* reseñas en texto */
+    var revs = REVIEWS[c.id] || [];
+    $('#profRevCount').textContent = '×' + c.reviews;
+    $('#profReviews').innerHTML = revs.length
+      ? revs.map(function(r){
+          return '<div class="review"><div class="rv-top"><span class="rv-by">' + r.by +
+            '</span><span class="rv-st">★ ' + r.stars + '/6</span></div>' +
+            '<div class="rv-tx">' + r.text + '</div></div>';
+        }).join('')
+      : '<div class="review"><div class="rv-tx">Aún no hay reseñas con texto.</div></div>';
+    /* próximos eventos (clicables → detalle del evento) */
+    var evs = upcomingOf(c).sort(function(a, b){ return a.startsAt - b.startsAt; });
+    $('#profEvents').innerHTML = evs.map(function(e){
+      return '<span class="mini-evt" data-ev="' + e.id + '">' + e.name +
+        '<span class="me-when">' + fmtDate(e.startsAt) + ' · ' + evHours(e) + '</span></span>';
+    }).join('');
+    $('#profEvents').querySelectorAll('.mini-evt').forEach(function(me){
+      me.addEventListener('click', function(){ openEvent(EVENTS_BY_ID[me.dataset.ev]); });
+    });
+    $('#profNoEvents').style.display = evs.length ? 'none' : 'flex';
+    $('#profEvents').style.display = evs.length ? 'flex' : 'none';
+  }
+  $('#profFollowBtn').addEventListener('click', function(){
+    if(currentProfile){ toggleFollow(currentProfile.id); renderProfile(); }
+  });
+  $('#profBack').addEventListener('click', function(){ renderCamDir(); goView('viewCams','ac-amber'); });
+  $('#profHome').addEventListener('click', goHome);
 
   /* ── mis bailes (bailarín) / mis sesiones (camarógrafo) ───────────── */
   var DANCE_STATUS = {
