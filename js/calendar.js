@@ -71,10 +71,10 @@
       '<span class="cal-mtitle">' + MNS[month] + ' ' + year + '</span>' +
       '<span class="cal-mnav"><button class="cal-nav" data-act="prevM">‹</button>' +
       '<button class="cal-nav" data-act="nextM">›</button></span></div>';
-    h += '<div class="ctrl"><div class="chips" id="calSubTabs">' +
+    h += '<div class="tabbar" id="calSubTabs">' +
       '<button class="fchip' + (sub==='cal'?' on':'') + '" data-sub="cal">Calendario</button>' +
       '<button class="fchip' + (sub==='agenda'?' on':'') + '" data-sub="agenda">Agenda</button>' +
-      '</div></div>';
+      '</div>';
 
     // eventos del mes (que intersecten el mes)
     var mEvs = events.filter(function(ev){

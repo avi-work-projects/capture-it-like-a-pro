@@ -210,12 +210,10 @@
     <section class="step result" id="result">
       <div class="loading">Buscando eventos…</div>
       <div class="res">
-        <div class="ctrl evmode">
-          <div class="chips" id="evModeTabs">
-            <button class="fchip on" data-mode="prox">Próximos 7 días</button>
-            <button class="fchip" data-mode="cal">Calendario</button>
-            <button class="fchip" data-mode="horarios">Horarios salas</button>
-          </div>
+        <div class="tabbar" id="evModeTabs">
+          <button class="fchip on" data-mode="prox">Próximos<br>7 días</button>
+          <button class="fchip" data-mode="cal">Calendario</button>
+          <button class="fchip" data-mode="horarios">Horarios<br>salas</button>
         </div>
 
         <!-- PRÓXIMOS: lista agrupada por fecha -->
@@ -310,11 +308,9 @@
     <div class="prof-stats" id="profStats"></div>
     <button class="prof-follow" id="profFollowBtn">Seguir</button>
 
-    <div class="ctrl tabs-row">
-      <div class="chips" id="profTabs">
-        <button class="fchip on" data-tab="events">Próximos eventos</button>
-        <button class="fchip" data-tab="reviews">Reseñas</button>
-      </div>
+    <div class="tabbar" id="profTabs">
+      <button class="fchip on" data-tab="events">Próximos eventos</button>
+      <button class="fchip" data-tab="reviews">Reseñas</button>
     </div>
 
     <div id="tabEvents">
