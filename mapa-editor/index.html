@@ -56,24 +56,31 @@ body{background:#000;font-family:var(--body);overflow:hidden}
   .app{height:min(844px,94vh);border:1px solid #262626;border-radius:28px;box-shadow:0 40px 120px rgba(0,0,0,.7)}
 }
 
-/* ───────────── CABECERA ───────────── */
+/* ───────────── CABECERA (con la barra de acciones) ───────────── */
 header{
   position:relative;z-index:2;
-  padding:calc(12px + env(safe-area-inset-top)) 18px 8px;
-  display:flex;align-items:center;gap:10px;
+  padding:calc(12px + env(safe-area-inset-top)) 14px 8px;
+  display:flex;align-items:center;gap:5px;
 }
 header h1{
-  flex:1;
-  font-family:var(--mono);font-size:13px;font-weight:600;
-  letter-spacing:.16em;text-transform:uppercase;color:var(--text);
+  flex:1;min-width:0;
+  font-family:var(--mono);font-size:11px;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--text);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
-header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-align:2px}
+header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-align:2px}
 .hd-btn{
-  background:var(--surface);border:1px solid var(--line);border-radius:9px;
+  flex:none;background:var(--surface);border:1px solid var(--line);border-radius:8px;
   color:var(--text);font-family:var(--mono);font-size:12px;letter-spacing:.06em;
-  padding:7px 11px;cursor:pointer;text-decoration:none;display:inline-block;
+  padding:7px 9px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;
 }
-.hd-btn:active{transform:scale(.96)}
+.hd-btn.ic{width:30px;height:30px;padding:0}
+.hd-btn.ic svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.hd-btn:active{transform:scale(.94)}
+.hd-btn:disabled{opacity:.3;cursor:default}
+.hd-btn#btn-save{color:var(--accent);border-color:rgba(61,169,255,.45)}
+.hd-btn#btn-clear{color:#ff6a60}
+.hd-sep{width:1px;height:20px;background:var(--line);flex:none;margin:0 1px}
 
 .name-row{position:relative;z-index:2;padding:0 18px 8px}
 .name-row input{
@@ -222,7 +229,7 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
   box-shadow:0 10px 30px rgba(0,0,0,.55),0 0 18px var(--accent-glow);
   opacity:0;pointer-events:none;z-index:31;
   transition:opacity .22s var(--ease),transform .22s var(--ease);
-  white-space:nowrap;
+  white-space:nowrap;touch-action:none;
 }
 #undobar.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
 #undobar-txt{font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;color:var(--text)}
@@ -282,7 +289,7 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
 
 /* ───────────── CUERPO DE LA SECCIÓN ACTIVA ───────────── */
 /* min-height fija (≥ la sección más alta) → el lienzo no cambia entre pestañas */
-.tab-body{position:relative;z-index:2;padding:8px 18px 2px;min-height:120px}
+.tab-body{position:relative;z-index:2;padding:8px 18px calc(8px + env(safe-area-inset-bottom));min-height:120px}
 .tab-pane{display:flex;flex-direction:column;gap:6px}
 .tab-pane.hidden{display:none}
 .pane-hint{
@@ -410,11 +417,16 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
 <div class="app" id="app">
 
   <header>
-    <a class="hd-btn" href="../" title="Volver a la app">←</a>
+    <a class="hd-btn ic" href="../" title="Volver a la app"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>
     <h1>Editor de mapa</h1>
-    <!-- TEMPORAL: recarga rápida para pruebas en el móvil (quitar al acabar) -->
-    <button class="hd-btn" onclick="location.href=location.pathname+'?r='+Date.now()" title="Recargar">⟳</button>
-    <button class="hd-btn" id="btn-maps">Mapas</button>
+    <button class="hd-btn ic" id="btn-undo" title="Deshacer"><svg viewBox="0 0 24 24"><path d="M9 7l-5 5 5 5"/><path d="M4 12h10a5 5 0 0 1 0 10h-2"/></svg></button>
+    <button class="hd-btn ic" id="btn-redo" title="Rehacer"><svg viewBox="0 0 24 24"><path d="M15 7l5 5-5 5"/><path d="M20 12H10a5 5 0 0 0 0 10h2"/></svg></button>
+    <span class="hd-sep"></span>
+    <button class="hd-btn ic" id="btn-save" title="Guardar en Mis mapas"><svg viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h7"/><path d="M8 14h8"/><path d="M8 17h8"/></svg></button>
+    <button class="hd-btn ic" id="btn-clear" title="Limpiar el plano"><svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V5h6v2"/><path d="M6 7l1 13h10l1-13"/></svg></button>
+    <button class="hd-btn ic" id="btn-maps" title="Mis mapas"><svg viewBox="0 0 24 24"><path d="M12 3 3 7.5 12 12l9-4.5z"/><path d="M3 12l9 4.5L21 12"/><path d="M3 16.5 12 21l9-4.5"/></svg></button>
+    <!-- TEMPORAL: recarga anti-caché para el móvil (quitar al acabar) -->
+    <button class="hd-btn ic" onclick="location.href=location.pathname+'?r='+Date.now()" title="Recargar"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-1.5 6"/><path d="M20 4v6h-6"/></svg></button>
   </header>
 
   <div class="name-row">
@@ -515,14 +527,6 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
     </div>
   </div>
 
-  <!-- barra de acciones compacta (sustituye al pie) -->
-  <div class="toolbar">
-    <button id="btn-undo" class="tb-icon" title="Deshacer"><svg viewBox="0 0 24 24"><path d="M9 7l-5 5 5 5"/><path d="M4 12h10a5 5 0 0 1 0 10h-2"/></svg></button>
-    <button id="btn-redo" class="tb-icon" title="Rehacer"><svg viewBox="0 0 24 24"><path d="M15 7l5 5-5 5"/><path d="M20 12H10a5 5 0 0 0 0 10h2"/></svg></button>
-    <span class="tb-spacer"></span>
-    <button id="btn-save" class="tb-txt">Guardar</button>
-    <button id="btn-clear" class="tb-txt">Limpiar</button>
-  </div>
 
   <div id="maps-panel">
     <div class="sheet">
@@ -538,7 +542,7 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
 <script>
 'use strict';
 /* ══════════════════════════════════════════════════════════════
-   EDITOR DE MAPA — módulo independiente (v0.12)
+   EDITOR DE MAPA — módulo independiente (v0.13)
    Sin dependencias. Pensado para integrarse luego en index.html.
 
    Tres secciones (tabs): ESTRUCTURA (planta) · ELEMENTOS · CÁMARAS.
@@ -957,6 +961,37 @@ $('#undobar-btn').addEventListener('click', () => {
   clearTimeout(undoTimer);
   undo();
 });
+/* deslizar el aviso a izquierda o derecha para descartarlo */
+(function(){
+  const bar = $('#undobar');
+  let sx = 0, swiping = false;
+  bar.addEventListener('pointerdown', ev => {
+    if(ev.target.closest('#undobar-btn')) return;   // el botón hace lo suyo
+    swiping = true; sx = ev.clientX;
+    bar.style.transition = 'none';
+    try{ bar.setPointerCapture(ev.pointerId); }catch(e){}
+  });
+  bar.addEventListener('pointermove', ev => {
+    if(!swiping) return;
+    const dx = ev.clientX - sx;
+    bar.style.transform = 'translateX(calc(-50% + ' + dx + 'px))';
+    bar.style.opacity = Math.max(0, 1 - Math.abs(dx) / 130);
+  });
+  const end = ev => {
+    if(!swiping) return;
+    swiping = false;
+    const dx = ev.clientX - sx;
+    bar.style.transition = '';
+    if(Math.abs(dx) > 55){            // descartar
+      clearTimeout(undoTimer);
+      bar.classList.remove('show');
+    }
+    bar.style.transform = '';
+    bar.style.opacity = '';
+  };
+  bar.addEventListener('pointerup', end);
+  bar.addEventListener('pointercancel', end);
+})();
 canvas.addEventListener('pointerdown', ev => {
   if(ev.target === canvas || ev.target === floor) select(null, null);
 });
