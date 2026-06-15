@@ -264,7 +264,7 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 .edit-panel{
   position:relative;z-index:2;
   margin:9px 18px 0;
-  display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:116px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:82px;
   background:var(--surface);border:1px solid var(--line);
   border-left:3px solid var(--accent);border-radius:12px;
   padding:8px 12px;
@@ -286,16 +286,17 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 .joy-down{grid-area:2/2/3/3}
 .joy-left{grid-area:1/1/3/2;align-self:center}
 .joy-right{grid-area:1/3/3/4;align-self:center}
-/* DERECHA: rejilla 2×3 → col1 [deshacer][texto][duplicar] · col2 [rehacer][bloquear][borrar].
-   Posición FIJA por grid-area: si "texto" no aplica (piezas / elementos no editables) su
-   celda queda vacía sin recolocar el resto. */
-.ep-right{display:grid;grid-template-columns:repeat(2,30px);gap:5px;flex:none;align-content:center}
+/* DERECHA: rejilla 3×2 (3 columnas × 2 filas), una categoría por columna →
+   col1 [deshacer/rehacer] · col2 [texto/duplicar] · col3 [bloquear/borrar].
+   Posición FIJA por grid-area: si "texto" no aplica (piezas / elementos no editables)
+   su celda queda vacía sin recolocar el resto. */
+.ep-right{display:grid;grid-template-columns:repeat(3,30px);gap:5px;flex:none;align-content:center}
 #btn-undo{grid-area:1/1}
-#btn-redo{grid-area:1/2}
-#btn-text{grid-area:2/1}
-#btn-lock{grid-area:2/2}
-#btn-dup{grid-area:3/1}
-#btn-del{grid-area:3/2}
+#btn-redo{grid-area:2/1}
+#btn-text{grid-area:1/2}
+#btn-dup{grid-area:2/2}
+#btn-lock{grid-area:1/3}
+#btn-del{grid-area:2/3}
 .edit-panel button{
   background:var(--surface-2);border:1px solid var(--line);border-radius:8px;
   color:var(--text);cursor:pointer;display:none;flex:none;
@@ -503,7 +504,7 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
         <button id="btn-hm" class="c-size joy-down"  title="Encoger alto"><svg viewBox="0 0 24 24"><path d="M6 10l6 6 6-6"/></svg></button>
       </div>
     </div>
-    <!-- DERECHA: rejilla 2×3 → col1 deshacer/texto/duplicar · col2 rehacer/bloquear/borrar
+    <!-- DERECHA: rejilla 3×2 → col1 deshacer/rehacer · col2 texto/duplicar · col3 bloquear/borrar
          (texto justo ENCIMA de duplicar; sin efecto pirámide) -->
     <div class="ep-right">
       <button id="btn-undo" title="Deshacer"><svg viewBox="0 0 24 24"><path d="M9 7l-5 5 5 5"/><path d="M4 12h10a5 5 0 0 1 0 10h-2"/></svg></button>
