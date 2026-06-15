@@ -251,9 +251,11 @@ header h1::before{content:'● ';color:var(--accent);font-size:9px;vertical-alig
 }
 .edit-panel.is-hint .ep-title{max-width:none;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:.02em;font-size:10.5px}
 .ep-title:empty{display:none}
-/* dos filas por utilidad: arriba TAMAÑO, abajo ACCIONES */
-.ep-actions{display:flex;flex-direction:column;gap:7px;flex:1;align-items:flex-end}
-.ep-row{display:flex;gap:6px;justify-content:flex-end}
+/* dos filas por utilidad: arriba TAMAÑO (grupos con etiqueta), abajo ACCIONES */
+.ep-actions{display:flex;flex-direction:column;gap:8px;flex:1;align-items:flex-start}
+.ep-row{display:flex;align-items:center;gap:11px;justify-content:flex-start;flex-wrap:wrap}
+.ep-unit{display:flex;align-items:center;gap:3px}
+.ep-lbl{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.04em;color:#6fd3e6;opacity:.8}
 .edit-panel button{
   background:var(--surface-2);border:1px solid var(--line);border-radius:8px;
   color:var(--text);cursor:pointer;display:none;flex:none;
@@ -440,15 +442,21 @@ footer #btn-clear{color:var(--muted)}
   <div class="edit-panel" id="edit-panel">
     <span class="ep-title" id="ep-title"></span>
     <div class="ep-actions">
-      <!-- fila 1: TAMAÑO/forma (cian) -->
+      <!-- fila 1: TAMAÑO/forma (cian) — grupos: rotar · ancho · alto · escala -->
       <div class="ep-row">
         <button id="btn-rot" class="c-size" title="Rotar"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 1 2.4 5.7"/><path d="M4 20v-5h5"/></svg></button>
-        <button id="btn-wm" class="c-size" title="Estrechar (ancho −)"><svg viewBox="0 0 24 24"><path d="M12 6v12"/><path d="M6 9l3 3-3 3"/><path d="M18 9l-3 3 3 3"/></svg></button>
-        <button id="btn-wp" class="c-size" title="Ensanchar (ancho +)"><svg viewBox="0 0 24 24"><path d="M3 7v10"/><path d="M21 7v10"/><path d="M8 12h8"/><path d="M10 9l-3 3 3 3"/><path d="M14 9l3 3-3 3"/></svg></button>
-        <button id="btn-hm" class="c-size" title="Reducir alto"><svg viewBox="0 0 24 24"><path d="M6 12h12"/><path d="M9 6l3 3 3-3"/><path d="M9 18l3-3 3 3"/></svg></button>
-        <button id="btn-hp" class="c-size" title="Aumentar alto"><svg viewBox="0 0 24 24"><path d="M7 3h10"/><path d="M7 21h10"/><path d="M12 8v8"/><path d="M9 10l3-3 3 3"/><path d="M9 14l3 3-3 3"/></svg></button>
-        <button id="btn-smaller" class="c-size" title="Más pequeño"><svg viewBox="0 0 24 24"><path d="M21 9h-6V3"/><path d="M21 3l-6 6"/><path d="M3 15h6v6"/><path d="M3 21l6-6"/></svg></button>
-        <button id="btn-bigger" class="c-size" title="Más grande"><svg viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M21 3l-6 6"/><path d="M9 21H3v-6"/><path d="M3 21l6-6"/></svg></button>
+        <div class="ep-unit" id="ep-u-w"><span class="ep-lbl">An</span>
+          <button id="btn-wm" class="c-size" title="Estrechar (ancho −)"><svg viewBox="0 0 24 24"><path d="M12 6v12"/><path d="M6 9l3 3-3 3"/><path d="M18 9l-3 3 3 3"/></svg></button>
+          <button id="btn-wp" class="c-size" title="Ensanchar (ancho +)"><svg viewBox="0 0 24 24"><path d="M3 7v10"/><path d="M21 7v10"/><path d="M8 12h8"/><path d="M10 9l-3 3 3 3"/><path d="M14 9l3 3-3 3"/></svg></button>
+        </div>
+        <div class="ep-unit" id="ep-u-h"><span class="ep-lbl">Al</span>
+          <button id="btn-hm" class="c-size" title="Reducir alto"><svg viewBox="0 0 24 24"><path d="M6 12h12"/><path d="M9 6l3 3 3-3"/><path d="M9 18l3-3 3 3"/></svg></button>
+          <button id="btn-hp" class="c-size" title="Aumentar alto"><svg viewBox="0 0 24 24"><path d="M7 3h10"/><path d="M7 21h10"/><path d="M12 8v8"/><path d="M9 10l3-3 3 3"/><path d="M9 14l3 3-3 3"/></svg></button>
+        </div>
+        <div class="ep-unit" id="ep-u-s">
+          <button id="btn-smaller" class="c-size" title="Más pequeño (toda la forma)"><svg viewBox="0 0 24 24"><path d="M21 9h-6V3"/><path d="M21 3l-6 6"/><path d="M3 15h6v6"/><path d="M3 21l6-6"/></svg></button>
+          <button id="btn-bigger" class="c-size" title="Más grande (toda la forma)"><svg viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M21 3l-6 6"/><path d="M9 21H3v-6"/><path d="M3 21l6-6"/></svg></button>
+        </div>
       </div>
       <!-- fila 2: ACCIONES (con color por función) -->
       <div class="ep-row">
@@ -523,7 +531,7 @@ footer #btn-clear{color:var(--muted)}
 <script>
 'use strict';
 /* ══════════════════════════════════════════════════════════════
-   EDITOR DE MAPA — módulo independiente (v0.9)
+   EDITOR DE MAPA — módulo independiente (v0.10)
    Sin dependencias. Pensado para integrarse luego en index.html.
 
    Tres secciones (tabs): ESTRUCTURA (planta) · ELEMENTOS · CÁMARAS.
@@ -721,7 +729,14 @@ const ALL_BTNS = ['btn-text','btn-rot','btn-smaller','btn-bigger','btn-wm','btn-
 function renderEditPanel(){
   const panel = $('#edit-panel'), title = $('#ep-title');
   panel.style.borderLeftColor = SECTION_COLOR[currentTab] || 'var(--accent)';
-  const show = ids => ALL_BTNS.forEach(id => $('#'+id).classList.toggle('on', ids.includes(id)));
+  const show = ids => {
+    ALL_BTNS.forEach(id => $('#'+id).classList.toggle('on', ids.includes(id)));
+    /* oculta el grupo (etiqueta + parejas) cuando sus dos botones están apagados */
+    ['ep-u-w','ep-u-h','ep-u-s'].forEach(uid => {
+      const u = document.getElementById(uid);
+      u.style.display = [...u.querySelectorAll('button')].some(b => b.classList.contains('on')) ? 'flex' : 'none';
+    });
+  };
   const e = state.elements.find(x => x.id === selEl);
   const p = state.pieces.find(x => x.id === selPiece);
   /* refleja el estado del candado en su botón */
@@ -746,10 +761,10 @@ function renderEditPanel(){
     panel.classList.remove('is-hint');
     title.textContent = '';
     setLock(p.locked);
-    /* piezas: ancho/alto por eje (semicírculo solo ancho) + duplicar + bloquear */
+    /* piezas: ejes (semicírculo solo ancho) + escala uniforme + duplicar + bloquear */
     const ids = p.kind === 'semi'
-      ? ['btn-rot','btn-wm','btn-wp','btn-dup','btn-lock','btn-del']
-      : ['btn-rot','btn-wm','btn-wp','btn-hm','btn-hp','btn-dup','btn-lock','btn-del'];
+      ? ['btn-rot','btn-wm','btn-wp','btn-smaller','btn-bigger','btn-dup','btn-lock','btn-del']
+      : ['btn-rot','btn-wm','btn-wp','btn-hm','btn-hp','btn-smaller','btn-bigger','btn-dup','btn-lock','btn-del'];
     show(ids);
   }else{
     panel.classList.add('is-hint');
@@ -817,20 +832,30 @@ $('#btn-wp').addEventListener('click', () => resizeSel( 1, 0));
 $('#btn-hm').addEventListener('click', () => resizeSel(0, -1));
 $('#btn-hp').addEventListener('click', () => resizeSel(0,  1));
 
-/* ELEMENTOS: escala uniforme (más grande / más pequeño) */
-function scaleEl(dir){
+/* escala uniforme (más grande / más pequeño) — elementos Y formas */
+function scaleSel(dir){
   const e = state.elements.find(x => x.id === selEl);
-  if(!e) return;
-  const t = TYPES[e.type];
-  const f = dir > 0 ? 1.18 : 1 / 1.18;
-  e.w = Math.round(clampN((e.w || t.w || 30) * f, ELEM_MIN, ELEM_MAX));
-  e.h = Math.round(clampN((e.h || t.h || 30) * f, ELEM_MIN, ELEM_MAX));
-  const n = canvas.querySelector('.el[data-id="' + e.id + '"]');
-  if(n){ n.style.setProperty('--w', e.w + 'px'); n.style.setProperty('--h', e.h + 'px'); }
+  if(e){
+    const t = TYPES[e.type];
+    const f = dir > 0 ? 1.18 : 1 / 1.18;
+    e.w = Math.round(clampN((e.w || t.w || 30) * f, ELEM_MIN, ELEM_MAX));
+    e.h = Math.round(clampN((e.h || t.h || 30) * f, ELEM_MIN, ELEM_MAX));
+    const n = canvas.querySelector('.el[data-id="' + e.id + '"]');
+    if(n){ n.style.setProperty('--w', e.w + 'px'); n.style.setProperty('--h', e.h + 'px'); }
+    saveDraft();
+    return;
+  }
+  const p = state.pieces.find(x => x.id === selPiece);
+  if(!p) return;
+  const step = dir > 0 ? 5 : -5;                 // un paso de rejilla en ambos ejes
+  p.w = clampN(p.w + step, 15, 100);
+  if(p.kind === 'semi') p.h = p.w / 2;           // el semicírculo mantiene medio círculo
+  else p.h = clampN(p.h + step, 15, 100);
+  renderFloor();
   saveDraft();
 }
-$('#btn-bigger').addEventListener('click', () => scaleEl(1));
-$('#btn-smaller').addEventListener('click', () => scaleEl(-1));
+$('#btn-bigger').addEventListener('click', () => scaleSel(1));
+$('#btn-smaller').addEventListener('click', () => scaleSel(-1));
 
 /* duplicar el elemento o la pieza seleccionada (desplazado un poco) */
 $('#btn-dup').addEventListener('click', () => {
@@ -955,9 +980,9 @@ function snapPiece(p){
       const above = Math.abs(A.b - B.t) < SNAP_T, below = Math.abs(A.t - B.b) < SNAP_T;
       if(above || below){
         hit = qi;
-        // retoque de tamaño SOLO si ya eran casi del mismo ancho (≤1-2px)
+        // retoque de tamaño SOLO si ya eran casi del mismo ancho (≤1-2px); sin forzar centrado
         if(bothUp && Math.abs((A.r-A.l)-(B.r-B.l)) < SIZE_FINE){
-          p.w = +(B.r-B.l).toFixed(2); if(p.kind==='semi') p.h = p.w/2; p.x = q.x; A = pieceBBox(p);
+          p.w = +(B.r-B.l).toFixed(2); if(p.kind==='semi') p.h = p.w/2; A = pieceBBox(p);
         }
         p.y += above ? (B.t - A.b) : (B.b - A.t);
         A = pieceBBox(p);
@@ -971,7 +996,7 @@ function snapPiece(p){
       if(rightOf || leftOf){
         hit = qi;
         if(bothUp && p.kind!=='semi' && Math.abs((A.b-A.t)-(B.b-B.t)) < SIZE_FINE){
-          p.h = +(B.b-B.t).toFixed(2); p.y = q.y; A = pieceBBox(p);
+          p.h = +(B.b-B.t).toFixed(2); A = pieceBBox(p);
         }
         p.x += rightOf ? (B.r - A.l) : (B.l - A.r);
         A = pieceBBox(p);
