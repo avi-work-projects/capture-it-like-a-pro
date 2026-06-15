@@ -473,6 +473,32 @@ body{
   opacity:.15;
   transform:translateX(-10px);
 }
+/* multi-selección: checkbox a la derecha de cada opción + botón Continuar */
+.mbox{
+  margin-left:auto;flex:none;position:relative;
+  width:22px;height:22px;border-radius:6px;
+  border:1.5px solid var(--line);
+  transition:border-color .15s, background-color .15s;
+}
+.opt.multi-on .mbox{background:var(--accent);border-color:var(--accent)}
+.opt.multi-on .mbox::after{
+  content:'✓';position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  color:#0a0a0a;font-size:14px;font-weight:700;
+}
+.opt.multi-on{border-color:var(--accent);box-shadow:0 0 16px var(--accent-glow)}
+.opt.selected .mbox,.opt.picked .mbox{display:none}   /* no choca con "● REC" */
+.multi-continue{
+  margin-top:12px;width:100%;
+  padding:13px;
+  background:var(--accent);color:#0a0a0a;border:none;border-radius:6px;
+  font-family:var(--opt-font);font-weight:600;font-size:14px;letter-spacing:.06em;text-transform:uppercase;
+  cursor:pointer;
+  animation:rise .25s var(--ease) both;
+  transition:box-shadow .15s, transform .15s var(--ease);
+}
+.multi-continue:hover,.multi-continue:active{transform:scale(1.02);box-shadow:0 0 22px var(--accent-glow)}
+
 /* stagger interno al abrir un paso */
 .step .opt{opacity:0}
 .step.open .opt{animation:rise .4s var(--ease) forwards}
@@ -594,6 +620,24 @@ body{
 }
 .fchip:hover,.fchip:active{border-color:var(--accent)}
 .fchip.on{color:var(--text);border-color:var(--accent);box-shadow:0 0 12px var(--accent-glow)}
+/* fila "Ordenar": siempre en 1 línea, chips repartiendo el ancho + flecha de sentido */
+.sort-row .chips{flex:1;flex-wrap:nowrap;min-width:0}
+.sort-row .fchip{flex:1;padding:7px 4px;justify-content:center;white-space:nowrap}
+.sort-row .fchip.on.desc::after{content:' ↓'}
+.sort-row .fchip.on.asc::after{content:' ↑'}
+/* desplegables de país/ciudad (estilo de los inputs de fecha) */
+.fsel{
+  flex:1;min-width:0;
+  background:var(--surface);
+  border:1px solid var(--line);border-radius:4px;
+  color:var(--text);
+  font-family:var(--mono);font-size:11px;letter-spacing:.04em;
+  padding:7px 8px;outline:none;cursor:pointer;
+  color-scheme:dark;
+  transition:border-color .15s, background-color .35s;
+}
+.app.light .fsel{color-scheme:light}
+.fsel:focus{border-color:var(--accent)}
 #camDir{margin-top:16px}
 .cam.dir{
   cursor:pointer;text-align:left;font:inherit;color:inherit;width:100%;
@@ -656,14 +700,14 @@ body{
 
 /* badge de camarógrafos SEGUIDOS en la lista de eventos (amarillo) */
 .evt-follow{
-  position:absolute;top:13px;right:13px;
   display:inline-flex;align-items:center;gap:4px;
   font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;
   color:#ffd60a;border:1px solid #ffd60a;border-radius:3px;padding:3px 6px;
 }
 .evt-follow svg{width:12px;height:12px;display:block}
-.evt.has-follow .evt-cams{top:auto;bottom:13px}
-.evt.has-follow .evt-meta{padding-right:66px}
+/* cabecera del evento: nombre a la izq (puede partir) + badges a la dcha */
+.evt-head{display:flex;align-items:flex-start;gap:8px;width:100%}
+.evt-badges{flex:none;display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end;max-width:48%}
 
 /* ── vista de perfil del camarógrafo ── */
 .prof-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
@@ -772,7 +816,6 @@ body{
 
 /* badge de evento en directo */
 .evt-live{
-  position:absolute;top:13px;right:76px;
   display:inline-flex;align-items:center;gap:5px;
   font-family:var(--mono);font-size:9px;letter-spacing:.12em;
   color:#ff3b30;border:1px solid #ff3b30;border-radius:3px;
@@ -898,16 +941,16 @@ body{
 .app.light .datefilter input{color-scheme:light}
 .datefilter input:focus{border-color:var(--accent)}
 .evt-name{
+  flex:1;min-width:0;
   font-family:var(--opt-font);font-weight:600;
   font-size:15px;letter-spacing:.05em;text-transform:uppercase;
-  padding-right:66px;
 }
 .evt-meta{
   font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
   text-transform:uppercase;color:var(--muted);
 }
 .evt-cams{
-  position:absolute;top:13px;right:13px;
+  flex:none;
   font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
   color:var(--muted);
   border:1px solid var(--line);border-radius:3px;
@@ -1201,24 +1244,22 @@ body{
         <p class="v2-sub">Tócalos para ver más; ordena y filtra a tu gusto.</p>
       </div>
     </div>
-    <div class="ctrl">
+    <div class="ctrl sort-row">
       <span class="ctrl-lbl">Ordenar</span>
       <div class="chips" id="sortChips">
-        <button class="fchip on" data-sort="rating">Puntuación</button>
-        <button class="fchip" data-sort="price">Precio medio</button>
-        <button class="fchip" data-sort="videos">Nº vídeos</button>
+        <button class="fchip on desc" data-sort="rating">Puntuación</button>
+        <button class="fchip" data-sort="price">Precio</button>
+        <button class="fchip" data-sort="videos">Vídeos</button>
       </div>
     </div>
     <div class="ctrl">
-      <span class="ctrl-lbl">Ciudad</span>
-      <div class="chips" id="cityChips">
-        <button class="fchip on" data-city="all">Todas</button>
-        <button class="fchip" data-city="mad">Madrid</button>
-        <button class="fchip" data-city="sev">Sevilla</button>
-        <button class="fchip" data-city="bcn">Barcelona</button>
-        <button class="fchip" data-city="waw">Varsovia</button>
-        <button class="fchip" data-city="kra">Cracovia</button>
-      </div>
+      <span class="ctrl-lbl">Lugar</span>
+      <select class="fsel" id="cdCountry">
+        <option value="all">Todos los países</option>
+        <option value="es">España</option>
+        <option value="pl">Polonia</option>
+      </select>
+      <select class="fsel" id="cdCity"></select>
     </div>
     <div class="ctrl">
       <span class="ctrl-lbl">Filtro</span>
@@ -1545,20 +1586,25 @@ body{
   /* ── helpers de pasos ─────────────────────────────────────────────── */
   /* muestra solo las opciones cuyo data-show incluye la clave dada
      (ciudades según país, subtipos según tipo) */
-  function filterOpts(stepId, key){
+  function filterOpts(stepId, keys){
+    var arr = Array.isArray(keys) ? keys : [keys];
     document.querySelectorAll('#'+stepId+' .opt').forEach(function(o){
-      o.hidden = (o.dataset.show || '').split(',').indexOf(key) === -1;
+      var show = (o.dataset.show || '').split(',');
+      o.hidden = !arr.some(function(k){ return show.indexOf(k) !== -1; });
     });
   }
-  // preset: valor a dejar marcado al abrir (modo edición)
+  // preset: valor (o array) a dejar marcado al abrir (modo edición)
   function openStep(id, preset){
     var el = $('#'+id);
     if(id === 'stepB' && state.country) filterOpts('stepB', state.country.value);
     if(id === 'stepD' && state.type)    filterOpts('stepD', state.type.value);
+    var pa = Array.isArray(preset) ? preset : (preset != null ? [preset] : []);
     el.querySelectorAll('.opt').forEach(function(o){
-      o.classList.remove('selected','picked','dim');
-      if(preset && o.dataset.value === preset) o.classList.add('selected');
+      o.classList.remove('selected','picked','dim','multi-on');
+      if(pa.length > 1){ if(pa.indexOf(o.dataset.value) !== -1) o.classList.add('multi-on'); }
+      else if(pa.length === 1 && o.dataset.value === pa[0]) o.classList.add('selected');
     });
+    updateContinue(id);
     // re-disparar el stagger interno aunque ya estuviera abierto antes
     el.classList.remove('open','settled');
     void el.offsetHeight;
@@ -1796,15 +1842,61 @@ body{
   });
 
   /* ── selección dentro de un paso (efecto menú de videojuego) ─────── */
+  /* muestra/oculta el botón "Continuar" de un paso según las opciones multi-on */
+  function updateContinue(stepId){
+    var cont = document.getElementById('cont-' + stepId);
+    if(!cont) return;
+    var n = $('#'+stepId).querySelectorAll('.opt.multi-on').length;
+    cont.hidden = (n === 0);
+    cont.textContent = n > 1 ? ('Continuar · ' + n + ' elegidas')
+                     : (n === 1 ? 'Continuar · 1 elegida' : 'Continuar');
+  }
   function bindStep(stepId, key, next){
-    $('#'+stepId).querySelectorAll('.opt').forEach(function(opt){
-      opt.addEventListener('click', function(){
+    var stepEl = $('#'+stepId);
+    /* checkbox de multi-selección a la derecha de cada opción (salvo "Todas/Todos") */
+    stepEl.querySelectorAll('.opt').forEach(function(opt){
+      if(opt.dataset.value !== 'all' && !opt.querySelector('.mbox')){
+        var mb = document.createElement('span'); mb.className = 'mbox'; opt.appendChild(mb);
+      }
+    });
+    /* botón Continuar (confirma la multi-selección), tras las opciones */
+    if(!document.getElementById('cont-' + stepId)){
+      var cont = document.createElement('button');
+      cont.className = 'multi-continue'; cont.id = 'cont-' + stepId; cont.hidden = true;
+      cont.textContent = 'Continuar';
+      stepEl.querySelector('.opts').insertAdjacentElement('afterend', cont);
+      cont.addEventListener('click', function(){
+        var vals = [], labels = [];
+        stepEl.querySelectorAll('.opt.multi-on').forEach(function(o){ vals.push(o.dataset.value); labels.push(o.dataset.label); });
+        if(!vals.length) return;
+        var single = vals.length === 1;
+        state[key] = { value: single ? vals[0] : vals, label: labels.join(', '), multi: !single };
+        editing = null;
+        if(key === 'country') state.city = null;     // dependencias en cascada
+        if(key === 'type')    state.subtype = null;
+        stepEl.querySelectorAll('.opt').forEach(function(o){ o.classList.remove('multi-on'); });
+        updateContinue(stepId);
+        closeStep(stepId);
+        renderPanel();
+        advance();
+      });
+    }
+    /* clic en una opción: en el checkbox (derecha) = multi; en el centro = directo */
+    stepEl.querySelectorAll('.opt').forEach(function(opt){
+      opt.addEventListener('click', function(e){
+        if(e.target.closest('.mbox')){            // multi-toggle
+          opt.classList.toggle('multi-on');
+          opt.classList.remove('dim','selected','picked');
+          updateContinue(stepId);
+          return;
+        }
         if(opt.classList.contains('picked')) return;
         var prev = state[key] ? state[key].value : null;
-        opt.parentElement.querySelectorAll('.opt').forEach(function(o){
-          o.classList.remove('selected','picked','dim');
+        stepEl.querySelectorAll('.opt').forEach(function(o){   // selección directa: limpia multi
+          o.classList.remove('selected','picked','dim','multi-on');
           if(o !== opt) o.classList.add('dim');
         });
+        updateContinue(stepId);
         opt.classList.add('selected','picked');
         state[key] = { value:opt.dataset.value, label:opt.dataset.label };
         editing = null;
@@ -1835,15 +1927,23 @@ body{
   bindStep('stepD','subtype', function(){ advance(); });
 
   /* ── resultados: lista de eventos filtrada ────────────────────────── */
+  /* coincide si el filtro es nulo, 'all', un valor igual, o un array que contiene el valor */
+  function inFilter(entry, val){
+    if(!entry) return true;
+    var v = entry.value;
+    if(v === 'all') return true;
+    if(Array.isArray(v)) return v.indexOf(val) !== -1;
+    return v === val;
+  }
   function camCountOf(ev){ return ev.camIds.length + (joined[ev.id] ? 1 : 0); }
 
   function renderResults(){
     var list = EVENTS.filter(function(ev){
       if(eventStatus(ev) === 'terminado') return false;   // el pasado no se busca
-      if(ev.country !== state.country.value) return false;
-      if(state.city.value !== 'all' && ev.city !== state.city.value) return false;
-      if(state.type.value !== 'all' && ev.type !== state.type.value) return false;
-      if(state.subtype && state.subtype.value !== 'all' && ev.sub !== state.subtype.value) return false;
+      if(!inFilter(state.country, ev.country)) return false;
+      if(!inFilter(state.city, ev.city)) return false;
+      if(!inFilter(state.type, ev.type)) return false;
+      if(state.subtype && !inFilter(state.subtype, ev.sub)) return false;
       return true;
     });
     /* filtro opcional por día o rango de días */
@@ -1861,14 +1961,18 @@ body{
       var n = camCountOf(ev);
       var foll = ev.camIds.filter(function(id){ return follows[id]; }).length;  // seguidos que asisten
       var b = document.createElement('button');
-      b.className = 'evt t-' + ev.type + (foll ? ' has-follow' : '');   // acento lateral por tipo
+      b.className = 'evt t-' + ev.type;   // acento lateral por tipo
       b.innerHTML =
-        '<span class="evt-name">' + ev.name + '</span>' +
+        '<div class="evt-head">' +
+          '<span class="evt-name">' + ev.name + '</span>' +
+          '<span class="evt-badges">' +
+            (eventStatus(ev) === 'directo' ? '<span class="evt-live">Directo</span>' : '') +
+            (foll ? '<span class="evt-follow" title="Camarógrafos que sigues">' + CAM_MINI_SVG + '×' + foll + '</span>' : '') +
+            '<span class="evt-cams' + (n ? ' on' : '') + '">CAM ×' + n + '</span>' +
+          '</span>' +
+        '</div>' +
         '<span class="evt-meta">' + fmtDate(ev.startsAt) + ' · ' + evHours(ev) + ' · ' +
-          ev.venue + ' · ' + CITY_LABELS[ev.city] + '</span>' +
-        (eventStatus(ev) === 'directo' ? '<span class="evt-live">Directo</span>' : '') +
-        (foll ? '<span class="evt-follow" title="Camarógrafos que sigues">' + CAM_MINI_SVG + '×' + foll + '</span>' : '') +
-        '<span class="evt-cams' + (n ? ' on' : '') + '">CAM ×' + n + '</span>';
+          ev.venue + ' · ' + CITY_LABELS[ev.city] + '</span>';
       b.addEventListener('click', function(){ openEvent(ev); });
       box.appendChild(b);
     });
@@ -2084,7 +2188,9 @@ body{
   });
 
   /* ── directorio de camarógrafos: ordenar, filtrar, seguir, ver perfil ── */
-  var camSort = 'rating', camCity = 'all', rev3On = false;
+  var camSort = { key:'rating', dir:'desc' }, camCountry = 'all', camCity = 'all', rev3On = false;
+  var SORT_DEF = { rating:'desc', price:'asc', videos:'desc' };   // sentido inicial por criterio
+  var CITY_COUNTRY = { mad:'es', sev:'es', bcn:'es', waw:'pl', kra:'pl' };
   function upcomingOf(c){
     return EVENTS.filter(function(e){
       return e.camIds.indexOf(c.id) !== -1 && eventStatus(e) !== 'terminado';
@@ -2119,15 +2225,19 @@ body{
   var backToCams = function(){ renderCamDir(); goView('viewCams','ac-amber'); };
   function renderCamDir(){
     var list = CAMS.filter(function(c){
+      if(camCountry !== 'all' && CITY_COUNTRY[c.city] !== camCountry) return false;
       if(camCity !== 'all' && c.city !== camCity) return false;
       if(rev3On && c.reviews <= 3) return false;       // filtro +3 reseñas
       return true;
     });
-    list.sort(function(a, b){
-      if(camSort === 'videos') return b.videos - a.videos;
-      if(camSort === 'price')  return a.price - b.price;     // precio medio asc
-      return b.rating - a.rating;                            // puntuación desc
-    });
+    if(camSort){                                       // null = sin ordenación
+      var k = camSort.key, dir = camSort.dir === 'asc' ? 1 : -1;
+      list.sort(function(a, b){
+        var av = k === 'price' ? a.price : (k === 'videos' ? a.videos : a.rating);
+        var bv = k === 'price' ? b.price : (k === 'videos' ? b.videos : b.rating);
+        return (av - bv) * dir;
+      });
+    }
     var box = $('#camDir');
     box.innerHTML = '';
     list.forEach(function(c){
@@ -2145,20 +2255,41 @@ body{
     if(follows[id]) delete follows[id]; else follows[id] = true;
     save('cilap-follows', follows);
   }
+  /* refleja el estado del orden en los chips (clase on + asc/desc para la flecha) */
+  function renderSortChips(){
+    document.querySelectorAll('#sortChips .fchip').forEach(function(ch){
+      var on = camSort && camSort.key === ch.dataset.sort;
+      ch.classList.toggle('on', !!on);
+      ch.classList.toggle('asc',  !!(on && camSort.dir === 'asc'));
+      ch.classList.toggle('desc', !!(on && camSort.dir === 'desc'));
+    });
+  }
+  /* 3 estados por criterio: sentido natural → inverso → sin ordenación */
   document.querySelectorAll('#sortChips .fchip').forEach(function(ch){
     ch.addEventListener('click', function(){
-      camSort = ch.dataset.sort;
-      document.querySelectorAll('#sortChips .fchip').forEach(function(o){ o.classList.toggle('on', o === ch); });
+      var key = ch.dataset.sort;
+      if(!camSort || camSort.key !== key)        camSort = { key:key, dir:SORT_DEF[key] };
+      else if(camSort.dir === SORT_DEF[key])     camSort = { key:key, dir:(SORT_DEF[key] === 'desc' ? 'asc' : 'desc') };
+      else                                       camSort = null;   // 3er toque: quitar orden
+      renderSortChips();
       renderCamDir();
     });
   });
-  document.querySelectorAll('#cityChips .fchip').forEach(function(ch){
-    ch.addEventListener('click', function(){
-      camCity = ch.dataset.city;
-      document.querySelectorAll('#cityChips .fchip').forEach(function(o){ o.classList.toggle('on', o === ch); });
-      renderCamDir();
-    });
+  /* desplegables de país / ciudad (la ciudad depende del país) */
+  function fillCityOptions(){
+    var sel = $('#cdCity');
+    var cities = camCountry === 'es' ? ['mad','sev','bcn']
+               : camCountry === 'pl' ? ['waw','kra']
+               : ['mad','sev','bcn','waw','kra'];
+    sel.innerHTML = '<option value="all">Todas las ciudades</option>' +
+      cities.map(function(c){ return '<option value="' + c + '">' + CITY_LABELS[c] + '</option>'; }).join('');
+    sel.value = (cities.indexOf(camCity) !== -1) ? camCity : 'all';
+  }
+  $('#cdCountry').addEventListener('change', function(){
+    camCountry = this.value; camCity = 'all'; fillCityOptions(); renderCamDir();
   });
+  $('#cdCity').addEventListener('change', function(){ camCity = this.value; renderCamDir(); });
+  fillCityOptions();
   $('#rev3Chip').addEventListener('click', function(){
     rev3On = !rev3On;
     this.classList.toggle('on', rev3On);
