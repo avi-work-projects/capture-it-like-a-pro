@@ -584,7 +584,7 @@ body{
 /* las tres tarjetas pequeñas (Busco evento, Ver camarógrafos, Mis bailes)
    comparten exactamente la misma altura; "Eventos en mi ciudad" crece
    y ocupa el resto, quedando claramente el botón mayor */
-.hub{--hub-sm:96px}
+.hub{--hub-sm:74px}
 .hub-top{display:flex;flex-direction:column;gap:14px;flex:1;min-height:0}
 .hub .card.big{flex:1;min-height:150px}
 .hub-top #hubEvent{flex:none;height:var(--hub-sm)}
@@ -630,7 +630,7 @@ body{
 .hub-top #hubEvent .sub,.hub-row #hubCams .sub,.hub-mine-row #hubMine .sub{font-size:12px}
 /* cada acción del hub tiene su acento: el color de la sección que abre */
 #hubMyCity{--hac:#3da9ff;--hglow:rgba(61,169,255,.30)}   /* azul = país/ciudad */
-#hubEvent{--hac:#3da9ff;--hglow:rgba(61,169,255,.30)}    /* azul = país */
+#hubEvent{--hac:#20d6c0;--hglow:rgba(32,214,192,.30)}    /* turquesa = búsqueda */
 #hubCams {--hac:#ffd60a;--hglow:rgba(255,214,10,.30)}    /* ámbar = directorio */
 #hubMine {--hac:#c6ff00;--hglow:rgba(198,255,0,.30)}     /* lima = historial */
 #hubSettings{--hac:#c46bff;--hglow:rgba(196,107,255,.30)} /* violeta = ajustes */
