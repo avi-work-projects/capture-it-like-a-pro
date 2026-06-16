@@ -564,7 +564,12 @@
     Calendar.renderHorarios($('#modeHorarios'), eventsByFilter('weekly', false), horSala, {
       onSala:  function(id){ horSala = id; renderHorariosMode(); },
       onBack:  function(){ horSala = null; renderHorariosMode(); },
-      onEvent: calEvent
+      onEvent: calEvent,
+      /* un día concreto de la sala = un evento puntual de esa fecha (apuntarte) */
+      onOccurrence: function(id, start, end){
+        var base = EVENTS_BY_ID[id];
+        openEvent(Object.assign({}, base, { id: id + '@' + start, startsAt: start, endsAt: end, recurrence: 'oneoff' }));
+      }
     });
   }
   function setEvMode(mode){
@@ -587,12 +592,14 @@
      (sobre-scroll) estando arriba del todo — no se despliega solo. */
   (function(){
     var v2 = $('#view2'), mini = $('#panelMini'), tabs = $('#evModeTabs');
-    var EFFORT = 70, effort = 0, touchY = 0;
+    var EFFORT = 70, LOCK_MS = 500, effort = 0, touchY = 0, collapsedAt = 0;
     function critReady(){ return $('#result').classList.contains('open'); }
     function headH(){ var h = v2.querySelector('.v2-head'); return h ? h.offsetHeight : 0; }
+    function locked(){ return Date.now() - collapsedAt > LOCK_MS; }   // "bloqueo" tras 0,5 s colapsado
     function collapse(on){
       var hH = headH();
       if(on){
+        if(!v2.classList.contains('crit-collapsed')) collapsedAt = Date.now();
         v2.classList.add('crit-collapsed');
         mini.style.top = hH + 'px';
         tabs.style.top = (hH + mini.offsetHeight) + 'px';   // pestañas bajo la barra de criterios
@@ -604,13 +611,19 @@
     }
     v2.addEventListener('scroll', function(){
       if(!critReady()) return;
-      if(v2.scrollTop > 50) collapse(true);                  // bajar → comprime
-      else if(!v2.classList.contains('crit-collapsed')) tabs.style.top = headH() + 'px';
+      if(v2.scrollTop > 50){ collapse(true); }               // bajar → comprime
+      else if(v2.classList.contains('crit-collapsed')){
+        /* recién colapsado (<0,5 s) y vuelves arriba → se despliega solo y suave */
+        if(v2.scrollTop <= 2 && !locked()) collapse(false);
+      } else {
+        tabs.style.top = headH() + 'px';
+      }
     }, { passive:true });
-    /* expandir = "esfuerzo": acumular sobre-scroll hacia arriba estando arriba */
+    /* tras el bloqueo (>0,5 s): expandir exige "esfuerzo" = sobre-scroll arriba */
     function tryEffort(amount){
       if(!critReady() || !v2.classList.contains('crit-collapsed')) return;
       if(v2.scrollTop > 2) return;                           // solo desde el tope
+      if(!locked()){ collapse(false); return; }              // aún sin bloquear → despliega fácil
       effort += amount;
       if(effort > EFFORT){ collapse(false); v2.scrollTop = 0; }
     }
@@ -786,7 +799,6 @@
      apagan también los superiores. Ninguna compromete a nada. */
   var camsRevealed = false, pickerFav = false, pickerQuery = '';
   function saveIntents(){ save('cilap-attend', attend); save('cilap-wishrec', wishrec); save('cilap-camreq', camreq); }
-  function setIntentBtn(btn, on, offTxt, onTxt){ btn.classList.toggle('done', on); btn.textContent = on ? onTxt : offTxt; }
   function renderIntents(ev){
     var st = eventStatus(ev);
     var soyCam = state.role && state.role.value === 'cam';
@@ -794,10 +806,12 @@
     $('#evIntents').hidden = !show;
     if(!show){ $('#camPicker').hidden = true; return; }
     var nReq = (camreq[ev.id] || []).length;
-    setIntentBtn($('#intAttend'), !!attend[ev.id], 'Voy a asistir', '✓ Voy a asistir');
-    setIntentBtn($('#intWish'),   !!wishrec[ev.id], 'Me interesará grabar', '✓ Me interesará grabar');
-    setIntentBtn($('#intReq'),    nReq > 0, 'Solicitar a camarógrafo',
-                 '✓ Solicitado a ' + nReq + ' camarógrafo' + (nReq > 1 ? 's' : ''));
+    $('#intAttend').classList.toggle('done', !!attend[ev.id]);
+    $('#intWish').classList.toggle('done', !!wishrec[ev.id]);
+    $('#intReq').classList.toggle('done', nReq > 0);
+    $('#intReq').querySelector('small').textContent = nReq > 0
+      ? 'Solicitado a ' + nReq + ' camarógrafo' + (nReq > 1 ? 's' : '') + '. Pulsa para editar.'
+      : 'Pides a camarógrafos concretos que vengan a grabarte.';
   }
   function renderPicker(ev){
     var sel = camreq[ev.id] || [];

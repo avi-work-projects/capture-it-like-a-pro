@@ -11,7 +11,7 @@
   var DOW_H = ['L','M','X','J','V','S','D'];                 // lun-first
   var DOW_FULL = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
   var TYPE_COLOR = { sala:'#c46bff', congreso:'#3da9ff', exterior:'#ffd60a' };
-  var MAX_BAR_ROWS = 3;
+  var MAX_BAR_ROWS = 5;
 
   function colOf(date){ return (date.getDay() + 6) % 7; }   // lun=0 .. dom=6
   function dayStart(y,m,d){ return new Date(y,m,d,0,0,0,0).getTime(); }
@@ -21,6 +21,24 @@
   }
   function isMultiDay(ev){ return (ev.endsAt - ev.startsAt) > 86400000 * 1.1; }
   function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+  /* minutos inicio/fin de un timeLabel "23:00–05:00" (cruza medianoche → +1440) */
+  function tlMins(tl){
+    var p = (tl||'').replace('–','-').replace('—','-').split('-');
+    function m(s){ var x = s.trim().split(':'); return (+x[0])*60 + (+x[1]); }
+    var s = m(p[0]||'0:0'), e = m(p[1]||'0:0'); if(e <= s) e += 1440; return [s, e];
+  }
+  /* próximas N fechas concretas de una sala (a partir de hoy) */
+  function upcomingDates(sala, n){
+    var days = sala.weekdays || [sala.weekday];
+    var tl = tlMins(sala.timeLabel), durMs = (tl[1]-tl[0])*60000;
+    var now = Date.now(), nd = new Date(), out = [];
+    for(var add=0; add<70 && out.length<n; add++){
+      var d = new Date(nd.getFullYear(), nd.getMonth(), nd.getDate()+add, Math.floor(tl[0]/60), tl[0]%60, 0, 0);
+      if(days.indexOf(d.getDay()) !== -1 && d.getTime()+durMs >= now) out.push({ start:d.getTime(), end:d.getTime()+durMs });
+    }
+    return out;
+  }
 
   /* ───────────────────────── VISTA AÑO (12 meses con puntos) ───────────── */
   function renderYear(container, year, events, cb){
@@ -101,7 +119,9 @@
   }
 
   function renderGrid(year, month, mEvs, today){
-    var multi = mEvs.filter(isMultiDay);
+    /* todos los eventos (puntuales incluidos) se pintan como barras con texto:
+       los de un día ocupan una sola columna */
+    var allEv = mEvs;
     var first = new Date(year, month, 1), last = new Date(year, month+1, 0);
     var h = '<div class="cal-grid"><div class="cal-grid-h">';
     DOW_H.forEach(function(d){ h += '<span>' + d + '</span>'; });
@@ -113,9 +133,9 @@
       for(var i=0;i<7;i++){ wk.push(new Date(cur.getFullYear(),cur.getMonth(),cur.getDate())); cur.setDate(cur.getDate()+1); }
       var wStart = dayStart(wk[0].getFullYear(),wk[0].getMonth(),wk[0].getDate());
       var wEnd = dayEnd(wk[6].getFullYear(),wk[6].getMonth(),wk[6].getDate());
-      // barras multi-día que intersectan esta semana (recortadas al mes)
+      // barras de eventos que intersectan esta semana (recortadas al mes)
       var bars = [];
-      multi.forEach(function(ev){
+      allEv.forEach(function(ev){
         if(ev.endsAt < wStart || ev.startsAt > wEnd) return;
         var cs = 0, ce = 6;
         while(cs<=6 && !(coversDay(ev, wk[cs].getFullYear(), wk[cs].getMonth(), wk[cs].getDate()) && wk[cs].getMonth()===month)) cs++;
@@ -138,11 +158,8 @@
         var d = wk[di], inM = d.getMonth()===month;
         var isT = inM && d.getTime()===today.getTime();
         var wknd = di>=5;
-        var singles = inM ? mEvs.filter(function(ev){ return !isMultiDay(ev) && coversDay(ev, d.getFullYear(), d.getMonth(), d.getDate()); }) : [];
-        var dots = singles.slice(0,3).map(function(ev){ return '<i style="background:' + (TYPE_COLOR[ev.type]||'#888') + '"></i>'; }).join('');
         h += '<div class="cal-day' + (inM?'':' out') + (isT?' today':'') + (wknd?' wknd':'') + '">' +
              '<span class="cal-dn">' + (inM?d.getDate():'') + '</span>' +
-             (singles.length ? '<span class="cal-day-dots" data-ev="' + singles[0].id + '">' + dots + '</span>' : '') +
              '</div>';
       }
       // barras superpuestas
@@ -217,9 +234,20 @@
         h += '<div class="sala-day"><span class="sala-dow">' + DOW_FULL[(wd+6)%7] + '</span>' +
              '<span class="evt-time">🕒 ' + (sala.timeLabel || '—') + '</span></div>';
       });
-      h += '<button class="evt t-sala" data-ev="' + sala.id + '" style="margin-top:14px">' +
-           '<div class="evt-head"><span class="evt-name">Ver detalle y camarógrafos</span>' +
-             '<span class="evt-badges"><span class="evt-cams on">›</span></span></div></button>';
+      /* próximos días concretos: cada uno es un evento de un día → apuntarte */
+      var occ = upcomingDates(sala, 8);
+      h += '<p class="res-count" style="margin-top:18px">Próximos días · elige uno para apuntarte</p>';
+      if(!occ.length){
+        h += '<p class="cal-empty">Sin próximas fechas.</p>';
+      } else {
+        occ.forEach(function(o){
+          var d = new Date(o.start);
+          h += '<button class="evt t-sala" data-occ="' + o.start + '_' + o.end + '">' +
+               '<div class="evt-head"><span class="evt-name">' + DOW_FULL[(d.getDay()+6)%7] + ' ' + d.getDate() + ' ' + MNS[d.getMonth()].toLowerCase() + '</span>' +
+               '<span class="evt-badges"><span class="evt-cams on">Apuntarme ›</span></span></div>' +
+               (sala.timeLabel ? '<span class="evt-time">🕒 ' + sala.timeLabel + '</span>' : '') + '</button>';
+        });
+      }
     }
     container.innerHTML = h;
     var back = container.querySelector('[data-act="horBack"]');
@@ -227,8 +255,8 @@
     container.querySelectorAll('[data-sala]').forEach(function(el){
       el.addEventListener('click', function(){ cb.onSala(el.dataset.sala); });
     });
-    container.querySelectorAll('[data-ev]').forEach(function(el){
-      el.addEventListener('click', function(){ cb.onEvent(el.dataset.ev); });
+    container.querySelectorAll('[data-occ]').forEach(function(el){
+      el.addEventListener('click', function(){ var p = el.dataset.occ.split('_'); cb.onOccurrence(selId, +p[0], +p[1]); });
     });
   }
 

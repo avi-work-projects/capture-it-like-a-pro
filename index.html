@@ -425,9 +425,18 @@
 
     <!-- intenciones del bailarín (no comprometen a nada, revelan expectativas) -->
     <div class="ev-intents" id="evIntents" hidden>
-      <button class="act intent" id="intAttend">Voy a asistir</button>
-      <button class="act intent" id="intWish">Me interesará grabar</button>
-      <button class="act intent" id="intReq">Solicitar a camarógrafo</button>
+      <button class="act intent" id="intAttend">
+        <span class="int-check">✓</span>
+        <span class="int-txt"><b>Voy a asistir</b><small>Confirmas que irás a este evento.</small></span>
+      </button>
+      <button class="act intent" id="intWish">
+        <span class="int-check">✓</span>
+        <span class="int-txt"><b>Interesado en grabar</b><small>Te gustaría que te graben; anima a más camarógrafos a venir.</small></span>
+      </button>
+      <button class="act intent" id="intReq">
+        <span class="int-check">✓</span>
+        <span class="int-txt"><b>Solicitar a camarógrafo</b><small>Pides a camarógrafos concretos que vengan a grabarte.</small></span>
+      </button>
       <p class="act-hint">Ninguna de estas opciones te compromete: solo muestran tus expectativas.</p>
     </div>
 
