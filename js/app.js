@@ -581,29 +581,48 @@
     t.addEventListener('click', function(){ setEvMode(t.dataset.mode); });
   });
 
-  /* ── criterios comprimibles: al hacer scroll hacia abajo (con resultados
-     ya abiertos) los criterios se colapsan en una barra; clic para desplegar.
-     Así las pestañas/contenido quedan en una zona alta de la pantalla. */
+  /* ── criterios comprimibles: al bajar, los criterios se colapsan (animado)
+     y las pestañas quedan ANCLADAS arriba, siempre visibles. Para volver a
+     desplegarlos hay que hacer "un poco de esfuerzo": tirar hacia arriba
+     (sobre-scroll) estando arriba del todo — no se despliega solo. */
   (function(){
-    var v2 = $('#view2'), mini = $('#panelMini');
+    var v2 = $('#view2'), mini = $('#panelMini'), tabs = $('#evModeTabs');
+    var EFFORT = 70, effort = 0, touchY = 0;
     function critReady(){ return $('#result').classList.contains('open'); }
+    function headH(){ var h = v2.querySelector('.v2-head'); return h ? h.offsetHeight : 0; }
     function collapse(on){
+      var hH = headH();
       if(on){
-        var head = v2.querySelector('.v2-head');
-        mini.style.top = (head ? head.offsetHeight : 0) + 'px';
+        v2.classList.add('crit-collapsed');
+        mini.style.top = hH + 'px';
+        tabs.style.top = (hH + mini.offsetHeight) + 'px';   // pestañas bajo la barra de criterios
+      } else {
+        v2.classList.remove('crit-collapsed');
+        tabs.style.top = hH + 'px';                          // pestañas bajo la cabecera
+        effort = 0;
       }
-      v2.classList.toggle('crit-collapsed', on);
     }
     v2.addEventListener('scroll', function(){
-      if(!critReady()){ collapse(false); return; }
-      var sc = v2.scrollTop;
-      if(sc > 40)      collapse(true);    // bajando → comprime (con histéresis)
-      else if(sc < 8)  collapse(false);   // arriba del todo → despliega
+      if(!critReady()) return;
+      if(v2.scrollTop > 50) collapse(true);                  // bajar → comprime
+      else if(!v2.classList.contains('crit-collapsed')) tabs.style.top = headH() + 'px';
     }, { passive:true });
-    mini.addEventListener('click', function(){
-      v2.scrollTop = 0;     // primero arriba, así el handler de scroll mantiene desplegado
-      collapse(false);
-    });
+    /* expandir = "esfuerzo": acumular sobre-scroll hacia arriba estando arriba */
+    function tryEffort(amount){
+      if(!critReady() || !v2.classList.contains('crit-collapsed')) return;
+      if(v2.scrollTop > 2) return;                           // solo desde el tope
+      effort += amount;
+      if(effort > EFFORT){ collapse(false); v2.scrollTop = 0; }
+    }
+    v2.addEventListener('wheel', function(e){
+      if(e.deltaY < 0) tryEffort(-e.deltaY); else effort = 0;
+    }, { passive:true });
+    v2.addEventListener('touchstart', function(e){ touchY = e.touches[0].clientY; effort = 0; }, { passive:true });
+    v2.addEventListener('touchmove', function(e){
+      var y = e.touches[0].clientY, dy = y - touchY; touchY = y;
+      if(dy > 0) tryEffort(dy);
+    }, { passive:true });
+    mini.addEventListener('click', function(){ v2.scrollTop = 0; collapse(false); });
   })();
 
   /* ── vista 3: detalle del evento + camarógrafos ───────────────────── */
