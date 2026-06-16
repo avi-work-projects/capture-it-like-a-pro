@@ -136,6 +136,19 @@
       </div>
       <div class="pm-h">Ciudad (una o varias)</div>
       <div class="opts" id="setCities"></div>
+
+      <div class="pm-h" style="margin-top:22px">Privacidad de la cuenta</div>
+      <div class="privacy" id="setPrivacy">
+        <button class="opt po privacy-opt" data-priv="public">
+          <span class="lbl"><b>Pública</b><small>La gente puede ver a qué eventos asistes</small></span>
+          <span class="mbox"></span>
+        </button>
+        <button class="opt po privacy-opt" data-priv="private">
+          <span class="lbl"><b>Privada</b><small>Tus interacciones se muestran anonimizadas</small></span>
+          <span class="mbox"></span>
+        </button>
+      </div>
+
       <button class="multi-continue" id="setSave">Guardar</button>
     </div>
   </section>
@@ -180,6 +193,13 @@
       <button class="se" title="Editar">✎</button>
       <button class="sx" title="Quitar selección">✕</button>
     </div>
+
+    <!-- criterios comprimidos (al hacer scroll): clic para desplegarlos -->
+    <button class="panel-mini" id="panelMini">
+      <span class="pm-caret">▾</span>
+      <span class="pm-sum" id="panelMiniSum">—</span>
+      <span class="pm-edit">Editar</span>
+    </button>
 
     <!-- PASO A · País -->
     <section class="step" id="stepA">
@@ -249,7 +269,7 @@
       <div class="res">
         <div class="tabbar" id="evModeTabs">
           <button class="fchip on" data-mode="prox">Próximos<br>7 días</button>
-          <button class="fchip" data-mode="cal">Calendario</button>
+          <button class="fchip" data-mode="cal">Calendario<br>eventos</button>
           <button class="fchip" data-mode="horarios">Horarios<br>salas</button>
         </div>
 
@@ -347,7 +367,7 @@
 
     <div class="tabbar" id="profTabs">
       <button class="fchip on" data-tab="events">Próximos eventos</button>
-      <button class="fchip" data-tab="reviews">Reseñas</button>
+      <button class="fchip" data-tab="reviews">Reseñas <span class="tabnum" id="profTabRevNum"></span></button>
     </div>
 
     <div id="tabEvents">
@@ -399,12 +419,37 @@
       </div>
     </div>
     <div class="ev-tags" id="evTags"></div>
-    <h3 class="sec-title">Camarógrafos <span class="count" id="camCount">×0</span></h3>
-    <div class="cams" id="camList"></div>
-    <div class="notice" id="camEmpty" style="display:none">
-      <span class="nosig">Cámara libre</span>
-      <p id="camEmptyTxt">Aún no hay camarógrafos en este evento.</p>
+    <p class="ev-brief" id="evBrief"></p>
+
+    <!-- intenciones del bailarín (no comprometen a nada, revelan expectativas) -->
+    <div class="ev-intents" id="evIntents" hidden>
+      <button class="act intent" id="intAttend">Voy a asistir</button>
+      <button class="act intent" id="intWish">Me interesará grabar</button>
+      <button class="act intent" id="intReq">Solicitar a camarógrafo</button>
+      <p class="act-hint">Ninguna de estas opciones te compromete: solo muestran tus expectativas.</p>
     </div>
+
+    <!-- selector de camarógrafo para "Solicitar a camarógrafo" -->
+    <div class="cam-picker" id="camPicker" hidden>
+      <div class="cp-head">
+        <input type="text" id="cpSearch" placeholder="Buscar camarógrafo…">
+        <button class="fchip" id="cpFav">Solo favoritos</button>
+      </div>
+      <div class="cp-list" id="cpList"></div>
+      <button class="multi-continue" id="cpDone">Listo</button>
+    </div>
+
+    <button class="act reveal" id="revealCams">Ver camarógrafos apuntados</button>
+
+    <div id="camsWrap" hidden>
+      <h3 class="sec-title">Camarógrafos <span class="count" id="camCount">×0</span></h3>
+      <div class="cams" id="camList"></div>
+      <div class="notice" id="camEmpty" style="display:none">
+        <span class="nosig">Cámara libre</span>
+        <p id="camEmptyTxt">Aún no hay camarógrafos en este evento.</p>
+      </div>
+    </div>
+
     <button class="cta" id="joinBtn" hidden>Apuntarme como camarógrafo</button>
     <button class="cta" id="checkinBtn" hidden>He llegado · abrir cola</button>
     <p class="act-hint" id="checkinHint" hidden style="margin-top:10px"></p>

@@ -21,6 +21,10 @@
   var saldo    = store('cilap-saldo',   20);   // saldo mock del bailarín (20 € de regalo)
   var ref      = store('cilap-ref', { countries:[], cities:[] });   // país/ciudad de referencia (config)
   function hasRef(){ return !!(ref.cities && ref.cities.length); }
+  var attend    = store('cilap-attend',  {});   // "voy a asistir" por evento (eventId->true)
+  var wishrec   = store('cilap-wishrec', {});   // "me interesará grabar" por evento
+  var camreq    = store('cilap-camreq',  {});   // "solicitar a camarógrafo": eventId -> [camIds]
+  var isPrivate = store('cilap-private', false);// cuenta privada: interacciones anónimas
   function fmtEur(x){ return x.toFixed(2).replace('.', ',') + ' €'; }
   function charge(x){
     saldo = Math.round((saldo - x) * 100) / 100;
@@ -106,6 +110,7 @@
     ALL_STEPS.forEach(closeStep);
     if(resultTimer){ clearTimeout(resultTimer); resultTimer=null; }
     $('#result').classList.remove('done');
+    $('#view2').classList.remove('crit-collapsed');   // al editar, criterios visibles
   }
   function closeFrom(key){
     var map = { country:['stepA','stepB','stepC','stepD','result'],
@@ -128,6 +133,8 @@
       r.classList.remove('done');
       defaultDateRange();          // por defecto: próximos 7 días
       renderResults();
+      $('#view2').classList.remove('crit-collapsed');   // criterios desplegados al recalcular
+      $('#view2').scrollTop = 0;
       openStep('result');
       resultTimer = setTimeout(function(){ r.classList.add('done'); }, 1400);
     }
@@ -173,6 +180,11 @@
       if(isExt && !firstEmpty) firstEmpty = sp;
     }
     if(firstEmpty) firstEmpty.classList.add('now');
+    /* resumen para la barra de criterios comprimida */
+    var sum = ['country','city','type','subtype'].map(function(k){
+      return state[k] ? state[k].label : null;
+    }).filter(Boolean).join(' · ');
+    $('#panelMiniSum').textContent = sum || 'Sin criterios';
   }
   /* ✕ de cada hueco: quita esa selección (y las posteriores en cascada).
      El rol no lleva ✕/✎ a propósito: una vez elegido, no se edita desde aquí. */
@@ -501,7 +513,6 @@
     return '<div class="evt-head">' +
         '<span class="evt-name">' + ev.name + '</span>' +
         '<span class="evt-badges">' +
-          (eventStatus(ev) === 'directo' ? '<span class="evt-live">Directo</span>' : '') +
           (foll ? '<span class="evt-follow" title="Camarógrafos que sigues">' + CAM_MINI_SVG + '×' + foll + '</span>' : '') +
           '<span class="evt-cams' + (n ? ' on' : '') + '">CAM ×' + n + '</span>' +
         '</span>' +
@@ -548,8 +559,13 @@
       });
     }
   }
+  var horSala = null;   // sala seleccionada dentro de "Horarios salas" (null = lista)
   function renderHorariosMode(){
-    Calendar.renderHorarios($('#modeHorarios'), eventsByFilter('weekly', false), { onEvent: calEvent });
+    Calendar.renderHorarios($('#modeHorarios'), eventsByFilter('weekly', false), horSala, {
+      onSala:  function(id){ horSala = id; renderHorariosMode(); },
+      onBack:  function(){ horSala = null; renderHorariosMode(); },
+      onEvent: calEvent
+    });
   }
   function setEvMode(mode){
     evMode = mode;
@@ -559,11 +575,36 @@
     $('#modeHorarios').hidden = mode !== 'horarios';
     if(mode === 'prox')          renderResults();
     else if(mode === 'cal')      renderCalMode();
-    else                         renderHorariosMode();
+    else                       { horSala = null; renderHorariosMode(); }
   }
   document.querySelectorAll('#evModeTabs .fchip').forEach(function(t){
     t.addEventListener('click', function(){ setEvMode(t.dataset.mode); });
   });
+
+  /* ── criterios comprimibles: al hacer scroll hacia abajo (con resultados
+     ya abiertos) los criterios se colapsan en una barra; clic para desplegar.
+     Así las pestañas/contenido quedan en una zona alta de la pantalla. */
+  (function(){
+    var v2 = $('#view2'), mini = $('#panelMini');
+    function critReady(){ return $('#result').classList.contains('open'); }
+    function collapse(on){
+      if(on){
+        var head = v2.querySelector('.v2-head');
+        mini.style.top = (head ? head.offsetHeight : 0) + 'px';
+      }
+      v2.classList.toggle('crit-collapsed', on);
+    }
+    v2.addEventListener('scroll', function(){
+      if(!critReady()){ collapse(false); return; }
+      var sc = v2.scrollTop;
+      if(sc > 40)      collapse(true);    // bajando → comprime (con histéresis)
+      else if(sc < 8)  collapse(false);   // arriba del todo → despliega
+    }, { passive:true });
+    mini.addEventListener('click', function(){
+      v2.scrollTop = 0;     // primero arriba, así el handler de scroll mantiene desplegado
+      collapse(false);
+    });
+  })();
 
   /* ── vista 3: detalle del evento + camarógrafos ───────────────────── */
   var CAM_SVG = '<svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="M15.5 10.8l6-3.3v9l-6-3.3"/><circle cx="7.5" cy="12" r="2.2"/></svg>';
@@ -580,8 +621,11 @@
   function buildCamActions(ev, c, st){
     var key = ev.id + '_' + c.id;
     var a = '<span class="cam-actions">';
-    a += '<button class="act' + (interest[key] ? ' done' : '') + '" data-act="interest" data-cam="' + c.id + '">' +
-         (interest[key] ? '♥ Te interesa este evento ✓' : '♥ Me interesa grabar contigo') + '</button>';
+    /* "Me interesa grabar contigo" no tiene sentido si el evento ya pasó */
+    if(st !== 'terminado'){
+      a += '<button class="act' + (interest[key] ? ' done' : '') + '" data-act="interest" data-cam="' + c.id + '">' +
+           (interest[key] ? '♥ Te interesa este evento ✓' : '♥ Me interesa grabar contigo') + '</button>';
+    }
     if(queue[key]){
       a += '<span class="act done">En su cola ✓</span>';
     } else if(st === 'previo'){
@@ -622,6 +666,11 @@
       '<span class="tag2">' + CITY_LABELS[ev.city] + '</span>' +
       '<span class="tag2 tt-' + ev.type + '">' + TYPE_LABELS[ev.type] + '</span>' +
       (ev.sub ? '<span class="tag2 hl">' + SUB_LABELS[ev.sub] + '</span>' : '');
+    /* información breve del evento */
+    $('#evBrief').textContent = TYPE_LABELS[ev.type] + ' · ' + CITY_LABELS[ev.city] + ' · ' + ev.venue +
+      (ev.timeLabel ? ' · ' + ev.timeLabel : '');
+    /* intenciones del bailarín (no comprometen; ocultas si eres cámara o pasó) */
+    renderIntents(ev);
     var cams = ev.camIds.map(function(id){ return CAMS_BY_ID[id]; });
     var youCard = joined[ev.id];
     var html = '';
@@ -651,6 +700,10 @@
       ? 'Nadie se ha apuntado aún — sé el primero.'
       : 'Aún no hay camarógrafos en este evento.';
     $('#camEmpty').style.display = total ? 'none' : 'flex';
+    /* camarógrafos ocultos por defecto: se revelan con "Ver camarógrafos apuntados" */
+    $('#camsWrap').hidden = !camsRevealed;
+    $('#revealCams').classList.toggle('done', camsRevealed);
+    $('#revealCams').textContent = (camsRevealed ? 'Ocultar camarógrafos' : 'Ver camarógrafos apuntados') + ' · ×' + total;
     /* Seguir / Ver perfil (perfil vuelve aquí) */
     wireCamCards($('#camList'), renderEventDetail, function(){ renderEventDetail(); goView('view3','ac-red'); });
     /* acciones del bailarín por evento (interés / reserva / cola) */
@@ -708,9 +761,78 @@
     }
   }
 
+  /* ── intenciones del bailarín sobre un evento (switch en cascada) ──────
+     Niveles: 1 "Voy a asistir" · 2 "Me interesará grabar" · 3 "Solicitar a
+     camarógrafo". Un nivel superior implica los inferiores; al apagar uno se
+     apagan también los superiores. Ninguna compromete a nada. */
+  var camsRevealed = false, pickerFav = false, pickerQuery = '';
+  function saveIntents(){ save('cilap-attend', attend); save('cilap-wishrec', wishrec); save('cilap-camreq', camreq); }
+  function setIntentBtn(btn, on, offTxt, onTxt){ btn.classList.toggle('done', on); btn.textContent = on ? onTxt : offTxt; }
+  function renderIntents(ev){
+    var st = eventStatus(ev);
+    var soyCam = state.role && state.role.value === 'cam';
+    var show = !soyCam && st !== 'terminado';
+    $('#evIntents').hidden = !show;
+    if(!show){ $('#camPicker').hidden = true; return; }
+    var nReq = (camreq[ev.id] || []).length;
+    setIntentBtn($('#intAttend'), !!attend[ev.id], 'Voy a asistir', '✓ Voy a asistir');
+    setIntentBtn($('#intWish'),   !!wishrec[ev.id], 'Me interesará grabar', '✓ Me interesará grabar');
+    setIntentBtn($('#intReq'),    nReq > 0, 'Solicitar a camarógrafo',
+                 '✓ Solicitado a ' + nReq + ' camarógrafo' + (nReq > 1 ? 's' : ''));
+  }
+  function renderPicker(ev){
+    var sel = camreq[ev.id] || [];
+    /* disponibles: camarógrafos de la ciudad del evento (o ya apuntados / ya solicitados).
+       Pendiente: incluir cámaras "desplazadas" para esas fechas (config futura del cam). */
+    var list = CAMS.filter(function(c){
+      return c.city === ev.city || ev.camIds.indexOf(c.id) !== -1 || sel.indexOf(c.id) !== -1;
+    });
+    if(pickerFav)   list = list.filter(function(c){ return follows[c.id]; });
+    if(pickerQuery) list = list.filter(function(c){ return c.name.toLowerCase().indexOf(pickerQuery) !== -1; });
+    $('#cpFav').classList.toggle('on', pickerFav);
+    $('#cpList').innerHTML = list.length ? list.map(function(c){
+      return '<button class="cp-item' + (sel.indexOf(c.id) !== -1 ? ' on' : '') + '" data-cam="' + c.id + '">' +
+        '<span class="cp-name">' + c.name + (follows[c.id] ? ' <span class="cp-fav">★</span>' : '') + '</span>' +
+        '<span class="cp-city">' + CITY_LABELS[c.city] + '</span><span class="mbox"></span></button>';
+    }).join('') : '<p class="act-hint" style="text-align:left">Ningún camarógrafo disponible con ese criterio.</p>';
+  }
+  $('#intAttend').addEventListener('click', function(){
+    var ev = currentEvent;
+    if(attend[ev.id]){ delete attend[ev.id]; delete wishrec[ev.id]; delete camreq[ev.id]; $('#camPicker').hidden = true; }
+    else attend[ev.id] = true;
+    saveIntents(); renderIntents(ev);
+  });
+  $('#intWish').addEventListener('click', function(){
+    var ev = currentEvent;
+    if(wishrec[ev.id]){ delete wishrec[ev.id]; delete camreq[ev.id]; $('#camPicker').hidden = true; }
+    else { wishrec[ev.id] = true; attend[ev.id] = true; }
+    saveIntents(); renderIntents(ev);
+  });
+  $('#intReq').addEventListener('click', function(){
+    var ev = currentEvent, p = $('#camPicker');
+    if(p.hidden){ pickerQuery = ''; pickerFav = false; $('#cpSearch').value = ''; renderPicker(ev); p.hidden = false; }
+    else p.hidden = true;
+  });
+  $('#cpSearch').addEventListener('input', function(){ pickerQuery = this.value.trim().toLowerCase(); renderPicker(currentEvent); });
+  $('#cpFav').addEventListener('click', function(){ pickerFav = !pickerFav; renderPicker(currentEvent); });
+  $('#cpDone').addEventListener('click', function(){ $('#camPicker').hidden = true; });
+  $('#cpList').addEventListener('click', function(e){
+    var b = e.target.closest('.cp-item'); if(!b) return;
+    var ev = currentEvent, id = b.dataset.cam;
+    var sel = camreq[ev.id] || [];
+    var i = sel.indexOf(id);
+    if(i === -1) sel.push(id); else sel.splice(i, 1);
+    if(sel.length){ camreq[ev.id] = sel; wishrec[ev.id] = true; attend[ev.id] = true; }   // L3 ⇒ L2 ⇒ L1
+    else delete camreq[ev.id];
+    saveIntents(); renderPicker(ev); renderIntents(ev);
+  });
+  $('#revealCams').addEventListener('click', function(){ camsRevealed = !camsRevealed; renderEventDetail(); });
+
   function openEvent(ev){
     currentEvent = ev;
     camSelEv = null;
+    camsRevealed = false;
+    $('#camPicker').hidden = true;
     renderEventDetail();
     goView('view3', 'ac-red');
   }
@@ -811,12 +933,22 @@
     document.querySelectorAll('#setCities .po').forEach(function(o){
       o.classList.toggle('multi-on', setCities.indexOf(o.dataset.city) !== -1);
     });
+    document.querySelectorAll('#setPrivacy .privacy-opt').forEach(function(o){
+      o.classList.toggle('multi-on', (o.dataset.priv === 'private') === setPrivate);
+    });
   }
+  var setPrivate = false;
   $('#hubSettings').addEventListener('click', function(){
     setCountries = ref.countries.slice();
     setCities    = ref.cities.slice();
+    setPrivate   = !!isPrivate;
     renderSettings();
     goView('viewSettings','ac-violet');
+  });
+  $('#setPrivacy').addEventListener('click', function(e){
+    var o = e.target.closest('.privacy-opt'); if(!o) return;
+    setPrivate = (o.dataset.priv === 'private');
+    renderSettings();
   });
   $('#setBack').addEventListener('click', function(){ goView('viewHub','ac-red'); });
   $('#setCountries').addEventListener('click', function(e){
@@ -839,6 +971,8 @@
       ? setCountries.slice()
       : ref.cities.map(function(c){ return CITY_COUNTRY[c]; }).filter(function(k, i, a){ return a.indexOf(k) === i; });
     save('cilap-ref', ref);
+    isPrivate = setPrivate;
+    save('cilap-private', isPrivate);
     refreshRefUI();
     goView('viewHub','ac-red');
   });
@@ -1019,6 +1153,7 @@
         c.topVenue.name + ' · ' + c.topVenue.times + ' veces</div></div>' +
       '<div class="pstat wide"><div class="pk">Evento más concurrido</div><div class="pv sm">' +
         c.topEvent.name + ' · ' + c.topEvent.couples + ' parejas</div></div>';
+    $('#profTabRevNum').textContent = c.reviews;
     var fb = $('#profFollowBtn');
     fb.classList.toggle('leave', !!follows[c.id]);
     fb.textContent = follows[c.id] ? '✓ Siguiendo · dejar de seguir' : 'Seguir';

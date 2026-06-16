@@ -415,6 +415,33 @@ body{
 .subpanel .sv{font-size:12px}
 .subpanel .se,.subpanel .sx{width:19px;height:19px;font-size:9px}
 
+/* ── criterios comprimidos (barra compacta al hacer scroll) ──────────────
+   al colapsar se ocultan el panel y el subpanel y aparece esta barra, que
+   queda pegada bajo la cabecera para dejar las pestañas en zona alta */
+.panel-mini{display:none}
+#view2.crit-collapsed .panel,
+#view2.crit-collapsed .subpanel.show{display:none}
+#view2.crit-collapsed .panel-mini{display:flex}
+.panel-mini{
+  position:sticky;top:0;z-index:5;
+  width:100%;align-items:center;gap:10px;
+  margin:10px 0 12px;padding:10px 14px;
+  background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;
+  color:var(--text);font:inherit;cursor:pointer;text-align:left;
+  transition:border-color .15s, box-shadow .15s, background-color .35s;
+}
+.panel-mini:hover,.panel-mini:active{border-color:var(--accent);box-shadow:0 0 12px var(--accent-glow)}
+.panel-mini .pm-caret{color:var(--accent);flex:none;font-size:12px}
+.panel-mini .pm-sum{
+  flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+}
+.panel-mini .pm-edit{
+  flex:none;font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--accent);border:1px solid var(--accent);border-radius:3px;padding:3px 7px;
+}
+
 /* pasos plegables */
 .step{
   max-height:0;
@@ -675,6 +702,7 @@ body{
   color:var(--muted);margin:0 0 10px;
 }
 .setblock .opts{display:flex;flex-direction:column;gap:10px;margin-bottom:22px}
+.privacy{display:flex;flex-direction:column;gap:10px;margin-bottom:22px}
 
 /* ───────────────────────── directorio de camarógrafos ──────────────────── */
 .ctrl{display:flex;align-items:center;gap:10px;margin-top:12px}
@@ -715,6 +743,14 @@ body{
 }
 .tabbar .fchip:hover,.tabbar .fchip:active{border-color:transparent;border-bottom-color:var(--line);box-shadow:none}
 .tabbar .fchip.on{color:var(--text);border-bottom-color:var(--accent);box-shadow:none;background:transparent}
+/* contador (nº de reseñas) dentro de una pestaña */
+.tabnum{
+  display:inline-block;min-width:16px;padding:0 5px;
+  font-family:var(--mono);font-size:10px;line-height:15px;
+  border:1px solid var(--line);border-radius:999px;
+  color:var(--muted);vertical-align:middle;
+}
+.tabbar .fchip.on .tabnum{color:var(--accent);border-color:var(--accent)}
 
 /* fila "Ordenar": siempre en 1 línea, chips repartiendo el ancho + flecha de sentido */
 .sort-row .chips{flex:1;flex-wrap:nowrap;min-width:0}
@@ -1058,6 +1094,12 @@ body{
 .evt.t-sala:hover,.evt.t-sala:active{border-color:#c46bff;box-shadow:0 0 20px rgba(196,107,255,.30)}
 .evt.t-congreso:hover,.evt.t-congreso:active{border-color:#3da9ff;box-shadow:0 0 20px rgba(61,169,255,.30)}
 .evt.t-exterior:hover,.evt.t-exterior:active{border-color:#ffd60a;box-shadow:0 0 20px rgba(255,214,10,.30)}
+/* Agenda: la opción seleccionada/pulsada se colorea con su color de tipo
+   (el mismo del borde izquierdo) */
+#modeCal .evt{transition:background-color .15s, border-color .18s, box-shadow .18s, transform .18s var(--ease)}
+#modeCal .evt.t-sala:hover,#modeCal .evt.t-sala:active{background:rgba(196,107,255,.16)}
+#modeCal .evt.t-congreso:hover,#modeCal .evt.t-congreso:active{background:rgba(61,169,255,.16)}
+#modeCal .evt.t-exterior:hover,#modeCal .evt.t-exterior:active{background:rgba(255,214,10,.16)}
 /* el tag del tipo en el detalle lleva el mismo código de color */
 .tag2.tt-sala{color:#c46bff;border-color:#c46bff}
 .tag2.tt-congreso{color:#3da9ff;border-color:#3da9ff}
@@ -1159,6 +1201,50 @@ body{
 .cta.leave::before{background:var(--accent)}
 .cta[hidden]{display:none}
 
+/* ── pantalla de evento: info breve + intenciones + revelar cámaras ── */
+.ev-brief{margin-top:12px;color:var(--muted);font-size:13.5px;line-height:1.5}
+.ev-intents{display:flex;flex-direction:column;gap:8px;margin-top:18px}
+.ev-intents .act-hint{margin-top:2px;text-align:left}
+/* las intenciones encadenadas: la 2ª y 3ª van ligeramente "indentadas" */
+#intWish{margin-left:14px}
+#intReq{margin-left:28px}
+.act.reveal{margin-top:16px;width:100%}
+.cam-picker{
+  margin-top:12px;padding:14px;
+  background:var(--surface);border:1px solid var(--line);border-radius:8px;
+  animation:rise .25s var(--ease) both;
+}
+.cp-head{display:flex;gap:8px;margin-bottom:10px}
+.cp-head input{
+  flex:1;min-width:0;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:4px;
+  color:var(--text);font:inherit;font-size:13px;padding:8px 10px;outline:none;
+  transition:border-color .15s, background-color .35s;
+}
+.cp-head input:focus{border-color:var(--accent)}
+.cp-head .fchip{flex:none}
+.cp-list{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto}
+.cp-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:6px;
+  color:var(--text);font:inherit;cursor:pointer;text-align:left;
+  transition:border-color .15s, box-shadow .15s;
+}
+.cp-item:hover,.cp-item:active{border-color:var(--accent)}
+.cp-item.on{border-color:var(--accent);box-shadow:0 0 12px var(--accent-glow)}
+.cp-name{flex:1;font-family:var(--opt-font);font-weight:600;font-size:14px;letter-spacing:.03em;text-transform:uppercase}
+.cp-fav{color:#ffd60a}
+.cp-city{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.cp-item .mbox{margin-left:0}
+.cp-item.on .mbox{background:var(--accent);border-color:var(--accent)}
+.cp-item.on .mbox::after{
+  content:'✓';position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  color:#0a0a0a;font-size:14px;font-weight:700;
+}
+#cpDone{margin-top:10px}
+
 /* banderas SVG */
 .flag{width:24px;height:17px;border-radius:2px;overflow:hidden;flex:none}
 
@@ -1243,3 +1329,22 @@ body{
 }
 .evt.t-sala .evt-time{color:#c46bff}
 .app.light .evt.t-sala .evt-time{color:#9a4fe0}
+
+/* ── Horarios salas: cabecera de sala y filas de horario semanal ── */
+.sala-head{margin-top:10px}
+.sala-head b{
+  display:block;font-family:var(--display);
+  font-size:21px;letter-spacing:.03em;text-transform:uppercase;
+}
+.sala-head .evt-meta{display:block;margin-top:4px}
+.sala-day{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:11px 14px;margin-bottom:8px;
+  background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid #c46bff;border-radius:6px;
+}
+.sala-dow{
+  font-family:var(--opt-font);font-weight:600;
+  font-size:14px;letter-spacing:.04em;text-transform:uppercase;
+}
+.sala-day .evt-time{margin-bottom:0}

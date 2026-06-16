@@ -173,7 +173,7 @@
       if(key !== lastKey){ h += '<div class="date-head">' + dateHeaderLabel(ev.startsAt) + '</div>'; lastKey = key; }
       var when = isMultiDay(ev) ? (fmtDate(ev.startsAt) + ' – ' + fmtDate(ev.endsAt)) : evHours(ev);
       var col = TYPE_COLOR[ev.type] || '#888';
-      h += '<button class="evt" data-ev="' + ev.id + '" style="border-left-color:' + col + '">' +
+      h += '<button class="evt t-' + ev.type + '" data-ev="' + ev.id + '" style="border-left-color:' + col + '">' +
            '<div class="evt-head"><span class="evt-name">' + esc(ev.name) + '</span></div>' +
            '<span class="evt-meta">' + when + ' · ' + ev.venue + ' · ' + (CITY_LABELS[ev.city]||ev.city) + '</span></button>';
     });
@@ -181,28 +181,52 @@
     return h;
   }
 
-  /* ───────────────────────── HORARIOS SALAS (semanales) ────────────────── */
-  function renderHorarios(container, weekly, cb){
-    var byDay = {};
-    weekly.forEach(function(ev){
-      (ev.weekdays || [ev.weekday]).forEach(function(wd){ (byDay[wd] = byDay[wd] || []).push(ev); });
-    });
+  /* ───────────────────────── HORARIOS SALAS (semanales) ─────────────────
+     Dos niveles: 1) lista de salas disponibles → 2) al pulsar una sala, su
+     horario semanal (los días que se repite y a qué hora). */
+  function renderHorarios(container, weekly, selId, cb){
     var order = [1,2,3,4,5,6,0];   // lun..dom
-    var h = '<p class="res-count" style="margin-top:14px">Salas que se repiten cada semana</p>';
-    var any = false;
-    order.forEach(function(wd){
-      var evs = byDay[wd]; if(!evs || !evs.length) return;
-      any = true;
-      h += '<div class="date-head">' + DOW_FULL[(wd+6)%7] + '</div>';
-      evs.forEach(function(ev){
-        h += '<button class="evt t-sala" data-ev="' + ev.id + '">' +
-             '<div class="evt-head"><span class="evt-name">' + esc(ev.name) + '</span></div>' +
-             (ev.timeLabel ? '<span class="evt-time">🕒 ' + ev.timeLabel + '</span>' : '') +
-             '<span class="evt-meta">' + ev.venue + ' · ' + (CITY_LABELS[ev.city]||ev.city) + '</span></button>';
+    var h;
+    if(selId == null){
+      /* nivel 1: salas de baile disponibles */
+      h = '<p class="res-count" style="margin-top:14px">Salas de baile disponibles</p>';
+      if(!weekly.length){
+        h += '<div class="notice" style="margin-top:12px"><span class="nosig">Sin salas</span><p>No hay salas semanales con esos filtros.</p></div>';
+      } else {
+        var sorted = weekly.slice().sort(function(a,b){ return a.name.localeCompare(b.name); });
+        sorted.forEach(function(ev){
+          var nd = (ev.weekdays || [ev.weekday]).length;
+          h += '<button class="evt t-sala" data-sala="' + ev.id + '">' +
+               '<div class="evt-head"><span class="evt-name">' + esc(ev.name) + '</span>' +
+                 '<span class="evt-badges"><span class="evt-cams on">' + nd + ' día' + (nd>1?'s':'') + '/sem</span></span></div>' +
+               '<span class="evt-meta">' + ev.venue + ' · ' + (CITY_LABELS[ev.city]||ev.city) + '</span></button>';
+        });
+      }
+    } else {
+      /* nivel 2: horario semanal de la sala elegida */
+      var sala = null;
+      weekly.forEach(function(e){ if(e.id === selId) sala = e; });
+      if(!sala){ container.innerHTML = ''; return; }
+      var days = (sala.weekdays || [sala.weekday]).slice();
+      h = '<div class="cal-monthnav"><button class="cal-nav" data-act="horBack">‹ Salas</button></div>';
+      h += '<div class="sala-head"><b>' + esc(sala.name) + '</b>' +
+           '<span class="evt-meta">' + sala.venue + ' · ' + (CITY_LABELS[sala.city]||sala.city) + '</span></div>';
+      h += '<p class="res-count" style="margin-top:14px">Horario semanal</p>';
+      order.forEach(function(wd){
+        if(days.indexOf(wd) === -1) return;
+        h += '<div class="sala-day"><span class="sala-dow">' + DOW_FULL[(wd+6)%7] + '</span>' +
+             '<span class="evt-time">🕒 ' + (sala.timeLabel || '—') + '</span></div>';
       });
-    });
-    if(!any) h += '<div class="notice" style="margin-top:12px"><span class="nosig">Sin salas</span><p>No hay salas semanales con esos filtros.</p></div>';
+      h += '<button class="evt t-sala" data-ev="' + sala.id + '" style="margin-top:14px">' +
+           '<div class="evt-head"><span class="evt-name">Ver detalle y camarógrafos</span>' +
+             '<span class="evt-badges"><span class="evt-cams on">›</span></span></div></button>';
+    }
     container.innerHTML = h;
+    var back = container.querySelector('[data-act="horBack"]');
+    if(back) back.addEventListener('click', cb.onBack);
+    container.querySelectorAll('[data-sala]').forEach(function(el){
+      el.addEventListener('click', function(){ cb.onSala(el.dataset.sala); });
+    });
     container.querySelectorAll('[data-ev]').forEach(function(el){
       el.addEventListener('click', function(){ cb.onEvent(el.dataset.ev); });
     });
