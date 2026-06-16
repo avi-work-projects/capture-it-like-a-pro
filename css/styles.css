@@ -579,18 +579,21 @@ body{
 
 /* ───────────────────────── HUB tras el rol ─────────────────────────────── */
 .hub{display:flex;flex-direction:column;gap:14px;flex:1;min-height:0;margin-top:18px}
-/* botón grande: lupa a la izquierda, texto al lado */
-.hub .card.big{
-  flex:1.6;
+/* zona superior: ocupa el sitio del antiguo botón grande, con 2 botones
+   apilados — "Eventos en mi ciudad" (mayor) + "Busco evento" (menor) */
+.hub-top{display:flex;flex-direction:column;gap:14px;flex:1.6;min-height:0}
+.hub .card.big{flex:1.5}
+.hub-top #hubEvent{flex:1}
+.hub .card.big,.hub-top #hubEvent{
   display:grid;
   grid-template-columns:auto 1fr;
   grid-template-rows:auto auto;
   align-content:center;
   column-gap:16px;row-gap:4px;
 }
-/* los dos botones menores van apilados, repartiéndose el alto de antes */
+/* fila inferior: "Ver camarógrafos" arriba y debajo [Mis bailes | engranaje] */
 .hub-row{display:flex;flex-direction:column;gap:14px;flex:1;min-height:0}
-.hub-row .card{
+.hub-row #hubCams,.hub-mine-row #hubMine{
   flex:1;
   display:grid;
   grid-template-columns:auto 1fr;
@@ -599,14 +602,32 @@ body{
   column-gap:14px;row-gap:2px;
   padding:12px 18px;
 }
-.hub-row .card .icn-hub{grid-row:1 / span 2;align-self:center;width:28px;height:28px}
-.hub .card.big .icn-hub{grid-row:1 / span 2;align-self:center;width:30px;height:30px}
-.hub-row .card .name{font-size:19px}
-.hub-row .card .sub{font-size:12px}
+.hub-mine-row{display:flex;gap:14px;flex:1;min-height:0}
+/* engranaje: botón cuadrado, solo icono centrado */
+.hub-mine-row .gear{
+  flex:none;width:74px;
+  display:flex;align-items:center;justify-content:center;
+  padding:12px;position:relative;
+}
+.hub-mine-row .gear .icn-hub{width:26px;height:26px}
+/* punto de aviso (config sin rellenar) en la esquina sup. dcha. */
+.gear-badge{
+  position:absolute;top:9px;right:9px;
+  width:11px;height:11px;border-radius:50%;
+  background:#ff3b30;border:2px solid var(--bg);
+  box-shadow:0 0 8px rgba(255,59,48,.7);
+}
+.gear-badge[hidden]{display:none}
+.hub-row #hubCams .icn-hub,.hub-mine-row #hubMine .icn-hub{grid-row:1 / span 2;align-self:center;width:28px;height:28px}
+.hub .card.big .icn-hub,.hub-top #hubEvent .icn-hub{grid-row:1 / span 2;align-self:center;width:30px;height:30px}
+.hub-top #hubEvent .name,.hub-row #hubCams .name,.hub-mine-row #hubMine .name{font-size:19px}
+.hub-top #hubEvent .sub,.hub-row #hubCams .sub,.hub-mine-row #hubMine .sub{font-size:12px}
 /* cada acción del hub tiene su acento: el color de la sección que abre */
-#hubEvent{--hac:#3da9ff;--hglow:rgba(61,169,255,.30)}   /* azul = país */
-#hubCams {--hac:#ffd60a;--hglow:rgba(255,214,10,.30)}   /* ámbar = directorio */
-#hubMine {--hac:#c6ff00;--hglow:rgba(198,255,0,.30)}    /* lima = historial */
+#hubMyCity{--hac:#3da9ff;--hglow:rgba(61,169,255,.30)}   /* azul = país/ciudad */
+#hubEvent{--hac:#3da9ff;--hglow:rgba(61,169,255,.30)}    /* azul = país */
+#hubCams {--hac:#ffd60a;--hglow:rgba(255,214,10,.30)}    /* ámbar = directorio */
+#hubMine {--hac:#c6ff00;--hglow:rgba(198,255,0,.30)}     /* lima = historial */
+#hubSettings{--hac:#c46bff;--hglow:rgba(196,107,255,.30)} /* violeta = ajustes */
 .card .icn-hub{color:var(--hac, var(--text));transition:color .18s}
 .hub .card:hover,.hub .card:active{
   border-color:var(--hac);
@@ -614,6 +635,17 @@ body{
 }
 .hub .card:hover::before,.hub .card:hover::after,
 .hub .card:active::before,.hub .card:active::after{border-color:var(--hac)}
+/* "Eventos en mi ciudad" deshabilitado mientras no haya país/ciudad guardados */
+.hub .card.locked{opacity:.5;cursor:not-allowed}
+.hub .card.locked:hover,.hub .card.locked:active{border-color:var(--line);box-shadow:none}
+.hub .card.locked .sub{color:#ff7a6e}
+/* vista de configuración (país/ciudad de referencia) */
+.setblock{margin-top:18px}
+.setblock .pm-h{
+  font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 10px;
+}
+.setblock .opts{display:flex;flex-direction:column;gap:10px;margin-bottom:22px}
 
 /* ───────────────────────── directorio de camarógrafos ──────────────────── */
 .ctrl{display:flex;align-items:center;gap:10px;margin-top:12px}

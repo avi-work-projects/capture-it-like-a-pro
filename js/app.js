@@ -19,6 +19,8 @@
   var queue    = store('cilap-queue',   {});   // colas a las que te has apuntado
   var checkins = store('cilap-checkin', {});   // eventos donde TÚ abriste cola
   var saldo    = store('cilap-saldo',   20);   // saldo mock del bailarín (20 € de regalo)
+  var ref      = store('cilap-ref', { countries:[], cities:[] });   // país/ciudad de referencia (config)
+  function hasRef(){ return !!(ref.cities && ref.cities.length); }
   function fmtEur(x){ return x.toFixed(2).replace('.', ',') + ' €'; }
   function charge(x){
     saldo = Math.round((saldo - x) * 100) / 100;
@@ -260,7 +262,7 @@
   $('#homeBtn3').addEventListener('click', goHome);
 
   /* ── transición genérica entre vistas ─────────────────────────────── */
-  var VIEW_IDS = ['view1','viewHub','view2','viewCams','viewProfile','viewMine','view3'];
+  var VIEW_IDS = ['view1','viewHub','view2','viewSettings','viewCams','viewProfile','viewMine','view3'];
   function goView(toId, accent){
     var to = $('#'+toId);
     if(accent) setAccent(accent);
@@ -743,11 +745,47 @@
     $('#hubMineSub').textContent = dancer ? 'Quién te grabó y qué' : 'Lo que has grabado';
     renderSaldo();
     $('#hubSaldo').classList.toggle('show', dancer);   // el saldo es cosa del bailarín
+    refreshRefUI();
+  }
+  /* refleja la config de país/ciudad: botón "Eventos en mi ciudad"
+     bloqueado y aviso en el engranaje mientras no se haya rellenado */
+  function refreshRefUI(){
+    var ok = hasRef();
+    $('#hubMyCity').classList.toggle('locked', !ok);
+    $('#hubMyCity').disabled = !ok;
+    $('#hubMyCitySub').textContent = ok ? refLabel() : 'Configúralo en ⚙ para activarlo';
+    $('#settingsBadge').hidden = ok;
+  }
+  function refLabel(){
+    if(ref.cities.length) return ref.cities.map(function(c){ return CITY_LABELS[c]; }).join(', ');
+    return 'Tu país y ciudad de referencia';
   }
   $('#hubBack').addEventListener('click', function(){ goView('view1','ac-red'); });
   $('#hubEvent').addEventListener('click', function(){
     goView('view2');
     advance();                       // retoma la búsqueda donde estuviera
+  });
+  /* "Eventos en mi ciudad": filtros con país y ciudad ya fijados a la
+     referencia guardada; solo queda elegir el Tipo */
+  $('#hubMyCity').addEventListener('click', function(){
+    if(!hasRef()) return;
+    var COUNTRY_LBL = function(k){ return k === 'es' ? 'España' : 'Polonia'; };
+    var cities = ref.cities.slice();
+    var countries = ref.countries.length
+      ? ref.countries.slice()
+      : cities.map(function(c){ return CITY_COUNTRY[c]; }).filter(function(k, i, a){ return a.indexOf(k) === i; });
+    function pack(vals, lblFn){
+      var single = vals.length === 1;
+      return { value: single ? vals[0] : vals.slice(), label: vals.map(lblFn).join(', '), multi: !single };
+    }
+    state.country = pack(countries, COUNTRY_LBL);
+    state.city    = pack(cities, function(c){ return CITY_LABELS[c]; });
+    state.type = null; state.subtype = null;   // el tipo se elige ahora
+    editing = null;
+    closeAll();
+    renderPanel();
+    goView('view2');
+    advance();                       // país+ciudad puestos → abre directamente "Tipo"
   });
   $('#hubCams').addEventListener('click', function(){
     renderCamDir();
@@ -756,6 +794,53 @@
   $('#hubMine').addEventListener('click', function(){
     renderMine();
     goView('viewMine','ac-lime');
+  });
+
+  /* ── configuración: país y ciudad de referencia (⚙) ──────────────────── */
+  var setCountries = [], setCities = [];   // selección temporal hasta "Guardar"
+  function renderSettings(){
+    document.querySelectorAll('#setCountries .po').forEach(function(o){
+      o.classList.toggle('multi-on', setCountries.indexOf(o.dataset.c) !== -1);
+    });
+    var cities = setCountries.length
+      ? setCountries.reduce(function(acc, k){ return acc.concat(k === 'es' ? ['mad','sev','bcn'] : ['waw','kra']); }, [])
+      : ['mad','sev','bcn','waw','kra'];
+    $('#setCities').innerHTML = cities.map(function(c){
+      return '<button class="opt po" data-city="' + c + '"><span class="lbl"><b>' + CITY_LABELS[c] + '</b></span><span class="mbox"></span></button>';
+    }).join('');
+    document.querySelectorAll('#setCities .po').forEach(function(o){
+      o.classList.toggle('multi-on', setCities.indexOf(o.dataset.city) !== -1);
+    });
+  }
+  $('#hubSettings').addEventListener('click', function(){
+    setCountries = ref.countries.slice();
+    setCities    = ref.cities.slice();
+    renderSettings();
+    goView('viewSettings','ac-violet');
+  });
+  $('#setBack').addEventListener('click', function(){ goView('viewHub','ac-red'); });
+  $('#setCountries').addEventListener('click', function(e){
+    var o = e.target.closest('.po'); if(!o) return;
+    var k = o.dataset.c, i = setCountries.indexOf(k);
+    if(i === -1) setCountries.push(k); else setCountries.splice(i, 1);
+    setCities = setCities.filter(function(c){ return !setCountries.length || setCountries.indexOf(CITY_COUNTRY[c]) !== -1; });
+    renderSettings();
+  });
+  $('#setCities').addEventListener('click', function(e){
+    var o = e.target.closest('.po'); if(!o) return;
+    var c = o.dataset.city, i = setCities.indexOf(c);
+    if(i === -1) setCities.push(c); else setCities.splice(i, 1);
+    renderSettings();
+  });
+  $('#setSave').addEventListener('click', function(){
+    // ciudad sin país marcado: deriva el país para mantener coherencia
+    ref.cities = setCities.slice();
+    ref.countries = setCountries.length
+      ? setCountries.slice()
+      : ref.cities.map(function(c){ return CITY_COUNTRY[c]; }).filter(function(k, i, a){ return a.indexOf(k) === i; });
+    save('cilap-ref', ref);
+    refreshRefUI();
+    goView('viewHub','ac-red');
   });
   $('#mapaBtn').addEventListener('click', function(){
     location.href = 'mapa-editor/';   // módulo aparte; se integrará más adelante
