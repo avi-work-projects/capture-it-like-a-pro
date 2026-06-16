@@ -180,6 +180,11 @@
       if(isExt && !firstEmpty) firstEmpty = sp;
     }
     if(firstEmpty) firstEmpty.classList.add('now');
+    /* resumen para la barra de criterios comprimida */
+    var sum = ['country','city','type','subtype'].map(function(k){
+      return state[k] ? state[k].label : null;
+    }).filter(Boolean).join(' · ');
+    var ms = $('#panelMiniSum'); if(ms) ms.textContent = sum || 'Sin criterios';
   }
   /* ✕ de cada hueco: quita esa selección (y las posteriores en cascada).
      El rol no lleva ✕/✎ a propósito: una vez elegido, no se edita desde aquí. */
@@ -595,12 +600,14 @@
      según convenga. */
   var setCritCollapsed;   // accesible desde setEvMode (auto-colapsar en cal/horarios)
   (function(){
-    var v2 = $('#view2'), tabs = $('#evModeTabs');
-    var EFFORT = 80, effort = 0, touchY = 0;
+    var v2 = $('#view2'), tabs = $('#evModeTabs'), mini = $('#panelMini');
+    var panel = $('#panel'), subp = $('#subPanel');
+    var EFFORT = 80, LOCK_MS = 500, effort = 0, touchY = 0, collapsedAt = 0;
     function critReady(){ return $('#result').classList.contains('open'); }
     function headH(){ var h = v2.querySelector('.v2-head'); return h ? h.offsetHeight : 0; }
-    var panel = $('#panel'), subp = $('#subPanel');
-    function setBox(el, on){
+    function locked(){ return Date.now() - collapsedAt >= LOCK_MS; }   // anclado tras 0,5 s
+    function setBox(el, on, anim){
+      el.style.transition = anim ? '' : 'none';   // colapsar = instantáneo (sin salto); desplegar = animado
       el.style.maxHeight = on ? '0px' : '';
       el.style.opacity   = on ? '0' : '';
       el.style.marginTop = on ? '0px' : '';
@@ -608,35 +615,51 @@
       el.style.paddingTop = on ? '0px' : '';
       el.style.paddingBottom = on ? '0px' : '';
     }
-    function collapse(on){
-      tabs.style.top = headH() + 'px';                       // pestañas siempre justo bajo la cabecera
-      v2.classList.toggle('crit-collapsed', on);
-      setBox(panel, on);                                     // inline → gana la cascada con seguridad
-      setBox(subp, on);
-      if(!on) effort = 0;
+    function tops(){
+      var hH = headH();
+      mini.style.top = hH + 'px';
+      tabs.style.top = (hH + (v2.classList.contains('crit-collapsed') ? mini.offsetHeight : 0)) + 'px';
+    }
+    function collapse(on, fromGesture){
+      var was = v2.classList.contains('crit-collapsed');
+      if(on && !was){
+        var h0 = v2.scrollHeight;
+        setBox(panel, true, false); setBox(subp, true, false);   // instantáneo
+        v2.classList.add('crit-collapsed');
+        var h1 = v2.scrollHeight;
+        v2.scrollTop = Math.max(0, v2.scrollTop - (h0 - h1));     // compensa: el contenido no salta
+        collapsedAt = fromGesture ? Date.now() : 0;              // auto (cambio de pestaña) → anclado ya
+      } else if(!on && was){
+        setBox(panel, false, true); setBox(subp, false, true);   // animado al desplegar
+        v2.classList.remove('crit-collapsed');
+        effort = 0;
+      }
+      tops();
     }
     setCritCollapsed = collapse;
-    function atBottom(){ return v2.scrollTop + v2.clientHeight >= v2.scrollHeight - 4; }
     v2.addEventListener('scroll', function(){
       if(!critReady()) return;
-      tabs.style.top = headH() + 'px';
-      if(!v2.classList.contains('crit-collapsed') && atBottom()) collapse(true);   // solo al final del scroll
+      if(!v2.classList.contains('crit-collapsed')){
+        tops();
+        /* comprimir cuando el histórico ya ha salido de vista (tras la cabecera) */
+        var head = v2.querySelector('.v2-head');
+        var hb = head ? head.getBoundingClientRect().bottom : 0;
+        if(panel.getBoundingClientRect().bottom <= hb + 2) collapse(true, true);   // gesto
+      } else if(v2.scrollTop <= 2 && !locked()){
+        collapse(false);                                          // subir antes de 0,5 s → despliega solo
+      }
     }, { passive:true });
-    /* desplegar = "esfuerzo": sobre-scroll hacia arriba estando arriba del todo */
+    /* tras 0,5 s anclado: desplegar exige "esfuerzo" (sobre-scroll arriba) */
     function tryEffort(amount){
-      if(!critReady() || !v2.classList.contains('crit-collapsed')) return;
-      if(v2.scrollTop > 2) return;
+      if(!critReady() || !v2.classList.contains('crit-collapsed') || v2.scrollTop > 2) return;
+      if(!locked()){ collapse(false); return; }
       effort += amount;
       if(effort > EFFORT){ collapse(false); v2.scrollTop = 0; }
     }
-    v2.addEventListener('wheel', function(e){
-      if(e.deltaY < 0) tryEffort(-e.deltaY); else effort = 0;
-    }, { passive:true });
+    v2.addEventListener('wheel', function(e){ if(e.deltaY < 0) tryEffort(-e.deltaY); else effort = 0; }, { passive:true });
     v2.addEventListener('touchstart', function(e){ touchY = e.touches[0].clientY; effort = 0; }, { passive:true });
-    v2.addEventListener('touchmove', function(e){
-      var y = e.touches[0].clientY, dy = y - touchY; touchY = y;
-      if(dy > 0) tryEffort(dy);
-    }, { passive:true });
+    v2.addEventListener('touchmove', function(e){ var y = e.touches[0].clientY, dy = y - touchY; touchY = y; if(dy > 0) tryEffort(dy); }, { passive:true });
+    mini.addEventListener('click', function(){ v2.scrollTop = 0; collapse(false); });
   })();
 
   /* swipe horizontal en el calendario para cambiar de mes */

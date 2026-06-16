@@ -439,23 +439,26 @@ body{
 .panel-mini{
   position:sticky;top:0;z-index:5;
   width:100%;align-items:center;gap:10px;
-  margin:10px 0 12px;padding:10px 14px;
-  animation:rise .3s var(--ease) both;
+  margin:0 0 10px;padding:9px 12px;
+  animation:rise .25s var(--ease) both;
   background:var(--surface);
   border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;
   color:var(--text);font:inherit;cursor:pointer;text-align:left;
   transition:border-color .15s, box-shadow .15s, background-color .35s;
 }
 .panel-mini:hover,.panel-mini:active{border-color:var(--accent);box-shadow:0 0 12px var(--accent-glow)}
-.panel-mini .pm-caret{color:var(--accent);flex:none;font-size:12px}
+.panel-mini .pm-caret{color:var(--accent);flex:none;font-size:12px;transform:rotate(-90deg)}
 .panel-mini .pm-sum{
   flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
 }
 .panel-mini .pm-edit{
-  flex:none;font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--accent);border:1px solid var(--accent);border-radius:3px;padding:3px 7px;
+  flex:none;background:transparent;cursor:pointer;
+  font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--accent);border:1px solid var(--accent);border-radius:3px;padding:4px 9px;
+  transition:background-color .15s, color .15s;
 }
+.panel-mini .pm-edit:hover,.panel-mini .pm-edit:active{background:var(--accent);color:#0a0a0a}
 
 /* pasos plegables */
 .step{
@@ -1312,11 +1315,13 @@ body{
 #modeProx,#modeCal,#modeHorarios{margin-top:4px}
 
 /* navegación año / mes */
-.cal-yearnav,.cal-monthnav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0 4px}
-.cal-year,.cal-mtitle{font-family:var(--display);font-size:20px;letter-spacing:.03em;text-transform:uppercase}
+.cal-yearnav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0 4px}
+.cal-monthnav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px 0 2px}
+.cal-year{font-family:var(--display);font-size:20px;letter-spacing:.03em;text-transform:uppercase}
+.cal-mtitle{font-family:var(--display);font-size:18px;letter-spacing:.03em;text-transform:uppercase}
 /* sub-pestañas del calendario (Calendario/Agenda): compactas para ganar alto */
-#calSubTabs{margin:6px 0 8px}
-#calSubTabs .fchip{padding:7px 4px}
+#calSubTabs{margin:4px 0 4px}
+#calSubTabs .fchip{padding:5px 4px}
 .cal-mnav{display:flex;gap:6px}
 .cal-nav{
   background:var(--surface);border:1px solid var(--line);border-radius:5px;
@@ -1347,11 +1352,11 @@ body{
 
 /* vista mes: rejilla con barras (multi-día y puntuales, ambas con texto).
    Celdas con texto pero compactas para que el mes entero quepa en pantalla. */
-.cal-grid{--cal-dn-h:20px;--cal-bar-h:18px;margin-top:8px}
+.cal-grid{--cal-dn-h:18px;--cal-bar-h:17px;margin-top:4px}
 .cal-grid-h{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:2px}
 .cal-grid-h span{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);text-align:center}
-.cal-week{position:relative;display:grid;grid-template-columns:repeat(7,1fr);min-height:calc(var(--cal-dn-h) + (var(--bars,0)*var(--cal-bar-h)) + 8px)}
-.cal-day{border:1px solid var(--line);border-right:none;border-bottom:none;padding:2px 0 0 4px;min-height:72px}
+.cal-week{position:relative;display:grid;grid-template-columns:repeat(7,1fr);min-height:calc(var(--cal-dn-h) + (var(--bars,0)*var(--cal-bar-h)) + 6px)}
+.cal-day{border:1px solid var(--line);border-right:none;border-bottom:none;padding:2px 0 0 4px;min-height:56px}
 .cal-week .cal-day:last-child{border-right:1px solid var(--line)}
 .cal-week:last-child .cal-day{border-bottom:1px solid var(--line)}
 .cal-day.out{background:transparent;border-color:transparent}
