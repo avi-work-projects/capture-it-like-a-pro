@@ -201,7 +201,7 @@
   /* ───────────────────────── HORARIOS SALAS (semanales) ─────────────────
      Dos niveles: 1) lista de salas disponibles → 2) al pulsar una sala, su
      horario semanal (los días que se repite y a qué hora). */
-  function renderHorarios(container, weekly, selId, cb){
+  function renderHorarios(container, weekly, selId, sub, cb){
     var order = [1,2,3,4,5,6,0];   // lun..dom
     var h;
     if(selId == null){
@@ -225,28 +225,36 @@
       weekly.forEach(function(e){ if(e.id === selId) sala = e; });
       if(!sala){ container.innerHTML = ''; return; }
       var days = (sala.weekdays || [sala.weekday]).slice();
+      var tab = (sub === 'proximos') ? 'proximos' : 'horario';
       h = '<div class="cal-monthnav"><button class="cal-nav" data-act="horBack">‹ Salas</button></div>';
       h += '<div class="sala-head"><b>' + esc(sala.name) + '</b>' +
            '<span class="evt-meta">' + sala.venue + ' · ' + (CITY_LABELS[sala.city]||sala.city) + '</span></div>';
-      h += '<p class="res-count" style="margin-top:14px">Horario semanal</p>';
-      order.forEach(function(wd){
-        if(days.indexOf(wd) === -1) return;
-        h += '<div class="sala-day"><span class="sala-dow">' + DOW_FULL[(wd+6)%7] + '</span>' +
-             '<span class="evt-time">🕒 ' + (sala.timeLabel || '—') + '</span></div>';
-      });
-      /* próximos días concretos: cada uno es un evento de un día → apuntarte */
-      var occ = upcomingDates(sala, 8);
-      h += '<p class="res-count" style="margin-top:18px">Próximos días · elige uno para apuntarte</p>';
-      if(!occ.length){
-        h += '<p class="cal-empty">Sin próximas fechas.</p>';
-      } else {
-        occ.forEach(function(o){
-          var d = new Date(o.start);
-          h += '<button class="evt t-sala" data-occ="' + o.start + '_' + o.end + '">' +
-               '<div class="evt-head"><span class="evt-name">' + DOW_FULL[(d.getDay()+6)%7] + ' ' + d.getDate() + ' ' + MNS[d.getMonth()].toLowerCase() + '</span>' +
-               '<span class="evt-badges"><span class="evt-cams on">Apuntarme ›</span></span></div>' +
-               (sala.timeLabel ? '<span class="evt-time">🕒 ' + sala.timeLabel + '</span>' : '') + '</button>';
+      /* dos pestañas: Horario semanal · Próximos días */
+      h += '<div class="tabbar" id="salaTabs">' +
+        '<button class="fchip' + (tab==='horario'?' on':'') + '" data-stab="horario">Horario semanal</button>' +
+        '<button class="fchip' + (tab==='proximos'?' on':'') + '" data-stab="proximos">Próximos días</button>' +
+      '</div>';
+      if(tab === 'horario'){
+        order.forEach(function(wd){
+          if(days.indexOf(wd) === -1) return;
+          h += '<div class="sala-day"><span class="sala-dow">' + DOW_FULL[(wd+6)%7] + '</span>' +
+               '<span class="evt-time">🕒 ' + (sala.timeLabel || '—') + '</span></div>';
         });
+      } else {
+        /* próximos días concretos: cada uno es un evento de un día → apuntarte */
+        var occ = upcomingDates(sala, 10);
+        h += '<p class="res-count">Elige un día para apuntarte</p>';
+        if(!occ.length){
+          h += '<p class="cal-empty">Sin próximas fechas.</p>';
+        } else {
+          occ.forEach(function(o){
+            var d = new Date(o.start);
+            h += '<button class="evt t-sala" data-occ="' + o.start + '_' + o.end + '">' +
+                 '<div class="evt-head"><span class="evt-name">' + DOW_FULL[(d.getDay()+6)%7] + ' ' + d.getDate() + ' ' + MNS[d.getMonth()].toLowerCase() + '</span>' +
+                 '<span class="evt-badges"><span class="evt-cams on">Apuntarme ›</span></span></div>' +
+                 (sala.timeLabel ? '<span class="evt-time">🕒 ' + sala.timeLabel + '</span>' : '') + '</button>';
+          });
+        }
       }
     }
     container.innerHTML = h;
@@ -254,6 +262,9 @@
     if(back) back.addEventListener('click', cb.onBack);
     container.querySelectorAll('[data-sala]').forEach(function(el){
       el.addEventListener('click', function(){ cb.onSala(el.dataset.sala); });
+    });
+    container.querySelectorAll('#salaTabs .fchip').forEach(function(t){
+      t.addEventListener('click', function(){ cb.onSub(t.dataset.stab); });
     });
     container.querySelectorAll('[data-occ]').forEach(function(el){
       el.addEventListener('click', function(){ var p = el.dataset.occ.split('_'); cb.onOccurrence(selId, +p[0], +p[1]); });

@@ -110,7 +110,7 @@
     ALL_STEPS.forEach(closeStep);
     if(resultTimer){ clearTimeout(resultTimer); resultTimer=null; }
     $('#result').classList.remove('done');
-    $('#view2').classList.remove('crit-collapsed');   // al editar, criterios visibles
+    if(setCritCollapsed) setCritCollapsed(false);     // al editar, criterios visibles
   }
   function closeFrom(key){
     var map = { country:['stepA','stepB','stepC','stepD','result'],
@@ -133,7 +133,7 @@
       r.classList.remove('done');
       defaultDateRange();          // por defecto: próximos 7 días
       renderResults();
-      $('#view2').classList.remove('crit-collapsed');   // criterios desplegados al recalcular
+      if(setCritCollapsed) setCritCollapsed(false);     // criterios desplegados al recalcular
       $('#view2').scrollTop = 0;
       openStep('result');
       resultTimer = setTimeout(function(){ r.classList.add('done'); }, 1400);
@@ -180,11 +180,6 @@
       if(isExt && !firstEmpty) firstEmpty = sp;
     }
     if(firstEmpty) firstEmpty.classList.add('now');
-    /* resumen para la barra de criterios comprimida */
-    var sum = ['country','city','type','subtype'].map(function(k){
-      return state[k] ? state[k].label : null;
-    }).filter(Boolean).join(' · ');
-    $('#panelMiniSum').textContent = sum || 'Sin criterios';
   }
   /* ✕ de cada hueco: quita esa selección (y las posteriores en cascada).
      El rol no lleva ✕/✎ a propósito: una vez elegido, no se edita desde aquí. */
@@ -272,9 +267,10 @@
   }
   $('#homeBtn2').addEventListener('click', goHome);
   $('#homeBtn3').addEventListener('click', goHome);
+  $('#homeBtnEC').addEventListener('click', goHome);
 
   /* ── transición genérica entre vistas ─────────────────────────────── */
-  var VIEW_IDS = ['view1','viewHub','view2','viewSettings','viewCams','viewProfile','viewMine','view3'];
+  var VIEW_IDS = ['view1','viewHub','view2','viewSettings','viewCams','viewProfile','viewMine','view3','viewEvCams'];
   function goView(toId, accent){
     var to = $('#'+toId);
     if(accent) setAccent(accent);
@@ -559,11 +555,12 @@
       });
     }
   }
-  var horSala = null;   // sala seleccionada dentro de "Horarios salas" (null = lista)
+  var horSala = null, horSub = 'horario';   // sala seleccionada + pestaña (horario/proximos)
   function renderHorariosMode(){
-    Calendar.renderHorarios($('#modeHorarios'), eventsByFilter('weekly', false), horSala, {
-      onSala:  function(id){ horSala = id; renderHorariosMode(); },
+    Calendar.renderHorarios($('#modeHorarios'), eventsByFilter('weekly', false), horSala, horSub, {
+      onSala:  function(id){ horSala = id; horSub = 'horario'; renderHorariosMode(); },
       onBack:  function(){ horSala = null; renderHorariosMode(); },
+      onSub:   function(s){ horSub = s; renderHorariosMode(); },
       onEvent: calEvent,
       /* un día concreto de la sala = un evento puntual de esa fecha (apuntarte) */
       onOccurrence: function(id, start, end){
@@ -581,49 +578,54 @@
     if(mode === 'prox')          renderResults();
     else if(mode === 'cal')      renderCalMode();
     else                       { horSala = null; renderHorariosMode(); }
+    /* en calendario/horarios comprimimos los criterios para que el contenido
+       (p.ej. el mes entero) quepa arriba; en próximos se controlan con scroll */
+    if(setCritCollapsed) setCritCollapsed(mode !== 'prox');
   }
   document.querySelectorAll('#evModeTabs .fchip').forEach(function(t){
     t.addEventListener('click', function(){ setEvMode(t.dataset.mode); });
   });
 
-  /* ── criterios comprimibles: al bajar, los criterios se colapsan (animado)
-     y las pestañas quedan ANCLADAS arriba, siempre visibles. Para volver a
-     desplegarlos hay que hacer "un poco de esfuerzo": tirar hacia arriba
-     (sobre-scroll) estando arriba del todo — no se despliega solo. */
+  /* ── criterios comprimibles ───────────────────────────────────────────
+     Los criterios (rol/país/ciudad/tipo) solo se comprimen al LLEGAR AL FINAL
+     del scroll (sin acelerar el scroll: al estar abajo del todo, el navegador
+     mantiene la posición). Las pestañas quedan ancladas justo bajo la cabecera
+     (lo más arriba posible). Para volver a desplegar: tirar hacia arriba
+     (sobre-scroll) estando arriba del todo, o cambiar de pestaña los despliega
+     según convenga. */
+  var setCritCollapsed;   // accesible desde setEvMode (auto-colapsar en cal/horarios)
   (function(){
-    var v2 = $('#view2'), mini = $('#panelMini'), tabs = $('#evModeTabs');
-    var EFFORT = 70, LOCK_MS = 500, effort = 0, touchY = 0, collapsedAt = 0;
+    var v2 = $('#view2'), tabs = $('#evModeTabs');
+    var EFFORT = 80, effort = 0, touchY = 0;
     function critReady(){ return $('#result').classList.contains('open'); }
     function headH(){ var h = v2.querySelector('.v2-head'); return h ? h.offsetHeight : 0; }
-    function locked(){ return Date.now() - collapsedAt > LOCK_MS; }   // "bloqueo" tras 0,5 s colapsado
-    function collapse(on){
-      var hH = headH();
-      if(on){
-        if(!v2.classList.contains('crit-collapsed')) collapsedAt = Date.now();
-        v2.classList.add('crit-collapsed');
-        mini.style.top = hH + 'px';
-        tabs.style.top = (hH + mini.offsetHeight) + 'px';   // pestañas bajo la barra de criterios
-      } else {
-        v2.classList.remove('crit-collapsed');
-        tabs.style.top = hH + 'px';                          // pestañas bajo la cabecera
-        effort = 0;
-      }
+    var panel = $('#panel'), subp = $('#subPanel');
+    function setBox(el, on){
+      el.style.maxHeight = on ? '0px' : '';
+      el.style.opacity   = on ? '0' : '';
+      el.style.marginTop = on ? '0px' : '';
+      el.style.marginBottom = on ? '0px' : '';
+      el.style.paddingTop = on ? '0px' : '';
+      el.style.paddingBottom = on ? '0px' : '';
     }
+    function collapse(on){
+      tabs.style.top = headH() + 'px';                       // pestañas siempre justo bajo la cabecera
+      v2.classList.toggle('crit-collapsed', on);
+      setBox(panel, on);                                     // inline → gana la cascada con seguridad
+      setBox(subp, on);
+      if(!on) effort = 0;
+    }
+    setCritCollapsed = collapse;
+    function atBottom(){ return v2.scrollTop + v2.clientHeight >= v2.scrollHeight - 4; }
     v2.addEventListener('scroll', function(){
       if(!critReady()) return;
-      if(v2.scrollTop > 50){ collapse(true); }               // bajar → comprime
-      else if(v2.classList.contains('crit-collapsed')){
-        /* recién colapsado (<0,5 s) y vuelves arriba → se despliega solo y suave */
-        if(v2.scrollTop <= 2 && !locked()) collapse(false);
-      } else {
-        tabs.style.top = headH() + 'px';
-      }
+      tabs.style.top = headH() + 'px';
+      if(!v2.classList.contains('crit-collapsed') && atBottom()) collapse(true);   // solo al final del scroll
     }, { passive:true });
-    /* tras el bloqueo (>0,5 s): expandir exige "esfuerzo" = sobre-scroll arriba */
+    /* desplegar = "esfuerzo": sobre-scroll hacia arriba estando arriba del todo */
     function tryEffort(amount){
       if(!critReady() || !v2.classList.contains('crit-collapsed')) return;
-      if(v2.scrollTop > 2) return;                           // solo desde el tope
-      if(!locked()){ collapse(false); return; }              // aún sin bloquear → despliega fácil
+      if(v2.scrollTop > 2) return;
       effort += amount;
       if(effort > EFFORT){ collapse(false); v2.scrollTop = 0; }
     }
@@ -635,7 +637,21 @@
       var y = e.touches[0].clientY, dy = y - touchY; touchY = y;
       if(dy > 0) tryEffort(dy);
     }, { passive:true });
-    mini.addEventListener('click', function(){ v2.scrollTop = 0; collapse(false); });
+  })();
+
+  /* swipe horizontal en el calendario para cambiar de mes */
+  (function(){
+    var mc = $('#modeCal'), sx = 0, sy = 0;
+    mc.addEventListener('touchstart', function(e){ sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive:true });
+    mc.addEventListener('touchend', function(e){
+      if(calMonth == null) return;                 // solo en vista de mes
+      var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+      if(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.6){
+        if(dx < 0){ calMonth = (calMonth+1)%12; if(calMonth === 0) calYear++; }   // ← siguiente
+        else      { calMonth = (calMonth+11)%12; if(calMonth === 11) calYear--; } // → anterior
+        renderCalMode();
+      }
+    }, { passive:true });
   })();
 
   /* ── vista 3: detalle del evento + camarógrafos ───────────────────── */
@@ -703,63 +719,9 @@
       (ev.timeLabel ? ' · ' + ev.timeLabel : '');
     /* intenciones del bailarín (no comprometen; ocultas si eres cámara o pasó) */
     renderIntents(ev);
-    var cams = ev.camIds.map(function(id){ return CAMS_BY_ID[id]; });
-    var youCard = joined[ev.id];
-    var html = '';
-    cams.forEach(function(c){
-      /* misma tarjeta que el directorio (Seguir / Ver perfil) + subsección
-         con la info de ESTE evento (llegada/salida, tasa, reserva) */
-      html += '<div class="camcard' + (follows[c.id] ? ' followed' : '') + '" data-cam="' + c.id + '">' +
-        ccInner(c) +
-        '<div class="cc-event">' +
-          '<div class="cc-ev-line"><span class="cc-ev-k">Llegada</span> ~' + fmtTime(ev.startsAt) +
-            ' · <span class="cc-ev-k">Salida</span> ~' + fmtTime(ev.endsAt) + '</div>' +
-          '<div class="cc-ev-line"><span class="cc-ev-k">Tasa</span> ' + fmtEur(c.price) +
-            ' · <span class="cc-ev-k">Reserva</span> ' + (c.reserve ? fmtEur(c.reserve) : 'gratis') + '</div>' +
-          (!soyCam ? buildCamActions(ev, c, st) : '') +
-        '</div>' +
-      '</div>';
-    });
-    if(youCard){
-      html += '<div class="cam you"><span class="ic">' + CAM_SVG + '</span>' +
-        '<div class="cam-info"><b>Tú</b><small>Apuntado desde este móvil como camarógrafo</small></div>' +
-        '<span class="you-tag">Tú</span></div>';
-    }
-    var total = cams.length + (youCard ? 1 : 0);
-    $('#camList').innerHTML = html;
-    $('#camCount').textContent = '×' + total;
-    $('#camEmptyTxt').textContent = soyCam
-      ? 'Nadie se ha apuntado aún — sé el primero.'
-      : 'Aún no hay camarógrafos en este evento.';
-    $('#camEmpty').style.display = total ? 'none' : 'flex';
-    /* camarógrafos ocultos por defecto: se revelan con "Ver camarógrafos apuntados" */
-    $('#camsWrap').hidden = !camsRevealed;
-    $('#revealCams').classList.toggle('done', camsRevealed);
-    $('#revealCams').textContent = (camsRevealed ? 'Ocultar camarógrafos' : 'Ver camarógrafos apuntados') + ' · ×' + total;
-    /* Seguir / Ver perfil (perfil vuelve aquí) */
-    wireCamCards($('#camList'), renderEventDetail, function(){ renderEventDetail(); goView('view3','ac-red'); });
-    /* acciones del bailarín por evento (interés / reserva / cola) */
-    if(!soyCam){
-      $('#camList').querySelectorAll('[data-act]').forEach(function(b){
-        b.addEventListener('click', function(e){
-          e.stopPropagation();
-          if(b.disabled) return;
-          var c = CAMS_BY_ID[b.dataset.cam];
-          var key = ev.id + '_' + c.id;
-          if(b.dataset.act === 'interest'){
-            if(interest[key]) delete interest[key]; else interest[key] = true;
-            save('cilap-interest', interest);
-          } else if(b.dataset.act === 'resv'){
-            resv[key] = true; save('cilap-resv', resv);
-            charge(c.reserve);
-          } else if(b.dataset.act === 'queue'){
-            queue[key] = true; save('cilap-queue', queue);
-            charge(Math.max(0, c.price - (resv[key] ? c.reserve : 0)));
-          }
-          renderEventDetail();
-        });
-      });
-    }
+    /* botón que LLEVA a la vista de camarógrafos apuntados (no despliega aquí) */
+    var total = ev.camIds.length + (joined[ev.id] ? 1 : 0);
+    $('#revealCams').textContent = (st === 'terminado' ? 'Ver quién asistió' : 'Ver camarógrafos apuntados') + ' · ×' + total;
     /* CTA del camarógrafo: apuntarse al evento */
     var btn = $('#joinBtn');
     btn.hidden = !soyCam;
@@ -793,79 +755,95 @@
     }
   }
 
-  /* ── intenciones del bailarín sobre un evento (switch en cascada) ──────
-     Niveles: 1 "Voy a asistir" · 2 "Me interesará grabar" · 3 "Solicitar a
-     camarógrafo". Un nivel superior implica los inferiores; al apagar uno se
-     apagan también los superiores. Ninguna compromete a nada. */
-  var camsRevealed = false, pickerFav = false, pickerQuery = '';
-  function saveIntents(){ save('cilap-attend', attend); save('cilap-wishrec', wishrec); save('cilap-camreq', camreq); }
+  /* ── vista propia: camarógrafos apuntados a un evento/día concreto ────── */
+  function renderEventCams(){
+    var ev = currentEvent;
+    var st = eventStatus(ev);
+    var soyCam = state.role && state.role.value === 'cam';
+    $('#ecSub').textContent = ev.name + ' · ' + fmtDate(ev.startsAt) + ' · ' + evHours(ev);
+    var cams = ev.camIds.map(function(id){ return CAMS_BY_ID[id]; });
+    var youCard = joined[ev.id];
+    var html = '';
+    cams.forEach(function(c){
+      html += '<div class="camcard' + (follows[c.id] ? ' followed' : '') + '" data-cam="' + c.id + '">' +
+        ccInner(c) +
+        '<div class="cc-event">' +
+          '<div class="cc-ev-line"><span class="cc-ev-k">Llegada</span> ~' + fmtTime(ev.startsAt) +
+            ' · <span class="cc-ev-k">Salida</span> ~' + fmtTime(ev.endsAt) + '</div>' +
+          '<div class="cc-ev-line"><span class="cc-ev-k">Tasa</span> ' + fmtEur(c.price) +
+            ' · <span class="cc-ev-k">Reserva</span> ' + (c.reserve ? fmtEur(c.reserve) : 'gratis') + '</div>' +
+          (!soyCam ? buildCamActions(ev, c, st) : '') +
+        '</div>' +
+      '</div>';
+    });
+    if(youCard){
+      html += '<div class="cam you"><span class="ic">' + CAM_SVG + '</span>' +
+        '<div class="cam-info"><b>Tú</b><small>Apuntado desde este móvil como camarógrafo</small></div>' +
+        '<span class="you-tag">Tú</span></div>';
+    }
+    var total = cams.length + (youCard ? 1 : 0);
+    $('#camList').innerHTML = html;
+    $('#camCount').textContent = '×' + total;
+    $('#camEmptyTxt').textContent = soyCam
+      ? 'Nadie se ha apuntado aún — sé el primero.'
+      : (st === 'terminado' ? 'Nadie grabó en este evento.' : 'Aún no hay camarógrafos en este evento.');
+    $('#camEmpty').style.display = total ? 'none' : 'flex';
+    var back = function(){ renderEventCams(); goView('viewEvCams','ac-red'); };
+    wireCamCards($('#camList'), renderEventCams, back);
+    if(!soyCam){
+      $('#camList').querySelectorAll('[data-act]').forEach(function(b){
+        b.addEventListener('click', function(e){
+          e.stopPropagation();
+          if(b.disabled) return;
+          var c = CAMS_BY_ID[b.dataset.cam];
+          var key = ev.id + '_' + c.id;
+          if(b.dataset.act === 'interest'){
+            if(interest[key]) delete interest[key]; else interest[key] = true;
+            save('cilap-interest', interest);
+          } else if(b.dataset.act === 'resv'){
+            resv[key] = true; save('cilap-resv', resv);
+            charge(c.reserve);
+          } else if(b.dataset.act === 'queue'){
+            queue[key] = true; save('cilap-queue', queue);
+            charge(Math.max(0, c.price - (resv[key] ? c.reserve : 0)));
+          }
+          renderEventCams();
+        });
+      });
+    }
+  }
+
+  /* ── intenciones del bailarín sobre un evento (no comprometen a nada) ────
+     "Interesado en grabar" implica "Voy a asistir"; al apagar "Voy a asistir"
+     se apaga también "Interesado en grabar". */
+  function saveIntents(){ save('cilap-attend', attend); save('cilap-wishrec', wishrec); }
   function renderIntents(ev){
     var st = eventStatus(ev);
     var soyCam = state.role && state.role.value === 'cam';
     var show = !soyCam && st !== 'terminado';
     $('#evIntents').hidden = !show;
-    if(!show){ $('#camPicker').hidden = true; return; }
-    var nReq = (camreq[ev.id] || []).length;
-    $('#intAttend').classList.toggle('done', !!attend[ev.id]);
-    $('#intWish').classList.toggle('done', !!wishrec[ev.id]);
-    $('#intReq').classList.toggle('done', nReq > 0);
-    $('#intReq').querySelector('small').textContent = nReq > 0
-      ? 'Solicitado a ' + nReq + ' camarógrafo' + (nReq > 1 ? 's' : '') + '. Pulsa para editar.'
-      : 'Pides a camarógrafos concretos que vengan a grabarte.';
-  }
-  function renderPicker(ev){
-    var sel = camreq[ev.id] || [];
-    /* disponibles: camarógrafos de la ciudad del evento (o ya apuntados / ya solicitados).
-       Pendiente: incluir cámaras "desplazadas" para esas fechas (config futura del cam). */
-    var list = CAMS.filter(function(c){
-      return c.city === ev.city || ev.camIds.indexOf(c.id) !== -1 || sel.indexOf(c.id) !== -1;
-    });
-    if(pickerFav)   list = list.filter(function(c){ return follows[c.id]; });
-    if(pickerQuery) list = list.filter(function(c){ return c.name.toLowerCase().indexOf(pickerQuery) !== -1; });
-    $('#cpFav').classList.toggle('on', pickerFav);
-    $('#cpList').innerHTML = list.length ? list.map(function(c){
-      return '<button class="cp-item' + (sel.indexOf(c.id) !== -1 ? ' on' : '') + '" data-cam="' + c.id + '">' +
-        '<span class="cp-name">' + c.name + (follows[c.id] ? ' <span class="cp-fav">★</span>' : '') + '</span>' +
-        '<span class="cp-city">' + CITY_LABELS[c.city] + '</span><span class="mbox"></span></button>';
-    }).join('') : '<p class="act-hint" style="text-align:left">Ningún camarógrafo disponible con ese criterio.</p>';
+    if(!show) return;
+    $('#intAttend').classList.toggle('on', !!attend[ev.id]);
+    $('#intWish').classList.toggle('on', !!wishrec[ev.id]);
   }
   $('#intAttend').addEventListener('click', function(){
     var ev = currentEvent;
-    if(attend[ev.id]){ delete attend[ev.id]; delete wishrec[ev.id]; delete camreq[ev.id]; $('#camPicker').hidden = true; }
+    if(attend[ev.id]){ delete attend[ev.id]; delete wishrec[ev.id]; }   // apagar asistencia apaga todo
     else attend[ev.id] = true;
     saveIntents(); renderIntents(ev);
   });
   $('#intWish').addEventListener('click', function(){
     var ev = currentEvent;
-    if(wishrec[ev.id]){ delete wishrec[ev.id]; delete camreq[ev.id]; $('#camPicker').hidden = true; }
-    else { wishrec[ev.id] = true; attend[ev.id] = true; }
+    if(wishrec[ev.id]){ delete wishrec[ev.id]; }
+    else { wishrec[ev.id] = true; attend[ev.id] = true; }               // interesado ⇒ asistir
     saveIntents(); renderIntents(ev);
   });
-  $('#intReq').addEventListener('click', function(){
-    var ev = currentEvent, p = $('#camPicker');
-    if(p.hidden){ pickerQuery = ''; pickerFav = false; $('#cpSearch').value = ''; renderPicker(ev); p.hidden = false; }
-    else p.hidden = true;
-  });
-  $('#cpSearch').addEventListener('input', function(){ pickerQuery = this.value.trim().toLowerCase(); renderPicker(currentEvent); });
-  $('#cpFav').addEventListener('click', function(){ pickerFav = !pickerFav; renderPicker(currentEvent); });
-  $('#cpDone').addEventListener('click', function(){ $('#camPicker').hidden = true; });
-  $('#cpList').addEventListener('click', function(e){
-    var b = e.target.closest('.cp-item'); if(!b) return;
-    var ev = currentEvent, id = b.dataset.cam;
-    var sel = camreq[ev.id] || [];
-    var i = sel.indexOf(id);
-    if(i === -1) sel.push(id); else sel.splice(i, 1);
-    if(sel.length){ camreq[ev.id] = sel; wishrec[ev.id] = true; attend[ev.id] = true; }   // L3 ⇒ L2 ⇒ L1
-    else delete camreq[ev.id];
-    saveIntents(); renderPicker(ev); renderIntents(ev);
-  });
-  $('#revealCams').addEventListener('click', function(){ camsRevealed = !camsRevealed; renderEventDetail(); });
+  $('#revealCams').addEventListener('click', function(){ renderEventCams(); goView('viewEvCams','ac-red'); });
+  $('#ecBack').addEventListener('click', function(){ goView('view3','ac-red'); });
 
   function openEvent(ev){
     currentEvent = ev;
     camSelEv = null;
-    camsRevealed = false;
-    $('#camPicker').hidden = true;
     renderEventDetail();
     goView('view3', 'ac-red');
   }

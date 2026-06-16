@@ -196,13 +196,6 @@
       <button class="sx" title="Quitar selección">✕</button>
     </div>
 
-    <!-- criterios comprimidos (al hacer scroll): clic para desplegarlos -->
-    <button class="panel-mini" id="panelMini">
-      <span class="pm-caret">▾</span>
-      <span class="pm-sum" id="panelMiniSum">—</span>
-      <span class="pm-edit">Editar</span>
-    </button>
-
     <!-- PASO A · País -->
     <section class="step" id="stepA">
       <h3>¿En qué país?</h3>
@@ -425,45 +418,46 @@
 
     <!-- intenciones del bailarín (no comprometen a nada, revelan expectativas) -->
     <div class="ev-intents" id="evIntents" hidden>
-      <button class="act intent" id="intAttend">
-        <span class="int-check">✓</span>
-        <span class="int-txt"><b>Voy a asistir</b><small>Confirmas que irás a este evento.</small></span>
-      </button>
-      <button class="act intent" id="intWish">
-        <span class="int-check">✓</span>
-        <span class="int-txt"><b>Interesado en grabar</b><small>Te gustaría que te graben; anima a más camarógrafos a venir.</small></span>
-      </button>
-      <button class="act intent" id="intReq">
-        <span class="int-check">✓</span>
-        <span class="int-txt"><b>Solicitar a camarógrafo</b><small>Pides a camarógrafos concretos que vengan a grabarte.</small></span>
-      </button>
-      <p class="act-hint">Ninguna de estas opciones te compromete: solo muestran tus expectativas.</p>
-    </div>
-
-    <!-- selector de camarógrafo para "Solicitar a camarógrafo" -->
-    <div class="cam-picker" id="camPicker" hidden>
-      <div class="cp-head">
-        <input type="text" id="cpSearch" placeholder="Buscar camarógrafo…">
-        <button class="fchip" id="cpFav">Solo favoritos</button>
+      <div class="intent-cards">
+        <button class="intent-card" id="intAttend">
+          <svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 3v3M16 3v3"/><path d="m8.5 14 2.2 2.2L15.5 12"/></svg>
+          <b>Voy a asistir</b>
+          <small>Confirmas que irás a este evento.</small>
+        </button>
+        <button class="intent-card" id="intWish">
+          <svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="M15.5 10.8l6-3.3v9l-6-3.3"/><circle cx="7.5" cy="12" r="2.2"/></svg>
+          <b>Interesado en grabar</b>
+          <small>Te gustaría que te graben.</small>
+        </button>
       </div>
-      <div class="cp-list" id="cpList"></div>
-      <button class="multi-continue" id="cpDone">Listo</button>
+      <p class="act-hint">Ninguna opción te compromete: solo muestran tus expectativas. "Interesado en grabar" marca también "Voy a asistir".</p>
     </div>
 
     <button class="act reveal" id="revealCams">Ver camarógrafos apuntados</button>
 
-    <div id="camsWrap" hidden>
-      <h3 class="sec-title">Camarógrafos <span class="count" id="camCount">×0</span></h3>
-      <div class="cams" id="camList"></div>
-      <div class="notice" id="camEmpty" style="display:none">
-        <span class="nosig">Cámara libre</span>
-        <p id="camEmptyTxt">Aún no hay camarógrafos en este evento.</p>
-      </div>
-    </div>
-
     <button class="cta" id="joinBtn" hidden>Apuntarme como camarógrafo</button>
     <button class="cta" id="checkinBtn" hidden>He llegado · abrir cola</button>
     <p class="act-hint" id="checkinHint" hidden style="margin-top:10px"></p>
+  </section>
+
+  <!-- ════════════════ CAMARÓGRAFOS APUNTADOS (de un evento/día) ════════════════ -->
+  <section class="view hidden" id="viewEvCams">
+    <div class="v2-head">
+      <div class="nav-btns">
+        <button class="nav-back" id="homeBtnEC" title="Inicio"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10.5V20h12v-9.5"/></svg></button>
+        <button class="nav-back" id="ecBack" title="Volver al evento">←</button>
+      </div>
+      <div>
+        <h2 class="v2-title">Camarógrafos</h2>
+        <p class="v2-sub" id="ecSub">—</p>
+      </div>
+    </div>
+    <h3 class="sec-title">Apuntados <span class="count" id="camCount">×0</span></h3>
+    <div class="cams" id="camList"></div>
+    <div class="notice" id="camEmpty" style="display:none">
+      <span class="nosig">Cámara libre</span>
+      <p id="camEmptyTxt">Aún no hay camarógrafos en este evento.</p>
+    </div>
   </section>
 
   <!-- TEMPORAL: recarga rápida para pruebas en el móvil instalado (quitar al acabar) -->
