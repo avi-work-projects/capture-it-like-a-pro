@@ -584,8 +584,9 @@
     else if(mode === 'cal')      renderCalMode();
     else                       { horSala = null; renderHorariosMode(); }
     /* en calendario/horarios comprimimos los criterios para que el contenido
-       (p.ej. el mes entero) quepa arriba; en próximos se controlan con scroll */
-    if(setCritCollapsed) setCritCollapsed(mode !== 'prox');
+       (p.ej. el mes entero) quepa arriba. Cambiar de pestaña NUNCA despliega
+       el histórico (solo se despliega con esfuerzo/Editar o subiendo <0,5s) */
+    if(mode !== 'prox' && setCritCollapsed) setCritCollapsed(true);
   }
   document.querySelectorAll('#evModeTabs .fchip').forEach(function(t){
     t.addEventListener('click', function(){ setEvMode(t.dataset.mode); });

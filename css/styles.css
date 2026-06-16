@@ -439,7 +439,7 @@ body{
 .panel-mini{
   position:sticky;top:0;z-index:5;
   width:100%;align-items:center;gap:10px;
-  margin:0 0 10px;padding:9px 12px;
+  margin:0 0 4px;padding:7px 12px;
   animation:rise .25s var(--ease) both;
   background:var(--surface);
   border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;
@@ -1071,7 +1071,7 @@ body{
 #evModeTabs{
   position:sticky;top:0;z-index:6;
   background:var(--bg);
-  margin-top:0;padding-top:10px;
+  margin-top:0;margin-bottom:12px;padding-top:3px;
   transition:background-color .35s;
 }
 .res{display:none}
