@@ -174,8 +174,9 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 #floor .rm-dash{fill:none;stroke:#f4f4f4;stroke-width:1.3;stroke-dasharray:4 5;vector-effect:non-scaling-stroke;stroke-linecap:round;opacity:.92}
 /* agua: olas claras y sutiles */
 #floor .dec-wave{fill:none;stroke:#d4ecff;stroke-width:1;vector-effect:non-scaling-stroke;stroke-linecap:round;opacity:.6}
-/* jardín: florecillas pequeñas (pétalos + centro amarillo) */
-#floor .dec-petal{fill:#ff9ec4;opacity:.82}
+/* jardín: matas de hierba (briznas verdes) + alguna florecilla diminuta */
+#floor .dec-grass{fill:#4ea63f;stroke:#1d5523;stroke-width:.45;vector-effect:non-scaling-stroke;stroke-linejoin:round;opacity:.95}
+#floor .dec-petal{fill:#ff9ec4;opacity:.85}
 #floor .dec-core{fill:#ffe15a;opacity:.92}
 
 /* elementos colocados — tamaño libre vía --w/--h, centrados en su punto (x,y) */
@@ -749,6 +750,8 @@ const LIB_KEY   = EXT ? 'cip_mapas_ext_v1' : 'cip_mapas_v1';
 
 /* paths unitarios reutilizables (0..1) */
 const P_RECT  = 'M0 0 H1 V1 H0 Z';
+/* rectángulo de ESQUINAS REDONDEADAS (radio 0.14 en unidades; el jardín lo usa) */
+const P_RECT_R = 'M0.14 0 H0.86 Q1 0 1 0.14 V0.86 Q1 1 0.86 1 H0.14 Q0 1 0 0.86 V0.14 Q0 0 0.14 0 Z';
 const P_CIRC  = 'M0.5 0 A0.5 0.5 0 1 1 0.5 1 A0.5 0.5 0 1 1 0.5 0 Z';      // círculo/elipse inscrito
 /* sector de donut (cuarto de anillo): radio exterior 1, interior 0.7, centro (0,1) →
    carreteras/caminos curvos. La BANDA visible = 30% del lado (1−0.7) ⇒ con un tamaño S
@@ -775,7 +778,7 @@ const PIECES_DEF = {
   carretera:  { label:'Carretera',       path:P_RECT,  fill:'#3a3d42', edge:'#5a5f66', w:80, h:15, road:true },
   carretera_c:{ label:'Carretera curva', path:P_DONUT, fill:'#3a3d42', edge:'#5a5f66', w:50, h:50, road:true },
   agua_c:     { label:'Lago',            path:P_CIRC,  fill:'#1e6aa6', edge:'#3da9ff', w:50, h:50 },
-  jardin:     { label:'Jardín',          path:P_RECT,  fill:'#2f6b34', edge:'#5fbf57', w:55, h:45 },
+  jardin:     { label:'Jardín',          path:P_RECT_R, fill:'#2f6b34', edge:'#5fbf57', w:55, h:45 },
   /* camino/agua: definidos solo para no romper mapas exteriores antiguos (ya no en la paleta) */
   camino:     { label:'Camino',          path:P_RECT,  fill:'#6e5a40', edge:'#8c7350', w:65, h:10, road:true },
   camino_c:   { label:'Camino curvo',    path:P_DONUT, fill:'#6e5a40', edge:'#8c7350', w:35, h:35, road:true },
@@ -1031,23 +1034,36 @@ function roadMarks(p){
   }
   return s;
 }
-/* un glifo decorativo (ola o flor), pequeño y sutil, centrado en (x,y) y girado `rot`° */
-function glyph(type, x, y, rot){
-  const tr = 'translate(' + x + ' ' + y + ') rotate(' + (rot||0) + ')';
-  if(type === 'waves'){
-    return '<path class="dec-wave" d="M-1.7 0 q0.85 -0.85 1.7 0 q0.85 0.85 1.7 0" transform="' + tr + '"/>';
+/* ola: trazo ondulado HORIZONTAL (todas en la misma dirección, sin rotar) */
+function waveGlyph(x, y){
+  return '<path class="dec-wave" d="M-1.7 0 q0.85 -0.85 1.7 0 q0.85 0.85 1.7 0" transform="translate(' + x + ' ' + y + ')"/>';
+}
+/* mata de hierba: varias briznas abriéndose en abanico hacia ARRIBA (mismo sentido) */
+const GRASS_BLADES = [[-46,2.4],[-23,3.2],[0,3.8],[23,3.2],[46,2.4]];   // [ángulo°, largo]
+function grassGlyph(x, y){
+  let bl = '';
+  for(const [deg, L] of GRASS_BLADES){
+    const a = deg * 0.0174533, sx = Math.sin(a), cy = -Math.cos(a);   // arriba = −y
+    const tx = (sx*L).toFixed(2), ty = (cy*L).toFixed(2);
+    const mx = (sx*L*0.55).toFixed(2), my = (cy*L*0.55).toFixed(2);   // control = brizna recta
+    bl += '<path class="dec-grass" d="M-0.32 0 Q' + mx + ' ' + my + ' ' + tx + ' ' + ty +
+          ' Q' + mx + ' ' + my + ' 0.32 0 Z"/>';
   }
-  // flor: 5 pétalos pequeños + centro
+  return '<g transform="translate(' + x + ' ' + y + ')">' + bl + '</g>';
+}
+/* flor diminuta: 5 pétalos + centro (aún más pequeña que antes) */
+function flowerGlyph(x, y){
   let pet = '';
   for(let k = 0; k < 5; k++){
-    const a = k * 1.2566;                         // 72° en radianes
-    pet += '<circle class="dec-petal" cx="' + (Math.cos(a)*0.95).toFixed(2) +
-           '" cy="' + (Math.sin(a)*0.95).toFixed(2) + '" r="0.62"/>';
+    const a = k * 1.2566;
+    pet += '<circle class="dec-petal" cx="' + (Math.cos(a)*0.62).toFixed(2) +
+           '" cy="' + (Math.sin(a)*0.62).toFixed(2) + '" r="0.42"/>';
   }
-  return '<g transform="' + tr + '">' + pet + '<circle class="dec-core" cx="0" cy="0" r="0.5"/></g>';
+  return '<g transform="translate(' + x + ' ' + y + ')">' + pet + '<circle class="dec-core" cx="0" cy="0" r="0.34"/></g>';
 }
-/* esparce glifos (olas/flores) por el área de la pieza con posición/rotación ALEATORIAS
-   (deterministas por pieza+celda → no parpadean) y algún hueco; dentro de la forma */
+/* esparce glifos por el área de la pieza con posición ALEATORIA (jitter determinista
+   por pieza+celda → no parpadea) y algún hueco; agua=olas horizontales · jardín=hierba
+   (mayoría) con alguna flor; siempre orientados igual (sin rotación). Dentro de la forma. */
 function decorMarks(p, type){
   const bb = pieceBBox(p), isCircle = PIECES_DEF[p.kind].path === P_CIRC;
   const STEP = 12;
@@ -1065,32 +1081,36 @@ function decorMarks(p, type){
         const ux = (gx - p.x) / bb.hw, uy = (gy - p.y) / bb.hh;
         if(ux*ux + uy*uy > 0.66) continue;
       }
-      s += glyph(type, +gx.toFixed(2), +gy.toFixed(2), Math.round(rnd(seed + 0.9)*360));
+      const X = +gx.toFixed(2), Y = +gy.toFixed(2);
+      if(type === 'waves') s += waveGlyph(X, Y);
+      else s += (rnd(seed + 0.5) < 0.22) ? flowerGlyph(X, Y) : grassGlyph(X, Y);   // jardín
     }
   }
   return s;
 }
 function renderFloor(){
-  let glow = '', fills = '', marks = '', sel = '';
+  let glow = '', body = '', sel = '';
   state.pieces.forEach(p => {
     const def = PIECES_DEF[p.kind], d = def.path, tr = pieceTransform(p);
     /* color por pieza (p.color) o el de la definición; el contorno se aclara desde el cuerpo */
-    const body = p.color || def.fill || '#161616';
+    const fill = p.color || def.fill || '#161616';
     const edge = p.color ? lighten(p.color, 0.28) : (def.edge || '#3da9ff');
-    glow  += '<path class="pglow" fill="' + edge + '" stroke="' + edge + '" d="' + d + '" transform="' + tr + '"/>';
-    fills += '<path class="pfl" fill="' + body + '" stroke="' + body + '" d="' + d + '" transform="' + tr + '" data-id="' + p.id + '"/>';
-    /* decoración según el COLOR: carretera→líneas viales (solo formas de vía), agua→olas, verde→flores */
-    const col = body.toLowerCase();
-    if(def.road && col === CARRETERA_COLOR) marks += roadMarks(p);
+    glow += '<path class="pglow" data-id="' + p.id + '" fill="' + edge + '" stroke="' + edge + '" d="' + d + '" transform="' + tr + '"/>';
+    /* RELLENO + su DECORACIÓN intercalados por pieza → la decoración acompaña a su
+       figura en el orden Z (una pieza por encima tapa la decoración de la de abajo) */
+    body += '<path class="pfl" fill="' + fill + '" stroke="' + fill + '" d="' + d + '" transform="' + tr + '" data-id="' + p.id + '"/>';
+    const col = fill.toLowerCase();
+    let dec = '';
+    if(def.road && col === CARRETERA_COLOR) dec = roadMarks(p);
     else if(def.path !== P_DONUT){
-      if(col === AGUA_COLOR) marks += decorMarks(p, 'waves');
-      else if(GREEN_COLORS.includes(col)) marks += decorMarks(p, 'flowers');
+      if(col === AGUA_COLOR) dec = decorMarks(p, 'waves');
+      else if(GREEN_COLORS.includes(col)) dec = decorMarks(p, 'flowers');
     }
+    if(dec) body += '<g class="decor" data-id="' + p.id + '">' + dec + '</g>';
     if(p.id === selPiece)
       sel += '<path class="psel" d="' + d + '" transform="' + tr + '"/>';
   });
-  floor.innerHTML = '<g class="glowg">' + glow + '</g><g>' + fills + '</g>' +
-                    '<g class="decor">' + marks + '</g><g>' + sel + '</g>';
+  floor.innerHTML = '<g class="glowg">' + glow + '</g><g class="bodyg">' + body + '</g><g>' + sel + '</g>';
   floor.querySelectorAll('.pfl').forEach(path =>
     path.addEventListener('pointerdown', ev => startDragPiece(ev, +path.dataset.id, path)));
 }
@@ -1543,9 +1563,10 @@ function startDragPiece(ev, id, path){
   /* seleccionar SIN reconstruir el SVG: el path debe seguir vivo para el drag */
   selEl = null; selPiece = id;
   canvas.querySelectorAll('.el').forEach(n => n.classList.remove('sel'));
-  /* grupos del SVG: 0 glow · 1 fills · 2 marcas viales · 3 selección */
-  const marksGroup = floor.children[2];
-  const selGroup = floor.children[3];
+  /* grupos del SVG: 0 glow · 1 cuerpo (rellenos + decoración intercalados) · 2 selección */
+  const glowGroup = floor.children[0];
+  const bodyGroup = floor.children[1];
+  const selGroup = floor.children[2];
   selGroup.innerHTML = '<path class="psel" d="' + PIECES_DEF[p.kind].path +
                        '" transform="' + pieceTransform(p) + '"/>';
   renderEditPanel();
@@ -1554,12 +1575,11 @@ function startDragPiece(ev, id, path){
   const r0 = canvas.getBoundingClientRect();
   const ox = p.x - (ev.clientX - r0.left) / r0.width  * 100;
   const oy = p.y - (ev.clientY - r0.top)  / r0.height * 100;
-  const idx = Array.prototype.indexOf.call(path.parentNode.children, path);
-  const glowGroup = floor.children[0];
-  const strokePath = glowGroup.children[idx];
+  /* el glow de esta pieza por data-id (los rellenos ya no van alineados por índice) */
+  const strokePath = glowGroup.querySelector('.pglow[data-id="' + id + '"]');
   let moved = false;
   const onMove = mv => {
-    if(!moved) marksGroup.innerHTML = '';   // oculta las marcas viales mientras se arrastra
+    if(!moved) bodyGroup.querySelectorAll('.decor').forEach(n => n.remove());  // oculta decoración al arrastrar
     moved = true;
     const r = canvas.getBoundingClientRect();
     let nx = ox + (mv.clientX - r.left) / r.width  * 100;
