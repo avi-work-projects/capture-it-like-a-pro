@@ -212,7 +212,13 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
    el icono ESCALA con el recuadro (sin tope, CONSERVANDO proporción → no se achata),
    sombra suave para que el chip resalte en el mapa, y un halo sutil en el texto para
    que se lea sobre cualquier fondo (sin borde negro duro). */
-.mode-ext .el .ic{box-shadow:0 1px 4px rgba(0,0,0,.35)}
+/* recuadro TRANSLÚCIDO y esmerilado (no negro opaco) → se integra sobre cualquier
+   fondo del mapa; el fondo se ve a través. Borde e icono del color se mantienen. */
+.mode-ext .el .ic{
+  background:rgba(15,15,15,.28);
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+  box-shadow:0 2px 6px rgba(0,0,0,.28);
+}
 .mode-ext .el .ic svg{width:64%;height:64%;max-width:none;max-height:none}
 .mode-ext .el .lb{text-shadow:0 1px 2px rgba(0,0,0,.7),0 0 3px rgba(0,0,0,.5)}
 /* INTERIOR: el fondo del mapa no se puede editar */
