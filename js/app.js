@@ -1434,5 +1434,54 @@
   }
   $('#mineBack').addEventListener('click', function(){ goView('viewHub','ac-red'); });
   $('#mineHome').addEventListener('click', goHome);
+
+  /* ── restaurar la posición tras recargar (botón ⟳ o refresco) ──────────
+     guardamos un snapshot de navegación al salir de la página y, al cargar,
+     intentamos dejar al usuario donde estaba (o lo más cerca posible). */
+  function captureNav(){
+    try{
+      var view = VIEW_IDS.filter(function(id){ return !$('#'+id).classList.contains('hidden'); })[0] || 'view1';
+      sessionStorage.setItem('cilap-nav', JSON.stringify({
+        role: state.role ? state.role.value : null,
+        country: state.country, city: state.city, type: state.type, subtype: state.subtype,
+        view: view, evMode: evMode,
+        horSala: horSala, horSub: horSub,
+        calMonth: calMonth, calYear: calYear, calSub: calSub, calPast: calPast,
+        profileId: currentProfile ? currentProfile.id : null,
+        eventId: (currentEvent && EVENTS_BY_ID[currentEvent.id]) ? currentEvent.id : null
+      }));
+    }catch(e){}
+  }
+  window.addEventListener('beforeunload', captureNav);
+  window.addEventListener('pagehide', captureNav);
+
+  function restoreNav(){
+    var s; try{ s = JSON.parse(sessionStorage.getItem('cilap-nav')); }catch(e){}
+    if(!s || !s.role) return;
+    try{
+      state.role = { value: s.role, label: ROLE_META[s.role] };
+      state.country = s.country; state.city = s.city; state.type = s.type; state.subtype = s.subtype;
+      renderPanel(); updateHub();
+      var v = s.view;
+      if(v === 'view1' || v === 'viewHub'){ goView('viewHub','ac-red'); return; }
+      if(v === 'viewCams'){ renderCamDir(); goView('viewCams','ac-amber'); return; }
+      if(v === 'viewMine'){ renderMine(); goView('viewMine','ac-lime'); return; }
+      if(v === 'viewSettings'){ $('#hubSettings').click(); return; }
+      if(v === 'viewProfile' && s.profileId && CAMS_BY_ID[s.profileId]){ openProfile(CAMS_BY_ID[s.profileId]); return; }
+      if((v === 'view3' || v === 'viewEvCams') && s.eventId && EVENTS_BY_ID[s.eventId]){
+        openEvent(EVENTS_BY_ID[s.eventId]);
+        if(v === 'viewEvCams'){ renderEventCams(); goView('viewEvCams','ac-red'); }
+        return;
+      }
+      /* view2 (filtros / pestañas) */
+      calMonth = s.calMonth; calYear = s.calYear; calSub = s.calSub || 'cal'; calPast = !!s.calPast;
+      goView('view2'); advance();
+      if(s.evMode && s.evMode !== 'prox'){
+        setEvMode(s.evMode);
+        if(s.evMode === 'horarios' && s.horSala){ horSala = s.horSala; horSub = s.horSub || 'horario'; renderHorariosMode(); }
+      }
+    }catch(e){ goView('viewHub','ac-red'); }
+  }
+  restoreNav();
 })();
 
