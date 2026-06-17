@@ -193,18 +193,14 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 .el .ic{
   position:relative;
   width:100%;height:100%;border-radius:10px;
-  /* relleno SEMITRANSPARENTE del color del elemento → se mezcla con el fondo del mapa
-     (antes era un cuadro oscuro opaco). Fallback para navegadores sin color-mix. */
-  background:rgba(255,255,255,.07);
-  background:color-mix(in srgb, var(--el-c) 24%, transparent);
-  border:1.5px solid color-mix(in srgb, var(--el-c) 75%, transparent);
-  box-shadow:0 1px 4px rgba(0,0,0,.18), inset 0 0 7px color-mix(in srgb, var(--el-c) 16%, transparent);
+  /* fondo BLANCO con un poco de transparencia (≈20%) y SIN borde; el icono va en color */
+  background:rgba(255,255,255,.8);
+  box-shadow:0 1px 5px rgba(0,0,0,.22);
   display:flex;align-items:center;justify-content:center;
   transform:rotate(var(--rot,0deg));
   transition:transform .15s var(--ease);
 }
-/* icono: relleno suave del color (interior “relleno”) + trazo del mismo color para definirlo */
-.el .ic svg{width:62%;height:62%;max-width:23px;max-height:23px;display:block;stroke:var(--el-c);fill:color-mix(in srgb, var(--el-c) 30%, transparent);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.el .ic svg{width:62%;height:62%;max-width:23px;max-height:23px;display:block;stroke:var(--el-c);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .el .lb{
   position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:3px;
   font-family:var(--mono);font-size:7.5px;letter-spacing:.05em;text-transform:uppercase;
@@ -1599,15 +1595,29 @@ function startDragPiece(ev, id, path){
     p.x = +nx.toFixed(2); p.y = +ny.toFixed(2);
     const hit = snapPiece(p);                 // imantar bordes
     const bb = pieceBBox(p);
-    /* EXTERIOR: la pieza PUEDE salir del lienzo, pero al menos un 10% de su tamaño
-       debe quedar dentro; si se intenta sacar más (>90% fuera) se topa y se pinta en
-       ROJO, y queda recolocada en ese 10% mínimo. INTERIOR: se mantiene entera dentro. */
-    const KEEP = 0.1, ext = 1 - 2*KEEP;       // 0.8 → el centro puede pasar 0.8·hw del borde
-    const loX = EXT ? -ext*bb.hw : bb.hw,  hiX = EXT ? 100 + ext*bb.hw : 100 - bb.hw;
-    const loY = EXT ? -ext*bb.hh : bb.hh,  hiY = EXT ? 100 + ext*bb.hh : 100 - bb.hh;
-    const cx = clampN(p.x, loX, hiX), cy = clampN(p.y, loY, hiY);
-    const tooFar = EXT && (Math.abs(cx - p.x) > 0.01 || Math.abs(cy - p.y) > 0.01);
-    p.x = +cx.toFixed(2); p.y = +cy.toFixed(2);
+    /* EXTERIOR: la pieza PUEDE asomar por UN borde (hasta 80% fuera, ≥20% dentro), pero
+       NUNCA por una esquina hasta casi desaparecer: si se intenta sacar a la vez por los
+       dos ejes, solo asoma el eje que más sale y el otro se mete entero. Tope → ROJO.
+       INTERIOR: la pieza se mantiene entera dentro como hasta ahora. */
+    let tooFar = false;
+    if(EXT){
+      const KEEP = 0.2, exo = 1 - 2*KEEP;     // 0.6 → el centro asoma 0.6·semieje del borde
+      const inX0 = bb.hw, inX1 = 100 - bb.hw, inY0 = bb.hh, inY1 = 100 - bb.hh;
+      const outX = Math.max(0, inX0 - p.x, p.x - inX1);   // cuánto quiere asomar por X / Y
+      const outY = Math.max(0, inY0 - p.y, p.y - inY1);
+      let cx = p.x, cy = p.y;
+      if(outX > 0 && outY > 0){               // esquina → mete entero el eje que menos sale
+        if(outX >= outY) cy = clampN(cy, inY0, inY1);
+        else             cx = clampN(cx, inX0, inX1);
+      }
+      cx = clampN(cx, -exo*bb.hw, 100 + exo*bb.hw);       // recorta a su 20% mínimo dentro
+      cy = clampN(cy, -exo*bb.hh, 100 + exo*bb.hh);
+      tooFar = Math.abs(cx - p.x) > 0.01 || Math.abs(cy - p.y) > 0.01;
+      p.x = +cx.toFixed(2); p.y = +cy.toFixed(2);
+    }else{
+      p.x = +clampN(p.x, bb.hw, 100 - bb.hw).toFixed(2);
+      p.y = +clampN(p.y, bb.hh, 100 - bb.hh).toFixed(2);
+    }
     /* mover solo los transforms es más fluido que reconstruir el SVG */
     const tr = pieceTransform(p);
     path.setAttribute('transform', tr);
