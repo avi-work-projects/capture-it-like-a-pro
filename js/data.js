@@ -92,6 +92,9 @@
   { id:'s_kumarah540', name:"Kumarah 5.40", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[4, 0], timeLabel:"22:00–03:00", venue:"C. Sofía, 3", camIds:[] },
   { id:'s_salajowke', name:"Sala Jowke", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[0], timeLabel:"20:00–02:00", venue:"Av. San Martín de Valdeiglesias, 22", camIds:[] },
   /* === CONGRESOS REALES (lasalsadelbaile.com), fechas concretas === */
+  /* pasados (para "Ver eventos pasados" del calendario) */
+  { id:'c_valbaila', name:"Valencia Baila 2026 · Spring", country:'es', city:'sev', type:'congreso', recurrence:'oneoff', dateStart:'2026-04-24', dateEnd:'2026-04-26', venue:"Sevilla", camIds:["lucia"] },
+  { id:'c_aura', name:"Aura Latin Festival", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-05-15', dateEnd:'2026-05-17', venue:"Madrid", camIds:["juan", "carlos"] },
   { id:'c_urban', name:"URBAN Bachata Festival 2026", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-06-12', dateEnd:'2026-06-14', venue:"Occidental Aranjuez", camIds:["juan", "ana"] },
   { id:'c_madsum', name:"Madrid Summer Festival 2026", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-06-26', dateEnd:'2026-06-28', venue:"Hotel Isla de la Garena", camIds:["carlos"] },
   { id:'c_bigsoc', name:"The Big Social Dance", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-08-09', dateEnd:'2026-08-10', venue:"Madrid", camIds:[] },

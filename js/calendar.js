@@ -82,13 +82,18 @@
   }
 
   /* ───────────────────────── VISTA MES (calendario / agenda) ───────────── */
-  function renderMonth(container, year, month, events, sub, cb){
+  function renderMonth(container, year, month, events, sub, nav, cb){
     var today = new Date(); today.setHours(0,0,0,0);
-    var h = '<div class="cal-monthnav">' +
+    nav = nav || { canPrev:true, canNext:true, past:false };
+    /* fila superior: año (vuelve a la rejilla anual) + switch "Ver eventos pasados" */
+    var h = '<div class="cal-monthtop">' +
       '<button class="cal-nav" data-act="back">‹ ' + year + '</button>' +
+      '<button class="cal-pastsw' + (nav.past?' on':'') + '" data-act="past"><span class="sw-track"><span class="sw-knob"></span></span>Ver eventos pasados</button>' +
+      '</div>';
+    h += '<div class="cal-monthnav">' +
+      '<button class="cal-nav" data-act="prevM"' + (nav.canPrev?'':' disabled') + '>‹</button>' +
       '<span class="cal-mtitle">' + MNS[month] + ' ' + year + '</span>' +
-      '<span class="cal-mnav"><button class="cal-nav" data-act="prevM">‹</button>' +
-      '<button class="cal-nav" data-act="nextM">›</button></span></div>';
+      '<button class="cal-nav" data-act="nextM"' + (nav.canNext?'':' disabled') + '>›</button></div>';
     h += '<div class="tabbar" id="calSubTabs">' +
       '<button class="fchip' + (sub==='cal'?' on':'') + '" data-sub="cal">Calendario</button>' +
       '<button class="fchip' + (sub==='agenda'?' on':'') + '" data-sub="agenda">Agenda</button>' +
@@ -108,8 +113,10 @@
     container.innerHTML = h;
 
     container.querySelector('[data-act="back"]').addEventListener('click', cb.onBack);
-    container.querySelector('[data-act="prevM"]').addEventListener('click', function(){ cb.onMonth((month+11)%12, month===0?year-1:year); });
-    container.querySelector('[data-act="nextM"]').addEventListener('click', function(){ cb.onMonth((month+1)%12, month===11?year+1:year); });
+    container.querySelector('[data-act="past"]').addEventListener('click', cb.onTogglePast);
+    var pv = container.querySelector('[data-act="prevM"]'), nx = container.querySelector('[data-act="nextM"]');
+    if(nav.canPrev) pv.addEventListener('click', function(){ cb.onStep(-1); });
+    if(nav.canNext) nx.addEventListener('click', function(){ cb.onStep(1); });
     container.querySelectorAll('#calSubTabs .fchip').forEach(function(t){
       t.addEventListener('click', function(){ cb.onSub(t.dataset.sub); });
     });
@@ -214,19 +221,21 @@
     var order = [1,2,3,4,5,6,0];   // lun..dom
     var h;
     if(selId == null){
-      /* nivel 1: salas de baile disponibles */
-      h = '<p class="res-count" style="margin-top:14px">Salas de baile disponibles</p>';
+      /* nivel 1: salas de baile disponibles + buscador */
+      h = '<div class="sala-search"><input type="text" id="salaSearch" placeholder="Buscar sala…" autocomplete="off"></div>';
+      h += '<p class="res-count">Salas de baile disponibles</p>';
       if(!weekly.length){
         h += '<div class="notice" style="margin-top:12px"><span class="nosig">Sin salas</span><p>No hay salas semanales con esos filtros.</p></div>';
       } else {
         var sorted = weekly.slice().sort(function(a,b){ return a.name.localeCompare(b.name); });
         sorted.forEach(function(ev){
           var nd = (ev.weekdays || [ev.weekday]).length;
-          h += '<button class="evt t-sala" data-sala="' + ev.id + '">' +
+          h += '<button class="evt t-sala" data-sala="' + ev.id + '" data-name="' + esc(ev.name).toLowerCase() + ' ' + esc(ev.venue).toLowerCase() + '">' +
                '<div class="evt-head"><span class="evt-name">' + esc(ev.name) + '</span>' +
                  '<span class="evt-badges"><span class="evt-cams on">' + nd + ' día' + (nd>1?'s':'') + '/sem</span></span></div>' +
                '<span class="evt-meta">' + ev.venue + ' · ' + (CITY_LABELS[ev.city]||ev.city) + '</span></button>';
         });
+        h += '<p class="cal-empty" id="salaSearchEmpty" hidden>Ninguna sala coincide con la búsqueda.</p>';
       }
     } else {
       /* nivel 2: horario semanal de la sala elegida */
@@ -278,6 +287,20 @@
     container.querySelectorAll('[data-occ]').forEach(function(el){
       el.addEventListener('click', function(){ var p = el.dataset.occ.split('_'); cb.onOccurrence(selId, +p[0], +p[1]); });
     });
+    /* buscador de salas: filtra ocultando tarjetas (sin re-render → no pierde foco) */
+    var search = container.querySelector('#salaSearch');
+    if(search){
+      var norm = function(s){ return (s||'').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); };
+      search.addEventListener('input', function(){
+        var q = norm(this.value.trim()), shown = 0;
+        container.querySelectorAll('[data-sala]').forEach(function(el){
+          var ok = !q || norm(el.dataset.name).indexOf(q) !== -1;
+          el.hidden = !ok; if(ok) shown++;
+        });
+        var empty = container.querySelector('#salaSearchEmpty');
+        if(empty) empty.hidden = shown > 0;
+      });
+    }
   }
 
   window.Calendar = { renderYear:renderYear, renderMonth:renderMonth, renderHorarios:renderHorarios };

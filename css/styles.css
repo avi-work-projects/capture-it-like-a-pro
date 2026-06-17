@@ -1107,6 +1107,9 @@ body{
 /* "Ahora" (eventos en directo): rojo señal con punto parpadeante */
 .date-head.now{color:#ff3b30;border-color:#ff3b30;display:flex;align-items:center;gap:7px}
 .date-head.now::before{content:'';width:7px;height:7px;border-radius:50%;background:#ff3b30;animation:blink 1.2s infinite}
+/* "Hoy" (hoy, aún sin empezar): resaltado con el acento, distinto de "Ahora" */
+.date-head.today{color:var(--accent);border-color:var(--accent);display:flex;align-items:center;gap:7px}
+.date-head.today::before{content:'';width:7px;height:7px;border-radius:50%;border:2px solid var(--accent);box-sizing:border-box}
 .evt{
   position:relative;
   display:flex;flex-direction:column;align-items:flex-start;gap:4px;
@@ -1409,9 +1412,38 @@ body{
    contiguo y OPACO; el contenido hace scroll por detrás. Fondo opaco +
    sombra hacia arriba para que NO se cuele texto por ningún micro-hueco. */
 .pinned{box-shadow:0 -18px 0 var(--bg)}
-.cal-monthnav,.sala-head,#salaTabs,#calSubTabs,#profTabs{background:var(--bg)}
+.cal-monthtop,.cal-monthnav,.sala-head,#salaTabs,#calSubTabs,#profTabs{background:var(--bg)}
+/* fila superior del mes: año (vuelve a la rejilla) + switch "Ver eventos pasados" */
+.cal-monthtop{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0 2px}
+.cal-pastsw{
+  display:inline-flex;align-items:center;gap:8px;
+  background:transparent;border:none;cursor:pointer;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);transition:color .18s;
+}
+.cal-pastsw .sw-track{
+  width:30px;height:17px;border-radius:999px;border:1px solid var(--line);
+  background:var(--surface-2);position:relative;transition:background-color .18s, border-color .18s;
+}
+.cal-pastsw .sw-knob{
+  position:absolute;top:1px;left:1px;width:13px;height:13px;border-radius:50%;
+  background:var(--muted);transition:transform .18s var(--ease), background-color .18s;
+}
+.cal-pastsw.on{color:var(--accent)}
+.cal-pastsw.on .sw-track{background:var(--accent);border-color:var(--accent)}
+.cal-pastsw.on .sw-knob{transform:translateX(13px);background:#0a0a0a}
+/* flechas de mes deshabilitadas (no hay más meses en esa dirección) */
+.cal-nav[disabled]{opacity:.3;cursor:default;pointer-events:none}
 
-/* ── Horarios salas: cabecera de sala y filas de horario semanal ── */
+/* ── Horarios salas: buscador, cabecera de sala y filas de horario semanal ── */
+.sala-search{margin:12px 0 4px}
+.sala-search input{
+  width:100%;box-sizing:border-box;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:6px;
+  color:var(--text);font:inherit;font-size:14px;padding:10px 12px;outline:none;
+  transition:border-color .15s, background-color .35s;
+}
+.sala-search input:focus{border-color:var(--accent)}
 .sala-head{margin-top:10px}
 .sala-head b{
   display:block;font-family:var(--display);

@@ -493,12 +493,18 @@
     var live = list.filter(function(ev){ return eventStatus(ev) === 'directo'; });
     var rest = list.filter(function(ev){ return eventStatus(ev) !== 'directo'; });
     if(live.length){ addHead('Ahora', 'now'); live.forEach(addCard); }
-    /* el resto AGRUPADO POR FECHA (días sin eventos no aparecen) */
+    /* el resto AGRUPADO POR FECHA (días sin eventos no aparecen). Los de HOY
+       sin empezar van en su grupo "Hoy", resaltado, distinto de "Ahora" (directo). */
+    var hoy = new Date(); hoy.setHours(0,0,0,0);
     var lastKey = null;
     rest.forEach(function(ev){
       var d = new Date(ev.startsAt);
       var key = d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
-      if(key !== lastKey){ addHead(dateHeaderLabel(ev.startsAt)); lastKey = key; }
+      if(key !== lastKey){
+        var esHoy = d.getFullYear()===hoy.getFullYear() && d.getMonth()===hoy.getMonth() && d.getDate()===hoy.getDate();
+        addHead(dateHeaderLabel(ev.startsAt), esHoy ? 'today' : '');
+        lastKey = key;
+      }
       addCard(ev);
     });
     $('#resCount').textContent = list.length === 1
@@ -532,7 +538,25 @@
   });
 
   /* ── modos del resultado: Próximos · Calendario · Horarios salas ──────── */
-  var evMode = 'prox', calYear = (new Date()).getFullYear(), calMonth = null, calSub = 'cal';
+  var evMode = 'prox', calYear = (new Date()).getFullYear(), calMonth = null, calSub = 'cal', calPast = false;
+  function ymVal(y, m){ return y * 12 + m; }
+  /* límites de navegación de meses: por defecto del mes actual hacia delante
+     (hasta el último evento); con "Ver eventos pasados" se abre hacia atrás
+     hasta el primer mes con evento */
+  function calLimits(){
+    var now = new Date(), cur = ymVal(now.getFullYear(), now.getMonth());
+    var minV = cur, maxV = cur;
+    eventsByFilter('oneoff', true).forEach(function(e){
+      var d = new Date(e.startsAt), v = ymVal(d.getFullYear(), d.getMonth());
+      if(v < minV) minV = v; if(v > maxV) maxV = v;
+    });
+    return { lower: calPast ? minV : cur, upper: Math.max(maxV, cur), cur: cur, evMin: minV };
+  }
+  function goCalMonth(delta){
+    var lim = calLimits(), v = ymVal(calYear, calMonth) + delta;
+    if(v < lim.lower || v > lim.upper) return;
+    calYear = Math.floor(v / 12); calMonth = v % 12; renderCalMode();
+  }
   function eventsByFilter(rec, withSub){
     return EVENTS.filter(function(ev){
       if(ev.recurrence !== rec) return false;
@@ -552,14 +576,24 @@
         onMonth: function(m){ calMonth = m; calSub = 'cal'; renderCalMode(); }
       });
     } else {
-      Calendar.renderMonth(c, calYear, calMonth, eventsByFilter('oneoff', true), calSub, {
+      var lim = calLimits(), v = ymVal(calYear, calMonth);
+      var nav = { canPrev: v > lim.lower, canNext: v < lim.upper, past: calPast };
+      Calendar.renderMonth(c, calYear, calMonth, eventsByFilter('oneoff', true), calSub, nav, {
         onBack:  function(){ calMonth = null; renderCalMode(); },
         onSub:   function(s){ calSub = s; renderCalMode(); },
-        onMonth: function(m, y){ calMonth = m; if(y != null) calYear = y; renderCalMode(); },
-        onEvent: calEvent
+        onStep:  function(d){ goCalMonth(d); },
+        onEvent: calEvent,
+        onTogglePast: function(){
+          calPast = !calPast;
+          if(!calPast){   // al apagar, si estabas en un mes pasado, vuelve al actual
+            var l = calLimits();
+            if(ymVal(calYear, calMonth) < l.lower){ var n = new Date(); calYear = n.getFullYear(); calMonth = n.getMonth(); }
+          }
+          renderCalMode();
+        }
       });
     }
-    setTimeout(restickView2, 60);   // fija nav de mes + sub-pestañas (Calendario/Agenda)
+    setTimeout(restickView2, 60);   // fija año+switch, nav de mes y sub-pestañas
   }
   var horSala = null, horSub = 'horario';   // sala seleccionada + pestaña (horario/proximos)
   function renderHorariosMode(){
@@ -583,7 +617,7 @@
     $('#modeCal').hidden      = mode !== 'cal';
     $('#modeHorarios').hidden = mode !== 'horarios';
     if(mode === 'prox')          renderResults();
-    else if(mode === 'cal')      renderCalMode();
+    else if(mode === 'cal')    { if(calMonth == null){ var nd = new Date(); calMonth = nd.getMonth(); calYear = nd.getFullYear(); } renderCalMode(); }   // abre en el mes en curso
     else                       { horSala = null; renderHorariosMode(); }
     /* en calendario/horarios comprimimos los criterios para que el contenido
        (p.ej. el mes entero) quepa arriba. Cambiar de pestaña NUNCA despliega
@@ -633,7 +667,9 @@
                v2.querySelector('#modeHorarios .sala-head'),       // subtítulo (sala)
                $('#salaTabs'));                                    // sub-pestañas
     } else if(evMode === 'cal' && calMonth != null){
-      els.push(v2.querySelector('#modeCal .cal-monthnav'), $('#calSubTabs'));
+      els.push(v2.querySelector('#modeCal .cal-monthtop'),   // año + switch
+               v2.querySelector('#modeCal .cal-monthnav'),    // ‹ mes ›
+               $('#calSubTabs'));
     }
     pinBelow(base, els.filter(Boolean));
   }
@@ -712,9 +748,7 @@
       if(calMonth == null) return;                 // solo en vista de mes
       var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
       if(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.6){
-        if(dx < 0){ calMonth = (calMonth+1)%12; if(calMonth === 0) calYear++; }   // ← siguiente
-        else      { calMonth = (calMonth+11)%12; if(calMonth === 11) calYear--; } // → anterior
-        renderCalMode();
+        goCalMonth(dx < 0 ? 1 : -1);   // ← siguiente / → anterior (respeta límites)
       }
     }, { passive:true });
   })();
