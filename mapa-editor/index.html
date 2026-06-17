@@ -357,11 +357,13 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 .vis-toggle svg{width:15px;height:15px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .vis-toggle:active{transform:scale(.98)}
 .vis-toggle.off{color:var(--muted);border-style:dashed}
-/* fila Estructura: ocultar elementos + grid + color de fondo */
-.struct-row{display:flex;gap:8px;flex-wrap:wrap}
-.struct-row #vis-toggle{flex:1 1 120px}
-.struct-row #grid-btn,.struct-row #bg-btn{flex:0 0 auto;gap:7px;padding:9px 11px}
-.bg-sw{width:16px;height:16px;border-radius:5px;border:1.5px solid var(--line);background:var(--surface-2);flex:none}
+/* fila Estructura: ocultar elementos + grid + color de fondo — los tres en UNA línea */
+.struct-row{display:flex;gap:6px;flex-wrap:nowrap}
+.struct-row .vis-toggle{font-size:8.5px;letter-spacing:.02em;gap:5px;padding:8px 9px;white-space:nowrap}
+.struct-row .vis-toggle svg{width:13px;height:13px}
+.struct-row #vis-toggle{flex:1 1 auto;min-width:0}
+.struct-row #grid-btn,.struct-row #bg-btn{flex:0 0 auto}
+.bg-sw{width:14px;height:14px;border-radius:5px;border:1.5px solid var(--line);background:var(--surface-2);flex:none}
 
 /* paleta de elementos / cámara — COMPACTA: chips horizontales (~mitad de alto) */
 .el-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
