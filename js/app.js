@@ -739,7 +739,8 @@
          con sus cabeceras de día pegajosas */
       els.push(v2.querySelector('#modeProx .datefilter'), $('#resCount'));
     } else if(evMode === 'horarios' && horSala == null){
-      els.push(v2.querySelector('#modeHorarios .sala-search'));   // "Buscar sala" fijo
+      els.push(v2.querySelector('#modeHorarios .sala-search'),    // "Buscar sala" fijo
+               v2.querySelector('#modeHorarios .res-count'));     // "Salas disponibles" fijo
     } else if(evMode === 'horarios' && horSala != null){
       els.push(v2.querySelector('#modeHorarios .cal-monthnav'),   // ‹ Salas
                v2.querySelector('#modeHorarios .sala-head'),       // subtítulo (sala)
@@ -770,14 +771,24 @@
     if(v2.classList.contains('crit-collapsed')){ var m = $('#panelMini'); if(m) chrome += m.offsetHeight; }
     else { var p = $('#panel'); if(p) chrome += p.offsetHeight; var sp = $('#subPanel'); if(sp && sp.classList.contains('show')) chrome += sp.offsetHeight; }
     var minH = Math.max(160, v2.clientHeight - chrome - 56);   // 56 = reserva inferior + márgenes
+    var collapsed = v2.classList.contains('crit-collapsed');
+    /* recorrido extra cuando los criterios están EXPANDIDOS en una vista de
+       detalle: hay que poder bajar lo suficiente para que el panel salga de
+       vista y se colapse (≈ alto del panel + margen). */
+    var panelH = 0; if(!collapsed){ var pp = $('#panel'); if(pp) panelH = pp.offsetHeight; }
     ['modeProx','modeCal','modeHorarios'].forEach(function(id){
       var el = document.getElementById(id); if(!el) return;
-      /* en vistas de detalle (sala / mes abierto) NO rellenamos: el contenido
-         se ajusta a su tamaño natural para que, al sobre-scrollear, el
-         .scroll-body rebote (se estira y vuelve) en vez de scrollear a un
-         blanco. Ahí los criterios ya están colapsados, no hace falta scroll. */
       var detail = (id === 'modeHorarios' && horSala != null) || (id === 'modeCal' && calMonth != null);
-      el.style.minHeight = (el.hidden || detail) ? '' : (minH + 'px');
+      if(el.hidden){ el.style.minHeight = ''; return; }
+      /* detalle + colapsado: NO rellenar → el contenido cabe natural y el
+         .scroll-body rebote (se estira y vuelve) en vez de scrollear a un blanco. */
+      if(detail && collapsed){ el.style.minHeight = ''; return; }
+      /* detalle + expandido: recorrido = alto del panel + 60, suficiente para
+         bajar y que el panel salga de vista → se colapsa (si no, el mes cabe
+         entero y no se podía comprimir el histórico). */
+      if(detail){ el.style.minHeight = Math.max(160, (v2.clientHeight - chrome) + panelH + 60) + 'px'; return; }
+      /* no-detalle (prox / año): rellena hasta el borde inferior. */
+      el.style.minHeight = minH + 'px';
     });
   }
   function relayoutView2(){ fillMode(); restickView2(); }

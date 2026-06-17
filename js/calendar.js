@@ -228,11 +228,11 @@
     var h;
     if(selId == null){
       /* nivel 1: salas de baile disponibles + buscador.
-         El buscador queda FUERA del .scroll-body → fijo arriba (no desaparece
-         con el scroll). El resto (contador + tarjetas) va en .scroll-body. */
+         Buscador Y "Salas disponibles" quedan FUERA del .scroll-body → fijos
+         arriba (no desaparecen con el scroll). Solo las tarjetas scrollean. */
       h = '<div class="sala-search"><input type="text" id="salaSearch" placeholder="Buscar sala…" autocomplete="off"></div>';
-      h += '<div class="scroll-body">';
       h += '<p class="res-count">Salas de baile disponibles</p>';
+      h += '<div class="scroll-body">';
       if(!weekly.length){
         h += '<div class="notice" style="margin-top:12px"><span class="nosig">Sin salas</span><p>No hay salas semanales con esos filtros.</p></div>';
       } else {

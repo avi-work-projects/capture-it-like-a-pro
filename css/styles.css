@@ -1097,8 +1097,11 @@ body{
 .res-count{
   font-family:var(--mono);font-size:10px;letter-spacing:.16em;
   text-transform:uppercase;color:var(--muted);
-  margin-bottom:10px;
-  background:var(--bg);   /* opaco: cuando se fija (sticky), las tarjetas pasan por detrás */
+  /* margen→padding: el espacio va DENTRO del bloque (opaco) en vez de fuera
+     (transparente). Al fijarse no deja bandas transparentes arriba/abajo. */
+  margin:0;
+  padding:7px 0;
+  background:var(--bg);
 }
 .evts{display:flex;flex-direction:column;gap:10px}
 /* cabecera de día en la lista agrupada por fechas */
@@ -1163,7 +1166,7 @@ body{
 .app.light .tag2.tt-exterior{color:#b08900;border-color:#b08900}
 
 /* filtro opcional por fecha (un día o un rango) */
-.datefilter{display:flex;align-items:center;gap:8px;margin-bottom:12px;background:var(--bg)}
+.datefilter{display:flex;align-items:center;gap:8px;margin-bottom:0;background:var(--bg)}
 .datefilter .ctrl-lbl{width:auto}
 .datefilter input{
   flex:1;min-width:0;
@@ -1453,7 +1456,7 @@ body{
 .cal-nav[disabled]{opacity:.3;cursor:default;pointer-events:none}
 
 /* ── Horarios salas: buscador, cabecera de sala y filas de horario semanal ── */
-.sala-search{margin:12px 0 4px;background:var(--bg)}
+.sala-search{margin:12px 0 0;background:var(--bg)}
 .sala-search input{
   width:100%;box-sizing:border-box;
   background:var(--surface-2);border:1px solid var(--line);border-radius:6px;
