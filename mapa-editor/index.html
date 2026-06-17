@@ -142,6 +142,7 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
   border:1px solid var(--line);border-radius:14px;
   overflow:hidden;touch-action:none;
 }
+#canvas.no-grid{background-image:none}
 #floor{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 /* unión SIN costuras: capa inferior de "blobs" en color de acento (relleno+trazo)
    y, encima, los rellenos opacos exactos. Como cada capa es de un solo color, las
@@ -356,10 +357,10 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 .vis-toggle svg{width:15px;height:15px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .vis-toggle:active{transform:scale(.98)}
 .vis-toggle.off{color:var(--muted);border-style:dashed}
-/* fila Estructura: mostrar/ocultar elementos + color de fondo, lado a lado */
-.struct-row{display:flex;gap:8px}
-.struct-row .vis-toggle{flex:1}
-#bg-btn{flex:0 0 auto;gap:7px}
+/* fila Estructura: ocultar elementos + grid + color de fondo */
+.struct-row{display:flex;gap:8px;flex-wrap:wrap}
+.struct-row #vis-toggle{flex:1 1 120px}
+.struct-row #grid-btn,.struct-row #bg-btn{flex:0 0 auto;gap:7px;padding:9px 11px}
 .bg-sw{width:16px;height:16px;border-radius:5px;border:1.5px solid var(--line);background:var(--surface-2);flex:none}
 
 /* paleta de elementos / cámara — COMPACTA: chips horizontales (~mitad de alto) */
@@ -514,15 +515,19 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 }
 .cs-sw.on .chip{border-color:#fff;box-shadow:0 0 0 2px var(--bg),0 0 0 4px #fff}
 .cs-sw span{font-family:var(--mono);font-size:7.5px;letter-spacing:.04em;text-transform:uppercase;text-align:center;line-height:1.1}
-.cs-more{
-  display:flex;align-items:center;justify-content:space-between;
+.cs-palette{
+  position:relative;display:flex;align-items:center;gap:11px;width:100%;
   background:var(--surface);border:1px solid var(--line);border-radius:11px;
-  padding:10px 14px;cursor:pointer;
+  padding:11px 14px;cursor:pointer;
   font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--text);
 }
-.cs-more input[type=color]{
-  width:40px;height:26px;border:none;background:none;padding:0;cursor:pointer;border-radius:6px;
+.cs-palette:active{transform:scale(.99)}
+.cs-pal-ico{
+  width:22px;height:22px;border-radius:6px;flex:none;border:1.5px solid var(--line);
+  background:conic-gradient(from 90deg, #ff0040, #ffd000, #25e36b, #00c2ff, #6b4dff, #ff36c8, #ff0040);
 }
+/* el <input type=color> queda invisible pero clicable por programa (abre la paleta del SO) */
+.cs-hidden-input{position:absolute;left:0;bottom:0;width:1px;height:1px;opacity:0;border:none;padding:0;pointer-events:none}
 </style>
 </head>
 <body>
@@ -625,6 +630,10 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
           <svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
           <span id="vis-toggle-lbl">Ocultar elementos</span>
         </button>
+        <button class="vis-toggle" id="grid-btn" title="Mostrar u ocultar la rejilla">
+          <svg viewBox="0 0 24 24"><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+          <span id="grid-btn-lbl">Quitar grid</span>
+        </button>
         <button class="vis-toggle" id="bg-btn" title="Color de fondo del mapa">
           <span class="bg-sw" id="bg-swatch"></span>
           <span>Fondo</span>
@@ -675,10 +684,11 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
     <div class="sheet">
       <div class="sheet-head"><span id="cs-title">Color</span><button id="cs-close">✕</button></div>
       <div class="cs-swatches" id="cs-swatches"></div>
-      <label class="cs-more">
-        <span>Paleta completa</span>
-        <input type="color" id="cs-input">
-      </label>
+      <button class="cs-palette" id="cs-palette">
+        <span class="cs-pal-ico"></span>
+        <span>Paleta de colores</span>
+        <input type="color" id="cs-input" class="cs-hidden-input">
+      </button>
     </div>
   </div>
 
@@ -749,13 +759,17 @@ const PIECES_DEF = {
 const STRUCT_INT = ['rect','ele','te','semi'];
 const STRUCT_EXT = ['carretera','carretera_c','agua_c','jardin'];
 
-/* colores sugeridos al recolorear una pieza (+ paleta completa por <input type=color>) */
+/* color "carretera": SOLO con este color la pieza muestra las marcas viales
+   (líneas blancas). Con cualquier otro color (camino, acera…) sale plana. */
+const CARRETERA_COLOR = '#3a3d42';
+/* colores sugeridos al recolorear una pieza (+ paleta de colores extensa por <input type=color>) */
 const PIECE_COLORS = [
-  { name:'Carretera', color:'#3a3d42' },
+  { name:'Carretera', color:CARRETERA_COLOR },
   { name:'Acera',     color:'#b9bcc2' },
   { name:'Verde',     color:'#3f8f43' },
   { name:'Camino 1',  color:'#6e5a40' },
-  { name:'Camino 2',  color:'#9c7b4e' }
+  { name:'Camino 2',  color:'#9c7b4e' },
+  { name:'Agua',      color:'#1e6aa6' }
 ];
 /* fondos de mapa sugeridos */
 const BG_COLORS = [
@@ -988,7 +1002,9 @@ function renderFloor(){
     const edge = p.color ? lighten(p.color, 0.28) : (def.edge || '#3da9ff');
     glow  += '<path class="pglow" fill="' + edge + '" stroke="' + edge + '" d="' + d + '" transform="' + tr + '"/>';
     fills += '<path class="pfl" fill="' + body + '" stroke="' + body + '" d="' + d + '" transform="' + tr + '" data-id="' + p.id + '"/>';
-    if(def.road) marks += roadMarks(p);
+    /* marcas viales SOLO si la pieza es carretera Y mantiene el color carretera
+       (recolorearla como camino/acera/etc. la deja plana, sin líneas) */
+    if(def.road && body.toLowerCase() === CARRETERA_COLOR) marks += roadMarks(p);
     if(p.id === selPiece)
       sel += '<path class="psel" d="' + d + '" transform="' + tr + '"/>';
   });
@@ -997,11 +1013,16 @@ function renderFloor(){
   floor.querySelectorAll('.pfl').forEach(path =>
     path.addEventListener('pointerdown', ev => startDragPiece(ev, +path.dataset.id, path)));
 }
-/* color de fondo del lienzo (sobre la rejilla); '' → vuelve al --surface del CSS */
+/* aspecto del lienzo: color de fondo (sobre la rejilla) + mostrar/ocultar rejilla */
 function applyBg(){
   canvas.style.backgroundColor = state.bg || '';
+  canvas.classList.toggle('no-grid', !!state.gridOff);
   const sw = $('#bg-swatch');
   if(sw) sw.style.background = state.bg || 'var(--surface-2)';
+  const gl = $('#grid-btn-lbl');
+  if(gl) gl.textContent = state.gridOff ? 'Mostrar grid' : 'Quitar grid';
+  const gb = $('#grid-btn');
+  if(gb) gb.classList.toggle('off', !!state.gridOff);
 }
 
 /* ───────── render de elementos ───────── */
@@ -1237,6 +1258,7 @@ function openColorSheet(opts){
   $('#cs-title').textContent = opts.title;
   const cur = (opts.current || '').toLowerCase();
   inp.value = /^#[0-9a-f]{6}$/i.test(opts.current) ? opts.current : '#888888';
+  sw.style.gridTemplateColumns = 'repeat(' + Math.min(opts.presets.length, 6) + ',1fr)';
   sw.innerHTML = '';
   opts.presets.forEach(pr => {
     const b = document.createElement('button');
@@ -1258,6 +1280,8 @@ function openColorSheet(opts){
   sheet.addEventListener('click', backdrop);
   sheet.classList.add('open');
 }
+/* botón "Paleta de colores": abre el selector extenso del SO (el <input type=color> oculto) */
+$('#cs-palette').addEventListener('click', () => $('#cs-input').click());
 /* color de fondo del mapa */
 $('#bg-btn').addEventListener('click', () => {
   openColorSheet({
@@ -1266,6 +1290,12 @@ $('#bg-btn').addEventListener('click', () => {
     presets: BG_COLORS,
     onPick: col => { state.bg = col; applyBg(); saveDraft(); }
   });
+});
+/* mostrar/ocultar la rejilla del lienzo */
+$('#grid-btn').addEventListener('click', () => {
+  state.gridOff = !state.gridOff;
+  applyBg();
+  saveDraft();
 });
 $('#btn-del').addEventListener('click', () => {
   if(selEl != null) deleteElementById(selEl);
