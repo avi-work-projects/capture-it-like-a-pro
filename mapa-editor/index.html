@@ -207,14 +207,14 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
   color:var(--el-c);opacity:.85;pointer-events:none;max-width:96px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
-/* EXTERIOR: chip BLANCO sin borde; el icono escala con el recuadro (sin tope) y la
-   etiqueta va DENTRO del recuadro blanco (texto oscuro, sin borde negro) */
-.mode-ext .el .ic{background:rgba(255,255,255,.82);border:none;box-shadow:0 1px 5px rgba(0,0,0,.22)}
+/* EXTERIOR: MISMO aspecto que el interior (el que gustaba: recuadro oscuro + borde e
+   icono del color, etiqueta debajo con su fuente y color originales). Mejoras añadidas:
+   el icono ESCALA con el recuadro (sin tope, CONSERVANDO proporción → no se achata),
+   sombra suave para que el chip resalte en el mapa, y un halo sutil en el texto para
+   que se lea sobre cualquier fondo (sin borde negro duro). */
+.mode-ext .el .ic{box-shadow:0 1px 4px rgba(0,0,0,.35)}
 .mode-ext .el .ic svg{width:64%;height:64%;max-width:none;max-height:none}
-.mode-ext .el .lb{
-  top:auto;bottom:3px;margin:0;color:#1d1d1d;opacity:1;text-shadow:none;
-  background:rgba(255,255,255,.9);border-radius:4px;padding:0 3px;max-width:92%;
-}
+.mode-ext .el .lb{text-shadow:0 1px 2px rgba(0,0,0,.7),0 0 3px rgba(0,0,0,.5)}
 /* INTERIOR: el fondo del mapa no se puede editar */
 .mode-int #bg-btn{display:none}
 .el.t-columna .ic{border-radius:50%}
@@ -1166,9 +1166,6 @@ function makeNode(e){
   n.innerHTML = '<div class="ic">' + t.icon + '</div>' +
                 (labelText ? '<div class="lb">' + escapeHtml(labelText) + '</div>' : '') +
                 '<span class="lock-badge"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>';
-  /* EXTERIOR: el icono se estira con el recuadro (al alargar el elemento por un eje,
-     el dibujo —p. ej. el árbol— se alarga en ese mismo eje). Interior: sin deformar. */
-  if(EXT){ const svg = n.querySelector('.ic svg'); if(svg) svg.setAttribute('preserveAspectRatio', 'none'); }
   n.addEventListener('pointerdown', ev => startDragEl(ev, e.id, n));
   return n;
 }
