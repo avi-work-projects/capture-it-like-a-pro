@@ -1083,8 +1083,12 @@ body{
   transition:background-color .35s;
 }
 .res{display:none}
+/* fundido SIN transform: un transform aquí crearía un containing-block y
+   rompería el position:sticky de las pestañas/cabeceras (se anclarían a .res
+   en vez de a #view2 y se irían con el scroll) */
+@keyframes resfade{from{opacity:0}to{opacity:1}}
 .result.done .loading{display:none}
-.result.done .res{display:block;animation:rise .35s var(--ease) both}
+.result.done .res{display:block;animation:resfade .35s var(--ease) both}
 .res-count{
   font-family:var(--mono);font-size:10px;letter-spacing:.16em;
   text-transform:uppercase;color:var(--muted);

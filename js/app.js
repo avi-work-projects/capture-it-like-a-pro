@@ -136,7 +136,7 @@
       if(setCritCollapsed) setCritCollapsed(false);     // criterios desplegados al recalcular
       $('#view2').scrollTop = 0;
       openStep('result');
-      resultTimer = setTimeout(function(){ r.classList.add('done'); }, 1400);
+      resultTimer = setTimeout(function(){ r.classList.add('done'); scheduleRelayout(); }, 1400);
     }
   }
   /* rellena el filtro de fecha con los próximos 7 días si está vacío */
@@ -510,7 +510,7 @@
     $('#resCount').textContent = list.length === 1
       ? '1 evento encontrado' : list.length + ' eventos encontrados';
     $('#resEmpty').style.display = list.length ? 'none' : 'flex';
-    if(evMode === 'prox') setTimeout(relayoutView2, 60);   // rellena y ancla
+    if(evMode === 'prox') scheduleRelayout();   // rellena y ancla
   }
   /* contenido interno de una tarjeta de evento (reutilizable) */
   function evtCardInner(ev){
@@ -594,7 +594,7 @@
         }
       });
     }
-    setTimeout(relayoutView2, 60);   // fija año+switch, nav de mes y sub-pestañas
+    scheduleRelayout();   // fija año+switch, nav de mes y sub-pestañas
   }
   var horSala = null, horSub = 'horario';   // sala seleccionada + pestaña (horario/proximos)
   function renderHorariosMode(){
@@ -609,7 +609,7 @@
         openEvent(Object.assign({}, base, { id: id + '@' + start, startsAt: start, endsAt: end, recurrence: 'oneoff' }));
       }
     });
-    setTimeout(relayoutView2, 60);   // fija subtítulo (sala) + sub-pestañas (tras asentar layout)
+    scheduleRelayout();   // fija subtítulo (sala) + sub-pestañas (tras asentar layout)
   }
   function setEvMode(mode){
     evMode = mode;
@@ -624,7 +624,7 @@
        (p.ej. el mes entero) quepa arriba. Cambiar de pestaña NUNCA despliega
        el histórico (solo se despliega con esfuerzo/Editar o subiendo <0,5s) */
     if(mode !== 'prox' && setCritCollapsed) setCritCollapsed(true);
-    setTimeout(relayoutView2, 60);
+    scheduleRelayout();
   }
   document.querySelectorAll('#evModeTabs .fchip').forEach(function(t){
     t.addEventListener('click', function(){ setEvMode(t.dataset.mode); });
@@ -645,18 +645,23 @@
   /* fija cada bloque EN SU POSICIÓN NATURAL (sticky top = su propio offset),
      así NO se mueve nunca (una sola posición estable) sin importar márgenes.
      Mide la posición natural poniéndolos static un instante (sin repintar). */
+  /* apila los bloques fijos: cada uno se pega justo debajo del anterior
+     (top = altura de la cabecera + suma de alturas de los bloques fijos
+     previos). El contenido NO fijo que haya en medio (panel de criterios
+     expandido, pasos) hace scroll por detrás. Determinista (offsetHeight). */
   function pinBelow(scroller, els){
     els = els.filter(Boolean); if(!els.length) return;
-    var prev = els.map(function(el){ return el.style.position; });
-    els.forEach(function(el){ el.style.position = 'static'; });
-    void scroller.offsetHeight;                                  // reflow para medir natural
-    var vTop = scroller.getBoundingClientRect().top, sTop = scroller.scrollTop;
-    var tops = els.map(function(el){ return el.getBoundingClientRect().top - vTop + sTop; });
+    var head = scroller.querySelector('.v2-head');
+    var top = head ? head.offsetHeight : 0;
+    /* si los bloques aún no tienen altura (contenido oculto), NO anclar:
+       evita apilarlos todos en el mismo top (efecto "achatado") */
+    if(!els[0].offsetHeight) return;
     els.forEach(function(el, i){
       el.classList.add('pinned');
       el.style.position = 'sticky';
-      el.style.top = Math.round(tops[i]) + 'px';
+      el.style.top = Math.round(top) + 'px';
       el.style.zIndex = String(Math.max(1, 6 - i));   // los de arriba, por encima
+      top += el.offsetHeight;
     });
   }
   /* recalcula el apilado fijo de la vista 2 según el modo/estado actual */
@@ -700,6 +705,9 @@
     });
   }
   function relayoutView2(){ fillMode(); restickView2(); }
+  /* re-ancla a los 60ms y de nuevo a los 350ms (tras la transición de vista),
+     porque medir en plena transición da posiciones erróneas (chrome mal fijado) */
+  function scheduleRelayout(){ setTimeout(relayoutView2, 60); setTimeout(relayoutView2, 350); }
 
   var setCritCollapsed;   // accesible desde setEvMode (auto-colapsar en cal/horarios)
   (function(){
@@ -738,8 +746,7 @@
     setCritCollapsed = collapse;
     v2.addEventListener('scroll', function(){
       if(!critReady()) return;
-      /* NO re-anclamos en cada scroll: los bloques están fijos en su posición
-         natural (pinBelow), así no "saltan" entre dos posiciones */
+      restickView2();   // re-ancla (cumulativo: barato, no toca el scroll)
       if(!v2.classList.contains('crit-collapsed')){
         /* comprimir cuando el histórico ya ha salido de vista (tras la cabecera) */
         var head = v2.querySelector('.v2-head');
