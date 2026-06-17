@@ -358,10 +358,11 @@ body{
   background:var(--surface);
   border:1px solid var(--line);
   border-radius:6px;
-  overflow:hidden;
-  /* SIN max-height fijo cuando está expandido (auto → nunca recorta "Tipo").
-     El colapso lo fuerza el JS con max-height:0 inline. Sin transición de
-     max-height (se quedaba atascada y dejaba el panel a 0/recortado). */
+  /* overflow VISIBLE cuando está expandido: con overflow:hidden + border-radius
+     las esquinas inferiores del último slot ("Tipo") quedaban recortadas. El
+     overflow:hidden solo se necesita al colapsar (max-height:0) y lo pone el JV
+     (setBox) en ese momento. SIN max-height fijo expandido (auto → no recorta). */
+  overflow:visible;
   transition:opacity .3s ease, background-color .35s;
 }
 .slot{

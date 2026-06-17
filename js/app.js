@@ -625,7 +625,7 @@
     if(calMonth == null){
       Calendar.renderYear(c, calYear, eventsByFilter('oneoff', true), {
         onYear:  function(y){ calYear = y; renderCalMode(); },
-        onMonth: function(m){ calMonth = m; calSub = 'cal'; renderCalMode(); }
+        onMonth: function(m){ calMonth = m; calSub = 'agenda'; renderCalMode(); }   // al abrir un mes → Agenda primero
       });
     } else {
       var lim = calLimits(), v = ymVal(calYear, calMonth);
@@ -707,12 +707,23 @@
     /* si los bloques aún no tienen altura (contenido oculto), NO anclar:
        evita apilarlos todos en el mismo top (efecto "achatado") */
     if(!els[0].offsetHeight) return;
+    /* offsetHeight NO incluye márgenes: si no se cuentan, cada bloque se ancla
+       más arriba de su posición natural y al scrollear "recupera" ese hueco (el
+       chrome se comprime hasta bloquearse). Hay que sumar el hueco REAL entre
+       bloques, que por colapso de márgenes es el MÁXIMO entre el margen inferior
+       del anterior y el superior del actual (no la suma). Así el top de anclaje
+       coincide con la posición natural → cero holgura, cero compresión. */
+    var prevMB = 0;
     els.forEach(function(el, i){
+      var cs = getComputedStyle(el);
+      var mt = parseFloat(cs.marginTop) || 0;
+      top += Math.max(prevMB, mt);                     // hueco real (colapso)
       el.classList.add('pinned');
       el.style.position = 'sticky';
       el.style.top = Math.round(top) + 'px';
       el.style.zIndex = String(Math.max(1, 6 - i));   // los de arriba, por encima
       top += el.offsetHeight;
+      prevMB = parseFloat(cs.marginBottom) || 0;
     });
   }
   /* recalcula el apilado fijo de la vista 2 según el modo/estado actual */
@@ -781,6 +792,8 @@
       el.style.marginBottom = on ? '0px' : '';
       el.style.paddingTop = on ? '0px' : '';
       el.style.paddingBottom = on ? '0px' : '';
+      el.style.borderWidth = on ? '0px' : '';      // con max-height:0+overflow:hidden el borde (2px) seguía ocupando → holgura residual del chrome
+      el.style.overflow = on ? 'hidden' : '';       // hidden SOLO al colapsar (recorta el contenido a max-height:0); expandido = visible (no recorta esquinas de "Tipo")
     }
     function tops(){ restickView2(); }   // apila cabecera→(mini)→pestañas→subtítulos/sub-pestañas
     function collapse(on, fromGesture){
