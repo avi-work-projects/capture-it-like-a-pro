@@ -359,9 +359,10 @@ body{
   border:1px solid var(--line);
   border-radius:6px;
   overflow:hidden;
-  max-height:300px;
-  transition:max-height .5s cubic-bezier(.22,.7,.25,1), opacity .42s ease,
-             margin .42s cubic-bezier(.22,.7,.25,1), background-color .35s;
+  /* SIN max-height fijo cuando está expandido (auto → nunca recorta "Tipo").
+     El colapso lo fuerza el JS con max-height:0 inline. Sin transición de
+     max-height (se quedaba atascada y dejaba el panel a 0/recortado). */
+  transition:opacity .3s ease, background-color .35s;
 }
 .slot{
   display:flex;align-items:center;gap:10px;

@@ -335,7 +335,11 @@
     el.addEventListener('touchend', release);
     el.addEventListener('touchcancel', release);
   }
-  VIEW_IDS.forEach(function(id){ addRubberBand($('#'+id)); });
+  /* rebote elástico en todas las vistas SALVO #view2: ahí el transform del
+     rebote chocaba con el sticky del chrome y lo "comprimía"/movía de forma
+     errática al sobre-scrollear. #view2 usa scroll nativo; el "esfuerzo" para
+     desplegar criterios va por su propio listener (no necesita el transform). */
+  VIEW_IDS.forEach(function(id){ if(id !== 'view2') addRubberBand($('#'+id)); });
 
   /* ── vista 1: elegir rol ──────────────────────────────────────────── */
   document.querySelectorAll('#view1 .card').forEach(function(card){
@@ -756,9 +760,12 @@
         collapse(false);                                          // subir antes de 0,5 s → despliega solo
       }
     }, { passive:true });
-    /* tras 0,5 s anclado: desplegar exige "esfuerzo" (sobre-scroll arriba) */
+    /* tras 0,5 s anclado: desplegar exige "esfuerzo" (sobre-scroll arriba).
+       NO en vistas de detalle (sala / mes abierto): ahí el chrome debe quedar
+       totalmente quieto; para editar criterios está el botón "Editar". */
     function tryEffort(amount){
       if(!critReady() || !v2.classList.contains('crit-collapsed') || v2.scrollTop > 2) return;
+      if((evMode === 'horarios' && horSala != null) || (evMode === 'cal' && calMonth != null)) return;
       if(!locked()){ collapse(false); return; }
       effort += amount;
       if(effort > EFFORT){ collapse(false); v2.scrollTop = 0; }
@@ -1342,7 +1349,6 @@
     var revs = (REVIEWS[c.id] || []).slice();
     if(revSort === 'stars') revs.sort(function(a, b){ return b.stars - a.stars || (a.date < b.date ? 1 : -1); });
     else                    revs.sort(function(a, b){ return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0); });
-    $('#profRevCount').textContent = '×' + c.reviews;
     $('#profReviews').innerHTML = revs.length
       ? revs.map(function(r){
           return '<div class="review"><div class="rv-top"><span class="rv-by">' + r.by +

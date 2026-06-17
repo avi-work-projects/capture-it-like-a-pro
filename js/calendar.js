@@ -95,8 +95,8 @@
       '<span class="cal-mtitle">' + MNS[month] + ' ' + year + '</span>' +
       '<button class="cal-nav" data-act="nextM"' + (nav.canNext?'':' disabled') + '>›</button></div>';
     h += '<div class="tabbar" id="calSubTabs">' +
-      '<button class="fchip' + (sub==='cal'?' on':'') + '" data-sub="cal">Calendario</button>' +
       '<button class="fchip' + (sub==='agenda'?' on':'') + '" data-sub="agenda">Agenda</button>' +
+      '<button class="fchip' + (sub==='cal'?' on':'') + '" data-sub="cal">Calendario</button>' +
       '</div>';
 
     // eventos del mes (que intersecten el mes)
