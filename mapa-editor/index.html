@@ -162,6 +162,8 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 /* al imantar un borde con otra pieza, ese contorno se pinta en amarillo */
 #floor .pglow.snap{fill:#ffd60a;stroke:#ffd60a}
 #floor .glowg.snapping{filter:drop-shadow(0 0 8px rgba(255,214,10,.55))}
+/* pieza demasiado fuera del lienzo (>90%): aviso en ROJO mientras se arrastra */
+#floor .pfl.too-far,#floor .pglow.too-far{fill:#ff3b30;stroke:#ff3b30}
 /* el relleno lleva un trazo del MISMO color: así dos rellenos que se tocan se
    solapan ~1px y tapan el acento de debajo (no queda raya en la costura).
    Piezas del MISMO color se fusionan sin costura; distinto color = se superponen. */
@@ -190,13 +192,19 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 .el:active{cursor:grabbing}
 .el .ic{
   position:relative;
-  width:100%;height:100%;border-radius:9px;
-  background:var(--surface-2);border:1.5px solid var(--el-c);
+  width:100%;height:100%;border-radius:10px;
+  /* relleno SEMITRANSPARENTE del color del elemento → se mezcla con el fondo del mapa
+     (antes era un cuadro oscuro opaco). Fallback para navegadores sin color-mix. */
+  background:rgba(255,255,255,.07);
+  background:color-mix(in srgb, var(--el-c) 24%, transparent);
+  border:1.5px solid color-mix(in srgb, var(--el-c) 75%, transparent);
+  box-shadow:0 1px 4px rgba(0,0,0,.18), inset 0 0 7px color-mix(in srgb, var(--el-c) 16%, transparent);
   display:flex;align-items:center;justify-content:center;
   transform:rotate(var(--rot,0deg));
   transition:transform .15s var(--ease);
 }
-.el .ic svg{width:60%;height:60%;max-width:22px;max-height:22px;display:block;stroke:var(--el-c);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+/* icono: relleno suave del color (interior “relleno”) + trazo del mismo color para definirlo */
+.el .ic svg{width:62%;height:62%;max-width:23px;max-height:23px;display:block;stroke:var(--el-c);fill:color-mix(in srgb, var(--el-c) 30%, transparent);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .el .lb{
   position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:3px;
   font-family:var(--mono);font-size:7.5px;letter-spacing:.05em;text-transform:uppercase;
@@ -753,11 +761,11 @@ const P_RECT  = 'M0 0 H1 V1 H0 Z';
 /* rectángulo de ESQUINAS REDONDEADAS (radio 0.14 en unidades; el jardín lo usa) */
 const P_RECT_R = 'M0.14 0 H0.86 Q1 0 1 0.14 V0.86 Q1 1 0.86 1 H0.14 Q0 1 0 0.86 V0.14 Q0 0 0.14 0 Z';
 const P_CIRC  = 'M0.5 0 A0.5 0.5 0 1 1 0.5 1 A0.5 0.5 0 1 1 0.5 0 Z';      // círculo/elipse inscrito
-/* sector de donut (cuarto de anillo): radio exterior 1, interior 0.7, centro (0,1) →
-   carreteras/caminos curvos. La BANDA visible = 30% del lado (1−0.7) ⇒ con un tamaño S
-   la banda mide 0.3·S; eligiendo S se hace coincidir con el ANCHO de una carretera recta
-   (p. ej. S=50 → banda 15 = ancho recto 15). Al rotar 90° encaja en esquinas. */
-const P_DONUT = 'M1 1 A1 1 0 0 0 0 0 L0 0.3 A0.7 0.7 0 0 1 0.7 1 Z';
+/* sector de donut (cuarto de anillo): radio exterior 1, interior 0.75, centro (0,1) →
+   carreteras/caminos curvos. La BANDA visible = 25% del lado (1−0.75) ⇒ banda = 0.25·S.
+   Con la rejilla de 5 coincide con el ANCHO de la carretera recta en TODO el rango:
+   default 60→banda 15 (= recta h15) · mínimo 20→banda 5 (= recta h5). Rota en esquinas. */
+const P_DONUT = 'M1 1 A1 1 0 0 0 0 0 L0 0.25 A0.75 0.75 0 0 1 0.75 1 Z';
 
 /* piezas de planta — path unitario (0..1), tamaño % por defecto.
    fill/edge = color del cuerpo y del contorno (si faltan: planta interior #161616/acento). */
@@ -776,12 +784,12 @@ const PIECES_DEF = {
   /* carretera (recta y curva) lleva marcas viales (road:true). El COLOR se puede cambiar
      por pieza (p.color) → una carretera recoloreada hace de camino/acera/césped. */
   carretera:  { label:'Carretera',       path:P_RECT,  fill:'#3a3d42', edge:'#5a5f66', w:80, h:15, road:true },
-  carretera_c:{ label:'Carretera curva', path:P_DONUT, fill:'#3a3d42', edge:'#5a5f66', w:50, h:50, road:true },
+  carretera_c:{ label:'Carretera curva', path:P_DONUT, fill:'#3a3d42', edge:'#5a5f66', w:60, h:60, road:true },
   agua_c:     { label:'Lago',            path:P_CIRC,  fill:'#1e6aa6', edge:'#3da9ff', w:50, h:50 },
   jardin:     { label:'Jardín',          path:P_RECT_R, fill:'#2f6b34', edge:'#5fbf57', w:55, h:45 },
   /* camino/agua: definidos solo para no romper mapas exteriores antiguos (ya no en la paleta) */
   camino:     { label:'Camino',          path:P_RECT,  fill:'#6e5a40', edge:'#8c7350', w:65, h:10, road:true },
-  camino_c:   { label:'Camino curvo',    path:P_DONUT, fill:'#6e5a40', edge:'#8c7350', w:35, h:35, road:true },
+  camino_c:   { label:'Camino curvo',    path:P_DONUT, fill:'#6e5a40', edge:'#8c7350', w:40, h:40, road:true },
   agua:       { label:'Agua',            path:P_RECT,  fill:'#1e6aa6', edge:'#3da9ff', w:55, h:40 }
 };
 /* piezas de estructura por modo: interior = habitaciones; exterior = carretera (recta/curva) + lago + jardín.
@@ -872,6 +880,8 @@ const TYPES = {
 };
 const ELEM_MIN = 14, ELEM_MAX = 150, ELEM_STEP = 6;   // límites de tamaño de elemento (px)
 const PIECE_MIN = 5, PIECE_MAX = 100, PIECE_STEP = 5;  // límites de tamaño de pieza (% lienzo; min bajo → carretera estrecha)
+const DONUT_MIN = 20;   // mínimo del donut → banda 0.25·20 = 5 = ancho mínimo de la recta
+function pieceMin(p){ return PIECES_DEF[p.kind].path === P_DONUT ? DONUT_MIN : PIECE_MIN; }
 
 /* reparto de la paleta por sección (los "main" cambian según el modo) */
 const GROUP = {
@@ -1022,10 +1032,10 @@ function roadMarks(p){
   const tr = pieceTransform(p);
   let s = '';
   if(PIECES_DEF[p.kind].path === P_DONUT){
-    // arcos concéntricos: bordes en los radios exterior/interior, eje en el medio
-    s += '<path class="rm-solid" d="M0.95 1 A0.95 0.95 0 0 0 0 0.05" transform="' + tr + '"/>';
-    s += '<path class="rm-solid" d="M0.75 1 A0.75 0.75 0 0 0 0 0.25" transform="' + tr + '"/>';
-    s += '<path class="rm-dash"  d="M0.85 1 A0.85 0.85 0 0 0 0 0.15" transform="' + tr + '"/>';
+    // arcos concéntricos dentro de la banda (radios 0.75–1): bordes + eje central
+    s += '<path class="rm-solid" d="M0.97 1 A0.97 0.97 0 0 0 0 0.03" transform="' + tr + '"/>';
+    s += '<path class="rm-solid" d="M0.78 1 A0.78 0.78 0 0 0 0 0.22" transform="' + tr + '"/>';
+    s += '<path class="rm-dash"  d="M0.875 1 A0.875 0.875 0 0 0 0 0.125" transform="' + tr + '"/>';
   }else{
     // rectángulo: líneas a lo largo del eje X (la carretera es larga en X por defecto)
     s += '<path class="rm-solid" d="M0.05 0.18 H0.95" transform="' + tr + '"/>';
@@ -1240,8 +1250,9 @@ function resizeSel(sw, sh){
   const kw = swapped ? 'h' : 'w', kh = swapped ? 'w' : 'h';
   /* paso de 5 sobre rejilla común (defaults múltiplos de 5) → cualquier lado de
      una pieza puede igualarse al de otra (diámetro del semicírculo = lado del rect) */
-  if(sw) p[kw] = clampN(p[kw] + sw * PIECE_STEP, PIECE_MIN, PIECE_MAX);
-  if(sh) p[kh] = clampN(p[kh] + sh * PIECE_STEP, PIECE_MIN, PIECE_MAX);
+  const pmin = pieceMin(p);
+  if(sw) p[kw] = clampN(p[kw] + sw * PIECE_STEP, pmin, PIECE_MAX);
+  if(sh) p[kh] = clampN(p[kh] + sh * PIECE_STEP, pmin, PIECE_MAX);
   renderFloor();
   saveDraft();
 }
@@ -1266,8 +1277,9 @@ function scaleSel(dir){
   const p = state.pieces.find(x => x.id === selPiece);
   if(!p) return;
   const step = dir > 0 ? PIECE_STEP : -PIECE_STEP;   // un paso de rejilla en ambos ejes
-  p.w = clampN(p.w + step, PIECE_MIN, PIECE_MAX);
-  p.h = clampN(p.h + step, PIECE_MIN, PIECE_MAX);
+  const pmin = pieceMin(p);
+  p.w = clampN(p.w + step, pmin, PIECE_MAX);
+  p.h = clampN(p.h + step, pmin, PIECE_MAX);
   renderFloor();
   saveDraft();
 }
@@ -1493,8 +1505,8 @@ const PIECE_VERTS = {
   camino:    [[0,0],[1,0],[1,1],[0,1]],
   agua:      [[0,0],[1,0],[1,1],[0,1]],
   jardin:    [[0,0],[1,0],[1,1],[0,1]],
-  carretera_c: [[1,1],[0,0],[0,0.3],[0.7,1]],
-  camino_c:    [[1,1],[0,0],[0,0.3],[0.7,1]],
+  carretera_c: [[1,1],[0,0],[0,0.25],[0.75,1]],
+  camino_c:    [[1,1],[0,0],[0,0.25],[0.75,1]],
   agua_c:    [[0.5,0],[1,0.5],[0.5,1],[0,0.5]]
 };
 /* vértices de la pieza en % del lienzo (posición/tamaño/rotación múltiplo de 90) */
@@ -1586,19 +1598,29 @@ function startDragPiece(ev, id, path){
     let ny = oy + (mv.clientY - r.top)  / r.height * 100;
     p.x = +nx.toFixed(2); p.y = +ny.toFixed(2);
     const hit = snapPiece(p);                 // imantar bordes
-    const bb = pieceBBox(p);                   // y mantener la pieza dentro del lienzo
-    p.x = +clampN(p.x, bb.hw, 100-bb.hw).toFixed(2);
-    p.y = +clampN(p.y, bb.hh, 100-bb.hh).toFixed(2);
+    const bb = pieceBBox(p);
+    /* EXTERIOR: la pieza PUEDE salir del lienzo, pero al menos un 10% de su tamaño
+       debe quedar dentro; si se intenta sacar más (>90% fuera) se topa y se pinta en
+       ROJO, y queda recolocada en ese 10% mínimo. INTERIOR: se mantiene entera dentro. */
+    const KEEP = 0.1, ext = 1 - 2*KEEP;       // 0.8 → el centro puede pasar 0.8·hw del borde
+    const loX = EXT ? -ext*bb.hw : bb.hw,  hiX = EXT ? 100 + ext*bb.hw : 100 - bb.hw;
+    const loY = EXT ? -ext*bb.hh : bb.hh,  hiY = EXT ? 100 + ext*bb.hh : 100 - bb.hh;
+    const cx = clampN(p.x, loX, hiX), cy = clampN(p.y, loY, hiY);
+    const tooFar = EXT && (Math.abs(cx - p.x) > 0.01 || Math.abs(cy - p.y) > 0.01);
+    p.x = +cx.toFixed(2); p.y = +cy.toFixed(2);
     /* mover solo los transforms es más fluido que reconstruir el SVG */
     const tr = pieceTransform(p);
     path.setAttribute('transform', tr);
     if(strokePath) strokePath.setAttribute('transform', tr);
     const ps = selGroup.firstChild;
     if(ps) ps.setAttribute('transform', tr);
-    /* feedback en amarillo cuando un borde queda imantado */
+    /* feedback: ROJO si se pasó del 90% fuera; si no, AMARILLO al imantar un borde */
     glowGroup.querySelectorAll('.pglow.snap').forEach(n => n.classList.remove('snap'));
-    glowGroup.classList.toggle('snapping', hit >= 0);
-    if(hit >= 0){
+    path.classList.toggle('too-far', tooFar);
+    if(strokePath) strokePath.classList.toggle('too-far', tooFar);
+    const snapping = hit >= 0 && !tooFar;
+    glowGroup.classList.toggle('snapping', snapping);
+    if(snapping){
       if(strokePath) strokePath.classList.add('snap');
       const tgt = glowGroup.children[hit];
       if(tgt) tgt.classList.add('snap');
