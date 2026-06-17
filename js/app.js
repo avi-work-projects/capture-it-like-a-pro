@@ -510,6 +510,7 @@
     $('#resCount').textContent = list.length === 1
       ? '1 evento encontrado' : list.length + ' eventos encontrados';
     $('#resEmpty').style.display = list.length ? 'none' : 'flex';
+    if(evMode === 'prox') setTimeout(relayoutView2, 60);   // rellena y ancla
   }
   /* contenido interno de una tarjeta de evento (reutilizable) */
   function evtCardInner(ev){
@@ -593,7 +594,7 @@
         }
       });
     }
-    setTimeout(restickView2, 60);   // fija año+switch, nav de mes y sub-pestañas
+    setTimeout(relayoutView2, 60);   // fija año+switch, nav de mes y sub-pestañas
   }
   var horSala = null, horSub = 'horario';   // sala seleccionada + pestaña (horario/proximos)
   function renderHorariosMode(){
@@ -608,7 +609,7 @@
         openEvent(Object.assign({}, base, { id: id + '@' + start, startsAt: start, endsAt: end, recurrence: 'oneoff' }));
       }
     });
-    setTimeout(restickView2, 60);   // fija subtítulo (sala) + sub-pestañas (tras asentar layout)
+    setTimeout(relayoutView2, 60);   // fija subtítulo (sala) + sub-pestañas (tras asentar layout)
   }
   function setEvMode(mode){
     evMode = mode;
@@ -623,7 +624,7 @@
        (p.ej. el mes entero) quepa arriba. Cambiar de pestaña NUNCA despliega
        el histórico (solo se despliega con esfuerzo/Editar o subiendo <0,5s) */
     if(mode !== 'prox' && setCritCollapsed) setCritCollapsed(true);
-    setTimeout(restickView2, 60);
+    setTimeout(relayoutView2, 60);
   }
   document.querySelectorAll('#evModeTabs .fchip').forEach(function(t){
     t.addEventListener('click', function(){ setEvMode(t.dataset.mode); });
@@ -679,6 +680,24 @@
     var head = v.querySelector('.v2-head');
     pinBelow(head ? head.offsetHeight : 0, [$('#profTabs')]);
   }
+  /* rellena la pestaña activa con blanco SOLO hasta el borde inferior de la
+     pantalla (ni se queda corta ni crea blanco masivo). Así el contenido corto
+     no genera scroll (cabeceras quietas) y el largo scrollea por detrás. */
+  function fillMode(){
+    var v2 = $('#view2'); if(v2.classList.contains('hidden')) return;
+    /* altura del "chrome" SOBRE la pestaña (cabecera + criterios + pestañas);
+       sumando alturas de elementos (más fiable que medir posiciones) */
+    var head = v2.querySelector('.v2-head'), tabs = $('#evModeTabs');
+    var chrome = (head ? head.offsetHeight : 0) + (tabs ? tabs.offsetHeight : 0);
+    if(v2.classList.contains('crit-collapsed')){ var m = $('#panelMini'); if(m) chrome += m.offsetHeight; }
+    else { var p = $('#panel'); if(p) chrome += p.offsetHeight; var sp = $('#subPanel'); if(sp && sp.classList.contains('show')) chrome += sp.offsetHeight; }
+    var minH = Math.max(160, v2.clientHeight - chrome - 56);   // 56 = reserva inferior + márgenes
+    ['modeProx','modeCal','modeHorarios'].forEach(function(id){
+      var el = document.getElementById(id); if(!el) return;
+      el.style.minHeight = el.hidden ? '' : (minH + 'px');
+    });
+  }
+  function relayoutView2(){ fillMode(); restickView2(); }
 
   var setCritCollapsed;   // accesible desde setEvMode (auto-colapsar en cal/horarios)
   (function(){
@@ -712,7 +731,7 @@
         v2.classList.remove('crit-collapsed');
         effort = 0;
       }
-      tops();
+      tops(); fillMode();   // cambia el offset de la pestaña → recalcula relleno
     }
     setCritCollapsed = collapse;
     v2.addEventListener('scroll', function(){
@@ -740,6 +759,8 @@
     mini.addEventListener('click', function(){ v2.scrollTop = 0; collapse(false); });
   })();
 
+  window.addEventListener('resize', function(){ relayoutView2(); restickProfile(); });
+
   /* swipe horizontal en el calendario para cambiar de mes (solo en vista mes) */
   (function(){
     var mc = $('#modeCal'), sx = 0, sy = 0;
@@ -761,11 +782,17 @@
     r.addEventListener('touchend', function(e){
       if(evMode === 'cal' && calMonth != null) return;   // ahí manda el swipe de meses
       var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
-      if(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.6){
-        var i = ORDER.indexOf(evMode);
-        if(dx < 0 && i < ORDER.length - 1) setEvMode(ORDER[i + 1]);   // ← siguiente pestaña
-        else if(dx > 0 && i > 0)           setEvMode(ORDER[i - 1]);   // → pestaña anterior
+      if(!(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.6)) return;
+      var dir = dx < 0 ? 1 : -1;
+      /* dentro de una sala: el swipe alterna sus SUB-pestañas (Horario/Próximos) */
+      if(evMode === 'horarios' && horSala != null){
+        var subs = ['horario','proximos'], j = subs.indexOf(horSub) + dir;
+        if(j >= 0 && j < subs.length){ horSub = subs[j]; renderHorariosMode(); }
+        return;
       }
+      /* si no, cambia de pestaña principal (Próximos/Calendario/Horarios) */
+      var i = ORDER.indexOf(evMode) + dir;
+      if(i >= 0 && i < ORDER.length) setEvMode(ORDER[i]);
     }, { passive:true });
   })();
 

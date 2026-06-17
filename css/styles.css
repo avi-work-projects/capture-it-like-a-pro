@@ -1070,12 +1070,8 @@ body{
 /* #result no recorta nunca (sin transición de max-height): así el contenido
    y los bloques fijos (sticky) miden bien siempre y se anclan correctamente */
 #result.open{max-height:none;overflow:visible;margin-top:0;transition:opacity .3s var(--ease)}
-/* siempre hay sitio para hacer scroll vertical (aunque la pestaña tenga poco
-   o ningún contenido): así SIEMPRE se puede comprimir el histórico subiéndolo */
-#modeProx,#modeCal{min-height:82vh}
-/* Horarios → sala: más alto para que, aun con pocos días, haya recorrido de
-   scroll y el contenido se esconda tras el subtítulo/sub-pestañas fijas */
-#modeHorarios{min-height:125vh}
+/* el relleno (blanco hasta el borde inferior de la pantalla, sin pasarse) lo
+   calcula el JS (fillMode) por pestaña: min-height = lo que quede de viewport */
 /* pestañas de modo (Próximos/Calendario/Horarios) ancladas arriba, siempre
    visibles; el JS fija su top (bajo la cabecera, o bajo la barra de criterios) */
 #evModeTabs{
