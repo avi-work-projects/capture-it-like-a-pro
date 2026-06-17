@@ -342,13 +342,13 @@
   VIEW_IDS.forEach(function(id){ if(id !== 'view2') addRubberBand($('#'+id)); });
 
   /* bloque de contenido scrolleable de la pestaña visible de la vista 2.
-     prox: #modeProx (no tiene sub-cabeceras dentro); cal/horarios: el
+     prox: #evtList (fecha+contador quedan fijos fuera); cal/horarios: el
      .scroll-body que envuelve la lista/rejilla (las sub-cabeceras quedan fuera,
      sticky). Es lo único que el rebote traslada. */
   function activeBody(){
-    var m = !$('#modeProx').hidden ? $('#modeProx')
-          : (!$('#modeCal').hidden ? $('#modeCal')
-          : (!$('#modeHorarios').hidden ? $('#modeHorarios') : null));
+    if(!$('#modeProx').hidden) return $('#evtList');
+    var m = !$('#modeCal').hidden ? $('#modeCal')
+          : (!$('#modeHorarios').hidden ? $('#modeHorarios') : null);
     if(!m) return null;
     return m.querySelector('.scroll-body') || m;
   }
@@ -701,12 +701,12 @@
      previos). El contenido NO fijo que haya en medio (panel de criterios
      expandido, pasos) hace scroll por detrás. Determinista (offsetHeight). */
   function pinBelow(scroller, els){
-    els = els.filter(Boolean); if(!els.length) return;
+    els = els.filter(Boolean); if(!els.length) return 0;
     var head = scroller.querySelector('.v2-head');
     var top = head ? head.offsetHeight : 0;
     /* si los bloques aún no tienen altura (contenido oculto), NO anclar:
        evita apilarlos todos en el mismo top (efecto "achatado") */
-    if(!els[0].offsetHeight) return;
+    if(!els[0].offsetHeight) return 0;
     /* offsetHeight NO incluye márgenes: si no se cuentan, cada bloque se ancla
        más arriba de su posición natural y al scrollear "recupera" ese hueco (el
        chrome se comprime hasta bloquearse). Hay que sumar el hueco REAL entre
@@ -725,6 +725,7 @@
       top += el.offsetHeight;
       prevMB = parseFloat(cs.marginBottom) || 0;
     });
+    return Math.round(top);   // borde inferior del chrome (para anclar las cabeceras de día)
   }
   /* recalcula el apilado fijo de la vista 2 según el modo/estado actual */
   function restickView2(){
@@ -733,7 +734,13 @@
     var els = [];
     if(v2.classList.contains('crit-collapsed')) els.push($('#panelMini'));
     els.push($('#evModeTabs'));
-    if(evMode === 'horarios' && horSala != null){
+    if(evMode === 'prox'){
+      /* fecha + nº de eventos SIEMPRE fijos arriba; la lista scrollea detrás
+         con sus cabeceras de día pegajosas */
+      els.push(v2.querySelector('#modeProx .datefilter'), $('#resCount'));
+    } else if(evMode === 'horarios' && horSala == null){
+      els.push(v2.querySelector('#modeHorarios .sala-search'));   // "Buscar sala" fijo
+    } else if(evMode === 'horarios' && horSala != null){
       els.push(v2.querySelector('#modeHorarios .cal-monthnav'),   // ‹ Salas
                v2.querySelector('#modeHorarios .sala-head'),       // subtítulo (sala)
                $('#salaTabs'));                                    // sub-pestañas
@@ -742,7 +749,9 @@
                v2.querySelector('#modeCal .cal-monthnav'),    // ‹ mes ›
                $('#calSubTabs'));
     }
-    pinBelow(v2, els);
+    var bottom = pinBelow(v2, els);
+    /* las cabeceras de día (.date-head) se fijan justo bajo este chrome */
+    if(bottom) v2.style.setProperty('--group-top', bottom + 'px');
   }
   /* apilado fijo del perfil: título (nombre+ciudad) + pestañas */
   function restickProfile(){
@@ -826,11 +835,13 @@
       }
     }, { passive:true });
     /* tras 0,5 s anclado: desplegar exige "esfuerzo" (sobre-scroll arriba).
-       NO en vistas de detalle (sala / mes abierto): ahí el chrome debe quedar
-       totalmente quieto; para editar criterios está el botón "Editar". */
+       Excepción: dentro de una SALA (horSala) el chrome debe quedar quieto (el
+       usuario no quiere que se mueva al sobre-scrollear; para editar criterios
+       ahí está el botón "Editar"). En Calendario SÍ se permite desplegar tirando
+       hacia arriba (el mes cabe sin scroll, así que es la forma natural). */
     function tryEffort(amount){
       if(!critReady() || !v2.classList.contains('crit-collapsed') || v2.scrollTop > 2) return;
-      if((evMode === 'horarios' && horSala != null) || (evMode === 'cal' && calMonth != null)) return;
+      if(evMode === 'horarios' && horSala != null) return;
       if(!locked()){ collapse(false); return; }
       effort += amount;
       if(effort > EFFORT){ collapse(false); v2.scrollTop = 0; }

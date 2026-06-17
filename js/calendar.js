@@ -228,10 +228,10 @@
     var h;
     if(selId == null){
       /* nivel 1: salas de baile disponibles + buscador.
-         Todo el contenido va dentro de .scroll-body (el bloque que rebota); el
-         chrome fijo a este nivel son solo las pestañas principales (arriba). */
-      h = '<div class="scroll-body">';
-      h += '<div class="sala-search"><input type="text" id="salaSearch" placeholder="Buscar sala…" autocomplete="off"></div>';
+         El buscador queda FUERA del .scroll-body → fijo arriba (no desaparece
+         con el scroll). El resto (contador + tarjetas) va en .scroll-body. */
+      h = '<div class="sala-search"><input type="text" id="salaSearch" placeholder="Buscar sala…" autocomplete="off"></div>';
+      h += '<div class="scroll-body">';
       h += '<p class="res-count">Salas de baile disponibles</p>';
       if(!weekly.length){
         h += '<div class="notice" style="margin-top:12px"><span class="nosig">Sin salas</span><p>No hay salas semanales con esos filtros.</p></div>';

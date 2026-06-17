@@ -361,8 +361,11 @@ body{
   /* overflow VISIBLE cuando está expandido: con overflow:hidden + border-radius
      las esquinas inferiores del último slot ("Tipo") quedaban recortadas. El
      overflow:hidden solo se necesita al colapsar (max-height:0) y lo pone el JV
-     (setBox) en ese momento. SIN max-height fijo expandido (auto → no recorta). */
+     (setBox) en ese momento. SIN max-height fijo expandido (auto → no recorta).
+     padding-bottom: holgura para que el último slot ("Tipo") NUNCA quede pegado
+     al borde redondeado (en móvil el redondeo sub-píxel lo recortaba). */
   overflow:visible;
+  padding-bottom:4px;
   transition:opacity .3s ease, background-color .35s;
 }
 .slot{
@@ -1095,6 +1098,7 @@ body{
   font-family:var(--mono);font-size:10px;letter-spacing:.16em;
   text-transform:uppercase;color:var(--muted);
   margin-bottom:10px;
+  background:var(--bg);   /* opaco: cuando se fija (sticky), las tarjetas pasan por detrás */
 }
 .evts{display:flex;flex-direction:column;gap:10px}
 /* cabecera de día en la lista agrupada por fechas */
@@ -1104,6 +1108,15 @@ body{
   padding:6px 2px 4px;
   margin-top:10px;
   border-bottom:1px solid var(--line);
+  /* cabecera de día PEGAJOSA: al hacer scroll, el grupo del día (Ahora/Hoy/
+     Mañana/fecha) se queda fijo justo bajo el chrome y la siguiente lo empuja
+     hacia arriba (estilo secciones iOS). --group-top = borde inferior del chrome
+     fijo, lo fija el JS (restickView2). Fondo opaco + z para tapar las tarjetas
+     que pasan por detrás. */
+  position:sticky;
+  top:var(--group-top,0px);
+  z-index:2;
+  background:var(--bg);
 }
 .date-head:first-child{margin-top:0}
 /* "Ahora" (eventos en directo): rojo señal con punto parpadeante */
@@ -1150,7 +1163,7 @@ body{
 .app.light .tag2.tt-exterior{color:#b08900;border-color:#b08900}
 
 /* filtro opcional por fecha (un día o un rango) */
-.datefilter{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.datefilter{display:flex;align-items:center;gap:8px;margin-bottom:12px;background:var(--bg)}
 .datefilter .ctrl-lbl{width:auto}
 .datefilter input{
   flex:1;min-width:0;
@@ -1440,7 +1453,7 @@ body{
 .cal-nav[disabled]{opacity:.3;cursor:default;pointer-events:none}
 
 /* ── Horarios salas: buscador, cabecera de sala y filas de horario semanal ── */
-.sala-search{margin:12px 0 4px}
+.sala-search{margin:12px 0 4px;background:var(--bg)}
 .sala-search input{
   width:100%;box-sizing:border-box;
   background:var(--surface-2);border:1px solid var(--line);border-radius:6px;
