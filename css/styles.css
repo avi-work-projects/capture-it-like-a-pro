@@ -1067,10 +1067,15 @@ body{
 .app.light .st.mid{color:#b08900;border-color:#b08900}
 
 /* resultados: lista de eventos */
-#result.open{max-height:6000px;overflow:visible;margin-top:0}   /* overflow visible: permite anclar (#evModeTabs sticky); sin margen para que no quede hueco */
+/* #result no recorta nunca (sin transición de max-height): así el contenido
+   y los bloques fijos (sticky) miden bien siempre y se anclan correctamente */
+#result.open{max-height:none;overflow:visible;margin-top:0;transition:opacity .3s var(--ease)}
 /* siempre hay sitio para hacer scroll vertical (aunque la pestaña tenga poco
    o ningún contenido): así SIEMPRE se puede comprimir el histórico subiéndolo */
-#modeProx,#modeCal,#modeHorarios{min-height:82vh}
+#modeProx,#modeCal{min-height:82vh}
+/* Horarios → sala: más alto para que, aun con pocos días, haya recorrido de
+   scroll y el contenido se esconda tras el subtítulo/sub-pestañas fijas */
+#modeHorarios{min-height:125vh}
 /* pestañas de modo (Próximos/Calendario/Horarios) ancladas arriba, siempre
    visibles; el JS fija su top (bajo la cabecera, o bajo la barra de criterios) */
 #evModeTabs{
@@ -1398,6 +1403,13 @@ body{
 }
 .evt.t-sala .evt-time{color:#c46bff}
 .app.light .evt.t-sala .evt-time{color:#9a4fe0}
+
+/* ── PATRÓN "chrome fijo": los bloques estructurales (cabecera, pestañas,
+   subtítulo, sub-pestañas) se anclan (sticky, top por JS) en un bloque
+   contiguo y OPACO; el contenido hace scroll por detrás. Fondo opaco +
+   sombra hacia arriba para que NO se cuele texto por ningún micro-hueco. */
+.pinned{box-shadow:0 -18px 0 var(--bg)}
+.cal-monthnav,.sala-head,#salaTabs,#calSubTabs,#profTabs{background:var(--bg)}
 
 /* ── Horarios salas: cabecera de sala y filas de horario semanal ── */
 .sala-head{margin-top:10px}

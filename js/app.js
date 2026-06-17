@@ -559,6 +559,7 @@
         onEvent: calEvent
       });
     }
+    setTimeout(restickView2, 60);   // fija nav de mes + sub-pestañas (Calendario/Agenda)
   }
   var horSala = null, horSub = 'horario';   // sala seleccionada + pestaña (horario/proximos)
   function renderHorariosMode(){
@@ -573,6 +574,7 @@
         openEvent(Object.assign({}, base, { id: id + '@' + start, startsAt: start, endsAt: end, recurrence: 'oneoff' }));
       }
     });
+    setTimeout(restickView2, 60);   // fija subtítulo (sala) + sub-pestañas (tras asentar layout)
   }
   function setEvMode(mode){
     evMode = mode;
@@ -587,6 +589,7 @@
        (p.ej. el mes entero) quepa arriba. Cambiar de pestaña NUNCA despliega
        el histórico (solo se despliega con esfuerzo/Editar o subiendo <0,5s) */
     if(mode !== 'prox' && setCritCollapsed) setCritCollapsed(true);
+    setTimeout(restickView2, 60);
   }
   document.querySelectorAll('#evModeTabs .fchip').forEach(function(t){
     t.addEventListener('click', function(){ setEvMode(t.dataset.mode); });
@@ -599,6 +602,48 @@
      (lo más arriba posible). Para volver a desplegar: tirar hacia arriba
      (sobre-scroll) estando arriba del todo, o cambiar de pestaña los despliega
      según convenga. */
+  /* ── PATRÓN "chrome fijo": títulos, subtítulos, pestañas y sub-pestañas se
+     quedan anclados (sticky) en un bloque contiguo arriba; SOLO el contenido
+     de la pestaña hace scroll, deslizándose por DETRÁS de esos bloques. Cada
+     bloque fijo se apila justo debajo del anterior (top acumulado por JS, que
+     mide alturas variables). Documentado en CLAUDE.md. */
+  function pinBelow(baseTop, els){
+    var hs = els.map(function(el){ return el ? el.offsetHeight : 0; });   // medir ANTES de mutar
+    var top = baseTop;
+    for(var i = 0; i < els.length; i++){
+      var el = els[i]; if(!el) continue;
+      el.classList.add('pinned');
+      el.style.position = 'sticky';
+      el.style.top = Math.round(top) + 'px';
+      el.style.zIndex = String(Math.max(1, 5 - i));   // los de arriba, por encima
+      top += hs[i];
+    }
+  }
+  /* recalcula el apilado fijo de la vista 2 según el modo/estado actual */
+  function restickView2(){
+    var v2 = $('#view2');
+    if(!$('#result').classList.contains('open')) return;
+    var head = v2.querySelector('.v2-head');
+    var base = head ? head.offsetHeight : 0;
+    var els = [];
+    if(v2.classList.contains('crit-collapsed')) els.push($('#panelMini'));
+    els.push($('#evModeTabs'));
+    if(evMode === 'horarios' && horSala != null){
+      els.push(v2.querySelector('#modeHorarios .cal-monthnav'),   // ‹ Salas
+               v2.querySelector('#modeHorarios .sala-head'),       // subtítulo (sala)
+               $('#salaTabs'));                                    // sub-pestañas
+    } else if(evMode === 'cal' && calMonth != null){
+      els.push(v2.querySelector('#modeCal .cal-monthnav'), $('#calSubTabs'));
+    }
+    pinBelow(base, els.filter(Boolean));
+  }
+  /* apilado fijo del perfil: título (nombre+ciudad) + pestañas */
+  function restickProfile(){
+    var v = $('#viewProfile'); if(v.classList.contains('hidden')) return;
+    var head = v.querySelector('.v2-head');
+    pinBelow(head ? head.offsetHeight : 0, [$('#profTabs')]);
+  }
+
   var setCritCollapsed;   // accesible desde setEvMode (auto-colapsar en cal/horarios)
   (function(){
     var v2 = $('#view2'), tabs = $('#evModeTabs'), mini = $('#panelMini');
@@ -616,11 +661,7 @@
       el.style.paddingTop = on ? '0px' : '';
       el.style.paddingBottom = on ? '0px' : '';
     }
-    function tops(){
-      var hH = headH();
-      mini.style.top = hH + 'px';
-      tabs.style.top = (hH + (v2.classList.contains('crit-collapsed') ? mini.offsetHeight : 0)) + 'px';
-    }
+    function tops(){ restickView2(); }   // apila cabecera→(mini)→pestañas→subtítulos/sub-pestañas
     function collapse(on, fromGesture){
       var was = v2.classList.contains('crit-collapsed');
       if(on && !was){
@@ -640,8 +681,8 @@
     setCritCollapsed = collapse;
     v2.addEventListener('scroll', function(){
       if(!critReady()) return;
+      restickView2();                                             // re-ancla los bloques fijos (cualquier estado)
       if(!v2.classList.contains('crit-collapsed')){
-        tops();
         /* comprimir cuando el histórico ya ha salido de vista (tras la cabecera) */
         var head = v2.querySelector('.v2-head');
         var hb = head ? head.getBoundingClientRect().bottom : 0;
@@ -1181,6 +1222,7 @@
     setProfTab('events');                 // "Próximos eventos" abierta por defecto
     renderProfile();
     goView('viewProfile','ac-amber');
+    setTimeout(restickProfile, 280);      // fija título + pestañas tras la transición
   }
   function renderProfile(){
     var c = currentProfile;
