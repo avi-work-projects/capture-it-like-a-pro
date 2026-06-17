@@ -47,6 +47,7 @@
       '<button class="cal-nav" data-act="prevY">‹</button>' +
       '<span class="cal-year">' + year + '</span>' +
       '<button class="cal-nav" data-act="nextY">›</button></div>';
+    h += '<div class="scroll-body">';
     h += '<div class="cal-months">';
     for(var m=0; m<12; m++){
       h += '<button class="cal-mini" data-month="' + m + '">';
@@ -72,7 +73,8 @@
       }
       h += '</div></button>';
     }
-    h += '</div>';
+    h += '</div>';   // .cal-months
+    h += '</div>';   // .scroll-body
     container.innerHTML = h;
     container.querySelector('[data-act="prevY"]').addEventListener('click', function(){ cb.onYear(year-1); });
     container.querySelector('[data-act="nextY"]').addEventListener('click', function(){ cb.onYear(year+1); });
@@ -105,11 +107,15 @@
              ev.endsAt >= dayStart(year,month,1);
     });
 
+    /* contenido (rejilla/agenda) en .scroll-body → solo él rebota; el chrome
+       (año+switch, ‹mes›, sub-pestañas) queda fijo arriba. */
+    h += '<div class="scroll-body">';
     if(sub === 'agenda'){
       h += renderAgenda(year, month, mEvs);
     } else {
       h += renderGrid(year, month, mEvs, today);
     }
+    h += '</div>';
     container.innerHTML = h;
 
     container.querySelector('[data-act="back"]').addEventListener('click', cb.onBack);
@@ -221,8 +227,11 @@
     var order = [1,2,3,4,5,6,0];   // lun..dom
     var h;
     if(selId == null){
-      /* nivel 1: salas de baile disponibles + buscador */
-      h = '<div class="sala-search"><input type="text" id="salaSearch" placeholder="Buscar sala…" autocomplete="off"></div>';
+      /* nivel 1: salas de baile disponibles + buscador.
+         Todo el contenido va dentro de .scroll-body (el bloque que rebota); el
+         chrome fijo a este nivel son solo las pestañas principales (arriba). */
+      h = '<div class="scroll-body">';
+      h += '<div class="sala-search"><input type="text" id="salaSearch" placeholder="Buscar sala…" autocomplete="off"></div>';
       h += '<p class="res-count">Salas de baile disponibles</p>';
       if(!weekly.length){
         h += '<div class="notice" style="margin-top:12px"><span class="nosig">Sin salas</span><p>No hay salas semanales con esos filtros.</p></div>';
@@ -237,8 +246,12 @@
         });
         h += '<p class="cal-empty" id="salaSearchEmpty" hidden>Ninguna sala coincide con la búsqueda.</p>';
       }
+      h += '</div>';
     } else {
-      /* nivel 2: horario semanal de la sala elegida */
+      /* nivel 2: horario semanal de la sala elegida.
+         Chrome fijo: ‹Salas + título de sala + sub-pestañas. El listado de
+         días/fechas va en .scroll-body para que SOLO él rebote y se esconda
+         tras las pestañas, sin mover el chrome. */
       var sala = null;
       weekly.forEach(function(e){ if(e.id === selId) sala = e; });
       if(!sala){ container.innerHTML = ''; return; }
@@ -252,6 +265,7 @@
         '<button class="fchip' + (tab==='horario'?' on':'') + '" data-stab="horario">Horario semanal</button>' +
         '<button class="fchip' + (tab==='proximos'?' on':'') + '" data-stab="proximos">Próximos días</button>' +
       '</div>';
+      h += '<div class="scroll-body">';
       if(tab === 'horario'){
         order.forEach(function(wd){
           if(days.indexOf(wd) === -1) return;
@@ -274,6 +288,7 @@
           });
         }
       }
+      h += '</div>';
     }
     container.innerHTML = h;
     var back = container.querySelector('[data-act="horBack"]');

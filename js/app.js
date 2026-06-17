@@ -335,11 +335,58 @@
     el.addEventListener('touchend', release);
     el.addEventListener('touchcancel', release);
   }
-  /* rebote elástico en todas las vistas SALVO #view2: ahí el transform del
-     rebote chocaba con el sticky del chrome y lo "comprimía"/movía de forma
-     errática al sobre-scrollear. #view2 usa scroll nativo; el "esfuerzo" para
-     desplegar criterios va por su propio listener (no necesita el transform). */
+  /* rebote elástico en todas las vistas SALVO #view2: ahí el rebote sobre TODO
+     el contenedor movía/comprimía el chrome (cabecera+criterios+pestañas, que
+     van sticky dentro de #view2). En #view2 el rebote se aplica SOLO al bloque
+     de contenido (.scroll-body) de la pestaña activa → ver contentRubberBand. */
   VIEW_IDS.forEach(function(id){ if(id !== 'view2') addRubberBand($('#'+id)); });
+
+  /* bloque de contenido scrolleable de la pestaña visible de la vista 2.
+     prox: #modeProx (no tiene sub-cabeceras dentro); cal/horarios: el
+     .scroll-body que envuelve la lista/rejilla (las sub-cabeceras quedan fuera,
+     sticky). Es lo único que el rebote traslada. */
+  function activeBody(){
+    var m = !$('#modeProx').hidden ? $('#modeProx')
+          : (!$('#modeCal').hidden ? $('#modeCal')
+          : (!$('#modeHorarios').hidden ? $('#modeHorarios') : null));
+    if(!m) return null;
+    return m.querySelector('.scroll-body') || m;
+  }
+  /* rebote SOLO del contenido en #view2: el contenido se estira/esconde tras
+     las cabeceras fijas y vuelve con muelle al soltar; el chrome no se inmuta.
+     El scroll normal sigue siendo nativo sobre #view2 (cabeceras sticky). */
+  (function(){
+    var v2 = $('#view2'), startY = 0, pull = 0, body = null;
+    function release(){
+      if(!body) return;
+      if(pull){
+        body.style.transition = 'transform .42s cubic-bezier(.2,.8,.3,1.18)';
+        body.style.transform = '';
+        (function(b){ setTimeout(function(){ b.style.transition = ''; }, 440); })(body);
+      }
+      body = null; pull = 0;
+    }
+    v2.addEventListener('touchstart', function(e){
+      body = activeBody(); pull = 0; startY = e.touches[0].clientY;
+    }, { passive:true });
+    v2.addEventListener('touchmove', function(e){
+      if(!body) return;
+      var dy = e.touches[0].clientY - startY;
+      var atTop = v2.scrollTop <= 0;
+      var atBottom = v2.scrollTop + v2.clientHeight >= v2.scrollHeight - 1;
+      if((dy > 0 && atTop) || (dy < 0 && atBottom)){
+        pull = dy;
+        var damp = (dy < 0 ? -1 : 1) * 110 * (1 - 1 / (Math.abs(dy) / 300 + 1));
+        body.style.transition = 'none';
+        body.style.transform = 'translateY(' + damp.toFixed(1) + 'px)';
+        e.preventDefault();                 // sin scroll nativo mientras estiras
+      } else if(pull){
+        pull = 0; body.style.transition = 'none'; body.style.transform = '';
+      }
+    }, { passive:false });
+    v2.addEventListener('touchend', release);
+    v2.addEventListener('touchcancel', release);
+  })();
 
   /* ── vista 1: elegir rol ──────────────────────────────────────────── */
   document.querySelectorAll('#view1 .card').forEach(function(card){
@@ -705,7 +752,12 @@
     var minH = Math.max(160, v2.clientHeight - chrome - 56);   // 56 = reserva inferior + márgenes
     ['modeProx','modeCal','modeHorarios'].forEach(function(id){
       var el = document.getElementById(id); if(!el) return;
-      el.style.minHeight = el.hidden ? '' : (minH + 'px');
+      /* en vistas de detalle (sala / mes abierto) NO rellenamos: el contenido
+         se ajusta a su tamaño natural para que, al sobre-scrollear, el
+         .scroll-body rebote (se estira y vuelve) en vez de scrollear a un
+         blanco. Ahí los criterios ya están colapsados, no hace falta scroll. */
+      var detail = (id === 'modeHorarios' && horSala != null) || (id === 'modeCal' && calMonth != null);
+      el.style.minHeight = (el.hidden || detail) ? '' : (minH + 'px');
     });
   }
   function relayoutView2(){ fillMode(); restickView2(); }
