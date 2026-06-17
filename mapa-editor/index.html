@@ -143,6 +143,12 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
   overflow:hidden;touch-action:none;
 }
 #canvas.no-grid{background-image:none}
+/* sobre un fondo claro (papel/arena) la rejilla oscura canta demasiado → líneas tenues */
+#canvas.light-bg:not(.no-grid){
+  background-image:
+    linear-gradient(rgba(0,0,0,.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,.09) 1px, transparent 1px);
+}
 #floor{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 /* unión SIN costuras: capa inferior de "blobs" en color de acento (relleno+trazo)
    y, encima, los rellenos opacos exactos. Como cada capa es de un solo color, las
@@ -166,11 +172,11 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 /* carretera: bordes continuos + eje central discontinuo (blanco) */
 #floor .rm-solid{fill:none;stroke:#f4f4f4;stroke-width:1.3;vector-effect:non-scaling-stroke;stroke-linecap:round;opacity:.92}
 #floor .rm-dash{fill:none;stroke:#f4f4f4;stroke-width:1.3;stroke-dasharray:4 5;vector-effect:non-scaling-stroke;stroke-linecap:round;opacity:.92}
-/* agua: olas claras */
-#floor .dec-wave{fill:none;stroke:#d4ecff;stroke-width:1.3;vector-effect:non-scaling-stroke;stroke-linecap:round;opacity:.8}
-/* jardín: florecillas (pétalos + centro amarillo) */
-#floor .dec-petal{fill:#ff9ec4}
-#floor .dec-core{fill:#ffe15a}
+/* agua: olas claras y sutiles */
+#floor .dec-wave{fill:none;stroke:#d4ecff;stroke-width:1;vector-effect:non-scaling-stroke;stroke-linecap:round;opacity:.6}
+/* jardín: florecillas pequeñas (pétalos + centro amarillo) */
+#floor .dec-petal{fill:#ff9ec4;opacity:.82}
+#floor .dec-core{fill:#ffe15a;opacity:.92}
 
 /* elementos colocados — tamaño libre vía --w/--h, centrados en su punto (x,y) */
 .el{
@@ -351,6 +357,19 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 /* exterior: más piezas (carretera/camino/agua/jardín) → rejilla de 4, etiqueta a 2 líneas */
 .shapes.ext{display:grid;grid-template-columns:repeat(4,1fr)}
 .shapes.ext .shape-btn span{white-space:normal;line-height:1.05;text-align:center}
+/* panel de orden/navegación de formas (solo exterior · Estructura) */
+.piece-nav{display:flex;align-items:stretch;justify-content:center;gap:8px;margin-bottom:7px}
+.piece-nav .pn-group{display:flex;gap:5px}
+.piece-nav .pn-sep{width:1px;background:var(--line);margin:3px 2px}
+.piece-nav button{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  background:var(--surface);border:1px solid var(--line);border-radius:9px;
+  color:var(--text);cursor:pointer;padding:5px 10px;
+}
+.piece-nav button:active{transform:scale(.95)}
+.piece-nav button:disabled{opacity:.3;cursor:default}
+.piece-nav button svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.piece-nav button span{font-family:var(--mono);font-size:7px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
 /* botón mostrar/ocultar todos los elementos (sección Estructura) */
 .vis-toggle{
   display:flex;align-items:center;justify-content:center;gap:8px;
@@ -796,6 +815,14 @@ function lighten(hex, amt){
   r = Math.round(r + (255-r)*amt); g = Math.round(g + (255-g)*amt); b = Math.round(b + (255-b)*amt);
   return '#' + ((1<<24)|(r<<16)|(g<<8)|b).toString(16).slice(1);
 }
+/* ¿es un fondo claro? (para suavizar la rejilla: sobre papel se ve demasiado oscura) */
+function isLightColor(hex){
+  if(!/^#[0-9a-f]{6}$/i.test(hex)) return false;
+  const n = parseInt(hex.slice(1), 16);
+  return (0.2126*((n>>16)&255) + 0.7152*((n>>8)&255) + 0.0722*(n&255)) > 150;
+}
+/* pseudo-aleatorio determinista (mismo seed → mismo valor) para repartir decoración */
+function rnd(seed){ const x = Math.sin(seed) * 43758.5453; return x - Math.floor(x); }
 
 /* tipos de elemento — w/h = tamaño por defecto en px (redimensionable) */
 const TYPES = {
@@ -1004,38 +1031,41 @@ function roadMarks(p){
   }
   return s;
 }
-/* un glifo decorativo (ola o flor) centrado en (x,y), en coords del lienzo (0..100) */
-function glyph(type, x, y){
-  const tr = 'translate(' + x + ' ' + y + ')';
+/* un glifo decorativo (ola o flor), pequeño y sutil, centrado en (x,y) y girado `rot`° */
+function glyph(type, x, y, rot){
+  const tr = 'translate(' + x + ' ' + y + ') rotate(' + (rot||0) + ')';
   if(type === 'waves'){
-    return '<path class="dec-wave" d="M-3 0 q1.5 -1.8 3 0 q1.5 1.8 3 0" transform="' + tr + '"/>';
+    return '<path class="dec-wave" d="M-1.7 0 q0.85 -0.85 1.7 0 q0.85 0.85 1.7 0" transform="' + tr + '"/>';
   }
-  // flor: 5 pétalos alrededor + centro
+  // flor: 5 pétalos pequeños + centro
   let pet = '';
   for(let k = 0; k < 5; k++){
     const a = k * 1.2566;                         // 72° en radianes
-    pet += '<circle class="dec-petal" cx="' + (Math.cos(a)*1.7).toFixed(2) +
-           '" cy="' + (Math.sin(a)*1.7).toFixed(2) + '" r="1.1"/>';
+    pet += '<circle class="dec-petal" cx="' + (Math.cos(a)*0.95).toFixed(2) +
+           '" cy="' + (Math.sin(a)*0.95).toFixed(2) + '" r="0.62"/>';
   }
-  return '<g transform="' + tr + '">' + pet + '<circle class="dec-core" cx="0" cy="0" r="0.9"/></g>';
+  return '<g transform="' + tr + '">' + pet + '<circle class="dec-core" cx="0" cy="0" r="0.5"/></g>';
 }
-/* esparce glifos (olas/flores) por el área de la pieza, repartidos en rejilla y
-   dentro de la forma; siempre al menos una fila/columna (vale para piezas finas) */
+/* esparce glifos (olas/flores) por el área de la pieza con posición/rotación ALEATORIAS
+   (deterministas por pieza+celda → no parpadean) y algún hueco; dentro de la forma */
 function decorMarks(p, type){
   const bb = pieceBBox(p), isCircle = PIECES_DEF[p.kind].path === P_CIRC;
-  const STEP = 14;
+  const STEP = 12;
   const nx = Math.max(1, Math.round((bb.r - bb.l) / STEP));
   const ny = Math.max(1, Math.round((bb.b - bb.t) / STEP));
+  const cw = (bb.r - bb.l) / nx, ch = (bb.b - bb.t) / ny;
   let s = '';
   for(let i = 0; i < nx; i++){
-    const gx = bb.l + (bb.r - bb.l) * (i + 0.5) / nx;
     for(let j = 0; j < ny; j++){
-      const gy = bb.t + (bb.b - bb.t) * (j + 0.5) / ny;
-      if(isCircle){                                // mantener los glifos dentro del óvalo
+      const seed = p.id*97 + i*131 + j*57;
+      if(rnd(seed + 0.7) < 0.18) continue;                       // ~18% de huecos → menos uniforme
+      const gx = bb.l + cw*(i + 0.5) + (rnd(seed)*2 - 1)*cw*0.42;       // jitter dentro de la celda
+      const gy = bb.t + ch*(j + 0.5) + (rnd(seed + 0.3)*2 - 1)*ch*0.42;
+      if(isCircle){                                              // mantener los glifos dentro del óvalo
         const ux = (gx - p.x) / bb.hw, uy = (gy - p.y) / bb.hh;
-        if(ux*ux + uy*uy > 0.62) continue;
+        if(ux*ux + uy*uy > 0.66) continue;
       }
-      s += glyph(type, +gx.toFixed(2), +gy.toFixed(2));
+      s += glyph(type, +gx.toFixed(2), +gy.toFixed(2), Math.round(rnd(seed + 0.9)*360));
     }
   }
   return s;
@@ -1068,6 +1098,7 @@ function renderFloor(){
 function applyBg(){
   canvas.style.backgroundColor = state.bg || '';
   canvas.classList.toggle('no-grid', !!state.gridOff);
+  canvas.classList.toggle('light-bg', isLightColor(state.bg || ''));   // rejilla más suave sobre fondo claro
   const sw = $('#bg-swatch');
   if(sw) sw.style.background = state.bg || 'var(--surface-2)';
   const gl = $('#grid-btn-lbl');
@@ -1145,6 +1176,7 @@ function renderEditPanel(){
     $('#ep-hint').textContent = SECTION_HINT[currentTab] || 'Toca una pieza o elemento para editarlo';
     show([]);
   }
+  updatePieceNav();
 }
 function select(elId, pieceId){
   selEl = elId; selPiece = pieceId;
@@ -1634,6 +1666,30 @@ $('#shapes').addEventListener('click', ev => {
   saveDraft();
 });
 
+/* ── navegación/orden de formas (panel solo del mapa exterior, en Estructura) ── */
+/* orden Z: el array dibuja de abajo a arriba → mover en el array = adelante/atrás */
+function reorderPiece(dir){            // dir -1 = hacia el fondo · +1 = hacia delante
+  if(selPiece == null) return;
+  const i = state.pieces.findIndex(p => p.id === selPiece), j = i + dir;
+  if(i < 0 || j < 0 || j >= state.pieces.length) return;
+  const t = state.pieces[i]; state.pieces[i] = state.pieces[j]; state.pieces[j] = t;
+  renderFloor(); updatePieceNav(); saveDraft();
+}
+function cyclePiece(dir){              // como Tab: salta a la forma anterior/siguiente
+  if(!state.pieces.length) return;
+  let i = state.pieces.findIndex(p => p.id === selPiece);
+  i = (i < 0) ? (dir > 0 ? 0 : state.pieces.length - 1)
+              : (i + dir + state.pieces.length) % state.pieces.length;
+  select(null, state.pieces[i].id);
+}
+function updatePieceNav(){
+  const nav = document.getElementById('piece-nav');
+  if(!nav) return;
+  const hasSel = selPiece != null, has = state.pieces.length > 0;
+  $('#pn-back').disabled = !hasSel; $('#pn-front').disabled = !hasSel;
+  $('#pn-prev').disabled = !has;    $('#pn-next').disabled = !has;
+}
+
 /* ───────── paletas de elementos / cámara ───────── */
 function buildPalItem(type, opts){
   opts = opts || {};
@@ -1672,6 +1728,26 @@ if(EXT){
     '<span>' + PIECES_DEF[k].label + '</span></button>').join('');
   const hint = $('#pane-estructura .pane-hint');
   if(hint) hint.textContent = 'Toca para añadir · solapa piezas del mismo tipo para fusionarlas (quedan abiertas).';
+
+  /* panel de ORDEN (fondo/frente) + NAVEGACIÓN entre formas, entre edición y piezas */
+  const nav = document.createElement('div');
+  nav.className = 'piece-nav';
+  nav.id = 'piece-nav';
+  nav.innerHTML =
+    '<div class="pn-group">' +
+      '<button id="pn-back" title="Enviar hacia el fondo"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="11" height="11" rx="2"/><path d="M20 13v7h-7"/></svg><span>Fondo</span></button>' +
+      '<button id="pn-front" title="Traer hacia delante"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M4 11V4h7"/></svg><span>Frente</span></button>' +
+    '</div>' +
+    '<div class="pn-sep"></div>' +
+    '<div class="pn-group">' +
+      '<button id="pn-prev" title="Forma anterior"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg><span>Anterior</span></button>' +
+      '<button id="pn-next" title="Forma siguiente"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg><span>Siguiente</span></button>' +
+    '</div>';
+  sh.parentNode.insertBefore(nav, sh);
+  $('#pn-back').addEventListener('click', () => reorderPiece(-1));
+  $('#pn-front').addEventListener('click', () => reorderPiece(1));
+  $('#pn-prev').addEventListener('click', () => cyclePiece(-1));
+  $('#pn-next').addEventListener('click', () => cyclePiece(1));
 }
 
 function startDragPal(ev, type, item){
