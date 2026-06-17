@@ -190,26 +190,33 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
   color:var(--el-c);
 }
 .el:active{cursor:grabbing}
+/* INTERIOR (estilo original): recuadro oscuro con borde del color, icono trazado
+   (con tope) y etiqueta DEBAJO en el color del elemento */
 .el .ic{
   position:relative;
-  width:100%;height:100%;border-radius:10px;
-  /* fondo BLANCO con un poco de transparencia (≈20%) y SIN borde; el icono va en color */
-  background:rgba(255,255,255,.8);
-  box-shadow:0 1px 5px rgba(0,0,0,.22);
+  width:100%;height:100%;border-radius:9px;
+  background:var(--surface-2);border:1.5px solid var(--el-c);
   display:flex;align-items:center;justify-content:center;
   transform:rotate(var(--rot,0deg));
   transition:transform .15s var(--ease);
 }
-/* el icono escala con el tamaño del elemento (sin tope) → al agrandar el elemento crece también */
-.el .ic svg{width:64%;height:64%;display:block;stroke:var(--el-c);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.el .ic svg{width:60%;height:60%;max-width:22px;max-height:22px;display:block;stroke:var(--el-c);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .el .lb{
   position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:3px;
   font-family:var(--mono);font-size:7.5px;letter-spacing:.05em;text-transform:uppercase;
-  color:var(--el-c);opacity:1;pointer-events:none;max-width:108px;
+  color:var(--el-c);opacity:.85;pointer-events:none;max-width:96px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  /* borde negro → legible sobre cualquier fondo del mapa */
-  text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 0 2px #000;
 }
+/* EXTERIOR: chip BLANCO sin borde; el icono escala con el recuadro (sin tope) y la
+   etiqueta va DENTRO del recuadro blanco (texto oscuro, sin borde negro) */
+.mode-ext .el .ic{background:rgba(255,255,255,.82);border:none;box-shadow:0 1px 5px rgba(0,0,0,.22)}
+.mode-ext .el .ic svg{width:64%;height:64%;max-width:none;max-height:none}
+.mode-ext .el .lb{
+  top:auto;bottom:3px;margin:0;color:#1d1d1d;opacity:1;text-shadow:none;
+  background:rgba(255,255,255,.9);border-radius:4px;padding:0 3px;max-width:92%;
+}
+/* INTERIOR: el fondo del mapa no se puede editar */
+.mode-int #bg-btn{display:none}
 .el.t-columna .ic{border-radius:50%}
 .el.t-gen_circulo .ic{border-radius:50%}
 .el.t-escenario .ic,.el.t-bar .ic,.el.t-agua .ic,.el.t-carretera .ic,.el.t-comida .ic{border-radius:6px}
@@ -1159,6 +1166,9 @@ function makeNode(e){
   n.innerHTML = '<div class="ic">' + t.icon + '</div>' +
                 (labelText ? '<div class="lb">' + escapeHtml(labelText) + '</div>' : '') +
                 '<span class="lock-badge"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>';
+  /* EXTERIOR: el icono se estira con el recuadro (al alargar el elemento por un eje,
+     el dibujo —p. ej. el árbol— se alarga en ese mismo eje). Interior: sin deformar. */
+  if(EXT){ const svg = n.querySelector('.ic svg'); if(svg) svg.setAttribute('preserveAspectRatio', 'none'); }
   n.addEventListener('pointerdown', ev => startDragEl(ev, e.id, n));
   return n;
 }
@@ -1985,6 +1995,7 @@ $('#map-name').placeholder = EXT ? 'Nombre del lugar (p. ej. Plaza Mayor)' : 'No
 document.querySelectorAll('.tab').forEach(x => x.classList.toggle('is-on', x.dataset.tab === currentTab));
 document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('hidden', p.dataset.tab !== currentTab));
 app.classList.add('sec-' + currentTab);
+app.classList.add(EXT ? 'mode-ext' : 'mode-int');   // estilo de elementos/fondo según el modo
 applyVisibility();
 applyBg();
 renderFloor();
