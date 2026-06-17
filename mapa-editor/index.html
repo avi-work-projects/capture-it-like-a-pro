@@ -161,10 +161,16 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
    Piezas del MISMO color se fusionan sin costura; distinto color = se superponen. */
 #floor .pfl{stroke-width:2.5;vector-effect:non-scaling-stroke;stroke-linejoin:round;pointer-events:auto;cursor:grab}
 #floor .psel{fill:none;stroke:#fff;stroke-width:1.5;stroke-dasharray:6 5;vector-effect:non-scaling-stroke;pointer-events:none}
-/* marcas viales de la carretera: bordes continuos + eje central discontinuo (blanco) */
-#floor .roadmk{pointer-events:none}
+/* decoración sobre las piezas (según su color): líneas viales, olas o flores */
+#floor .decor{pointer-events:none}
+/* carretera: bordes continuos + eje central discontinuo (blanco) */
 #floor .rm-solid{fill:none;stroke:#f4f4f4;stroke-width:1.3;vector-effect:non-scaling-stroke;stroke-linecap:round;opacity:.92}
 #floor .rm-dash{fill:none;stroke:#f4f4f4;stroke-width:1.3;stroke-dasharray:4 5;vector-effect:non-scaling-stroke;stroke-linecap:round;opacity:.92}
+/* agua: olas claras */
+#floor .dec-wave{fill:none;stroke:#d4ecff;stroke-width:1.3;vector-effect:non-scaling-stroke;stroke-linecap:round;opacity:.8}
+/* jardín: florecillas (pétalos + centro amarillo) */
+#floor .dec-petal{fill:#ff9ec4}
+#floor .dec-core{fill:#ffe15a}
 
 /* elementos colocados — tamaño libre vía --w/--h, centrados en su punto (x,y) */
 .el{
@@ -761,9 +767,11 @@ const PIECES_DEF = {
 const STRUCT_INT = ['rect','ele','te','semi'];
 const STRUCT_EXT = ['carretera','carretera_c','agua_c','jardin'];
 
-/* color "carretera": SOLO con este color la pieza muestra las marcas viales
-   (líneas blancas). Con cualquier otro color (camino, acera…) sale plana. */
+/* colores "temáticos": según el color, la pieza recibe una decoración encima.
+   carretera → líneas viales · agua → olas · verde/jardín → flores. */
 const CARRETERA_COLOR = '#3a3d42';
+const AGUA_COLOR = '#1e6aa6';
+const GREEN_COLORS = ['#2f6b34', '#3f8f43'];   // jardín (default) y preset "Verde"
 /* colores sugeridos al recolorear una pieza (+ paleta de colores extensa por <input type=color>) */
 const PIECE_COLORS = [
   { name:'Carretera', color:CARRETERA_COLOR },
@@ -833,6 +841,7 @@ const TYPES = {
     icon:'<svg viewBox="0 0 24 24"><path d="M3 6h18M3 18h18"/><path d="M7.5 12h3M13.5 12h3"/></svg>' }
 };
 const ELEM_MIN = 14, ELEM_MAX = 150, ELEM_STEP = 6;   // límites de tamaño de elemento (px)
+const PIECE_MIN = 5, PIECE_MAX = 100, PIECE_STEP = 5;  // límites de tamaño de pieza (% lienzo; min bajo → carretera estrecha)
 
 /* reparto de la paleta por sección (los "main" cambian según el modo) */
 const GROUP = {
@@ -995,6 +1004,42 @@ function roadMarks(p){
   }
   return s;
 }
+/* un glifo decorativo (ola o flor) centrado en (x,y), en coords del lienzo (0..100) */
+function glyph(type, x, y){
+  const tr = 'translate(' + x + ' ' + y + ')';
+  if(type === 'waves'){
+    return '<path class="dec-wave" d="M-3 0 q1.5 -1.8 3 0 q1.5 1.8 3 0" transform="' + tr + '"/>';
+  }
+  // flor: 5 pétalos alrededor + centro
+  let pet = '';
+  for(let k = 0; k < 5; k++){
+    const a = k * 1.2566;                         // 72° en radianes
+    pet += '<circle class="dec-petal" cx="' + (Math.cos(a)*1.7).toFixed(2) +
+           '" cy="' + (Math.sin(a)*1.7).toFixed(2) + '" r="1.1"/>';
+  }
+  return '<g transform="' + tr + '">' + pet + '<circle class="dec-core" cx="0" cy="0" r="0.9"/></g>';
+}
+/* esparce glifos (olas/flores) por el área de la pieza, repartidos en rejilla y
+   dentro de la forma; siempre al menos una fila/columna (vale para piezas finas) */
+function decorMarks(p, type){
+  const bb = pieceBBox(p), isCircle = PIECES_DEF[p.kind].path === P_CIRC;
+  const STEP = 14;
+  const nx = Math.max(1, Math.round((bb.r - bb.l) / STEP));
+  const ny = Math.max(1, Math.round((bb.b - bb.t) / STEP));
+  let s = '';
+  for(let i = 0; i < nx; i++){
+    const gx = bb.l + (bb.r - bb.l) * (i + 0.5) / nx;
+    for(let j = 0; j < ny; j++){
+      const gy = bb.t + (bb.b - bb.t) * (j + 0.5) / ny;
+      if(isCircle){                                // mantener los glifos dentro del óvalo
+        const ux = (gx - p.x) / bb.hw, uy = (gy - p.y) / bb.hh;
+        if(ux*ux + uy*uy > 0.62) continue;
+      }
+      s += glyph(type, +gx.toFixed(2), +gy.toFixed(2));
+    }
+  }
+  return s;
+}
 function renderFloor(){
   let glow = '', fills = '', marks = '', sel = '';
   state.pieces.forEach(p => {
@@ -1004,14 +1049,18 @@ function renderFloor(){
     const edge = p.color ? lighten(p.color, 0.28) : (def.edge || '#3da9ff');
     glow  += '<path class="pglow" fill="' + edge + '" stroke="' + edge + '" d="' + d + '" transform="' + tr + '"/>';
     fills += '<path class="pfl" fill="' + body + '" stroke="' + body + '" d="' + d + '" transform="' + tr + '" data-id="' + p.id + '"/>';
-    /* marcas viales SOLO si la pieza es carretera Y mantiene el color carretera
-       (recolorearla como camino/acera/etc. la deja plana, sin líneas) */
-    if(def.road && body.toLowerCase() === CARRETERA_COLOR) marks += roadMarks(p);
+    /* decoración según el COLOR: carretera→líneas viales (solo formas de vía), agua→olas, verde→flores */
+    const col = body.toLowerCase();
+    if(def.road && col === CARRETERA_COLOR) marks += roadMarks(p);
+    else if(def.path !== P_DONUT){
+      if(col === AGUA_COLOR) marks += decorMarks(p, 'waves');
+      else if(GREEN_COLORS.includes(col)) marks += decorMarks(p, 'flowers');
+    }
     if(p.id === selPiece)
       sel += '<path class="psel" d="' + d + '" transform="' + tr + '"/>';
   });
   floor.innerHTML = '<g class="glowg">' + glow + '</g><g>' + fills + '</g>' +
-                    '<g class="roadmk">' + marks + '</g><g>' + sel + '</g>';
+                    '<g class="decor">' + marks + '</g><g>' + sel + '</g>';
   floor.querySelectorAll('.pfl').forEach(path =>
     path.addEventListener('pointerdown', ev => startDragPiece(ev, +path.dataset.id, path)));
 }
@@ -1139,8 +1188,8 @@ function resizeSel(sw, sh){
   const kw = swapped ? 'h' : 'w', kh = swapped ? 'w' : 'h';
   /* paso de 5 sobre rejilla común (defaults múltiplos de 5) → cualquier lado de
      una pieza puede igualarse al de otra (diámetro del semicírculo = lado del rect) */
-  if(sw) p[kw] = clampN(p[kw] + sw * 5, 15, 100);
-  if(sh) p[kh] = clampN(p[kh] + sh * 5, 15, 100);
+  if(sw) p[kw] = clampN(p[kw] + sw * PIECE_STEP, PIECE_MIN, PIECE_MAX);
+  if(sh) p[kh] = clampN(p[kh] + sh * PIECE_STEP, PIECE_MIN, PIECE_MAX);
   renderFloor();
   saveDraft();
 }
@@ -1164,9 +1213,9 @@ function scaleSel(dir){
   }
   const p = state.pieces.find(x => x.id === selPiece);
   if(!p) return;
-  const step = dir > 0 ? 5 : -5;                 // un paso de rejilla en ambos ejes
-  p.w = clampN(p.w + step, 15, 100);
-  p.h = clampN(p.h + step, 15, 100);
+  const step = dir > 0 ? PIECE_STEP : -PIECE_STEP;   // un paso de rejilla en ambos ejes
+  p.w = clampN(p.w + step, PIECE_MIN, PIECE_MAX);
+  p.h = clampN(p.h + step, PIECE_MIN, PIECE_MAX);
   renderFloor();
   saveDraft();
 }
