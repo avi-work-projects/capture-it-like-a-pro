@@ -212,15 +212,17 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
    el icono ESCALA con el recuadro (sin tope, CONSERVANDO proporción → no se achata),
    sombra suave para que el chip resalte en el mapa, y un halo sutil en el texto para
    que se lea sobre cualquier fondo (sin borde negro duro). */
-/* recuadro TRANSLÚCIDO y esmerilado (no negro opaco) → se integra sobre cualquier
-   fondo del mapa; el fondo se ve a través. Borde e icono del color se mantienen. */
+/* PIN BLANCO tipo mapa: chip blanco redondeado SIN borde, sombra suave, icono de color
+   (con un filo oscuro fino para que los iconos claros se distingan sobre el blanco);
+   etiqueta debajo con su color y un halo para leerse sobre el fondo del mapa. */
 .mode-ext .el .ic{
-  background:rgba(15,15,15,.28);
-  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
-  box-shadow:0 2px 6px rgba(0,0,0,.28);
+  background:rgba(255,255,255,.96);
+  border:none;border-radius:12px;
+  box-shadow:0 2px 7px rgba(0,0,0,.32);
 }
-.mode-ext .el .ic svg{width:64%;height:64%;max-width:none;max-height:none}
-.mode-ext .el .lb{text-shadow:0 1px 2px rgba(0,0,0,.7),0 0 3px rgba(0,0,0,.5)}
+.mode-ext .el .ic svg{width:62%;height:62%;max-width:none;max-height:none;filter:drop-shadow(0 0 .5px rgba(0,0,0,.4))}
+/* etiqueta en su color original sobre una pastilla oscura → legible en cualquier fondo */
+.mode-ext .el .lb{background:rgba(20,20,20,.62);border-radius:4px;padding:0 4px;text-shadow:none;opacity:1}
 /* INTERIOR: el fondo del mapa no se puede editar */
 .mode-int #bg-btn{display:none}
 .el.t-columna .ic{border-radius:50%}
