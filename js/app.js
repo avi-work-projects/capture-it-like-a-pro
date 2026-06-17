@@ -642,24 +642,27 @@
      de la pestaña hace scroll, deslizándose por DETRÁS de esos bloques. Cada
      bloque fijo se apila justo debajo del anterior (top acumulado por JS, que
      mide alturas variables). Documentado en CLAUDE.md. */
-  function pinBelow(baseTop, els){
-    var hs = els.map(function(el){ return el ? el.offsetHeight : 0; });   // medir ANTES de mutar
-    var top = baseTop;
-    for(var i = 0; i < els.length; i++){
-      var el = els[i]; if(!el) continue;
+  /* fija cada bloque EN SU POSICIÓN NATURAL (sticky top = su propio offset),
+     así NO se mueve nunca (una sola posición estable) sin importar márgenes.
+     Mide la posición natural poniéndolos static un instante (sin repintar). */
+  function pinBelow(scroller, els){
+    els = els.filter(Boolean); if(!els.length) return;
+    var prev = els.map(function(el){ return el.style.position; });
+    els.forEach(function(el){ el.style.position = 'static'; });
+    void scroller.offsetHeight;                                  // reflow para medir natural
+    var vTop = scroller.getBoundingClientRect().top, sTop = scroller.scrollTop;
+    var tops = els.map(function(el){ return el.getBoundingClientRect().top - vTop + sTop; });
+    els.forEach(function(el, i){
       el.classList.add('pinned');
       el.style.position = 'sticky';
-      el.style.top = Math.round(top) + 'px';
-      el.style.zIndex = String(Math.max(1, 5 - i));   // los de arriba, por encima
-      top += hs[i];
-    }
+      el.style.top = Math.round(tops[i]) + 'px';
+      el.style.zIndex = String(Math.max(1, 6 - i));   // los de arriba, por encima
+    });
   }
   /* recalcula el apilado fijo de la vista 2 según el modo/estado actual */
   function restickView2(){
     var v2 = $('#view2');
     if(!$('#result').classList.contains('open')) return;
-    var head = v2.querySelector('.v2-head');
-    var base = head ? head.offsetHeight : 0;
     var els = [];
     if(v2.classList.contains('crit-collapsed')) els.push($('#panelMini'));
     els.push($('#evModeTabs'));
@@ -672,13 +675,12 @@
                v2.querySelector('#modeCal .cal-monthnav'),    // ‹ mes ›
                $('#calSubTabs'));
     }
-    pinBelow(base, els.filter(Boolean));
+    pinBelow(v2, els);
   }
   /* apilado fijo del perfil: título (nombre+ciudad) + pestañas */
   function restickProfile(){
     var v = $('#viewProfile'); if(v.classList.contains('hidden')) return;
-    var head = v.querySelector('.v2-head');
-    pinBelow(head ? head.offsetHeight : 0, [$('#profTabs')]);
+    pinBelow(v, [$('#profTabs')]);
   }
   /* rellena la pestaña activa con blanco SOLO hasta el borde inferior de la
      pantalla (ni se queda corta ni crea blanco masivo). Así el contenido corto
@@ -736,7 +738,8 @@
     setCritCollapsed = collapse;
     v2.addEventListener('scroll', function(){
       if(!critReady()) return;
-      restickView2();                                             // re-ancla los bloques fijos (cualquier estado)
+      /* NO re-anclamos en cada scroll: los bloques están fijos en su posición
+         natural (pinBelow), así no "saltan" entre dos posiciones */
       if(!v2.classList.contains('crit-collapsed')){
         /* comprimir cuando el histórico ya ha salido de vista (tras la cabecera) */
         var head = v2.querySelector('.v2-head');
