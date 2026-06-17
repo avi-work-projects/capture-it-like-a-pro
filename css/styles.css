@@ -439,14 +439,16 @@ body{
 .panel-mini{
   position:sticky;top:0;z-index:5;
   width:100%;align-items:center;gap:10px;
-  margin:0 0 4px;padding:7px 12px;
+  margin:0;padding:7px 12px;
   animation:rise .25s var(--ease) both;
   background:var(--surface);
   border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;
   color:var(--text);font:inherit;cursor:pointer;text-align:left;
-  transition:border-color .15s, box-shadow .15s, background-color .35s;
+  /* tapa el micro-hueco con la cabecera para que no se cuele texto por detrás */
+  box-shadow:0 -7px 0 var(--bg);
+  transition:border-color .15s, background-color .35s;
 }
-.panel-mini:hover,.panel-mini:active{border-color:var(--accent);box-shadow:0 0 12px var(--accent-glow)}
+.panel-mini:hover,.panel-mini:active{border-color:var(--accent)}
 .panel-mini .pm-caret{color:var(--accent);flex:none;font-size:12px;transform:rotate(-90deg)}
 .panel-mini .pm-sum{
   flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
@@ -1065,13 +1067,18 @@ body{
 .app.light .st.mid{color:#b08900;border-color:#b08900}
 
 /* resultados: lista de eventos */
-#result.open{max-height:6000px;overflow:visible}   /* overflow visible: permite anclar (#evModeTabs sticky) */
+#result.open{max-height:6000px;overflow:visible;margin-top:0}   /* overflow visible: permite anclar (#evModeTabs sticky); sin margen para que no quede hueco */
+/* siempre hay sitio para hacer scroll vertical (aunque la pestaña tenga poco
+   o ningún contenido): así SIEMPRE se puede comprimir el histórico subiéndolo */
+#modeProx,#modeCal,#modeHorarios{min-height:82vh}
 /* pestañas de modo (Próximos/Calendario/Horarios) ancladas arriba, siempre
    visibles; el JS fija su top (bajo la cabecera, o bajo la barra de criterios) */
 #evModeTabs{
   position:sticky;top:0;z-index:6;
   background:var(--bg);
-  margin-top:0;margin-bottom:12px;padding-top:3px;
+  margin-top:0;margin-bottom:12px;padding-top:6px;
+  /* tapa cualquier micro-hueco por encima para que NO se vea texto por detrás */
+  box-shadow:0 -7px 0 var(--bg);
   transition:background-color .35s;
 }
 .res{display:none}
@@ -1357,8 +1364,8 @@ body{
 .cal-grid-h span{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);text-align:center}
 .cal-week{position:relative;display:grid;grid-template-columns:repeat(7,1fr);min-height:calc(var(--cal-dn-h) + (var(--bars,0)*var(--cal-bar-h)) + 6px)}
 .cal-day{border:1px solid var(--line);border-right:none;border-bottom:none;padding:2px 0 0 4px;min-height:56px}
-.cal-week .cal-day:last-child{border-right:1px solid var(--line)}
-.cal-week:last-child .cal-day{border-bottom:1px solid var(--line)}
+.cal-day.r{border-right:1px solid var(--line)}
+.cal-day.b{border-bottom:1px solid var(--line)}
 .cal-day.out{background:transparent;border-color:transparent}
 .cal-day.wknd{background:rgba(160,160,200,.07)}
 .cal-day.today{box-shadow:inset 0 0 0 2px var(--accent)}

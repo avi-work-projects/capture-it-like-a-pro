@@ -663,7 +663,7 @@
     mini.addEventListener('click', function(){ v2.scrollTop = 0; collapse(false); });
   })();
 
-  /* swipe horizontal en el calendario para cambiar de mes */
+  /* swipe horizontal en el calendario para cambiar de mes (solo en vista mes) */
   (function(){
     var mc = $('#modeCal'), sx = 0, sy = 0;
     mc.addEventListener('touchstart', function(e){ sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive:true });
@@ -674,6 +674,22 @@
         if(dx < 0){ calMonth = (calMonth+1)%12; if(calMonth === 0) calYear++; }   // ← siguiente
         else      { calMonth = (calMonth+11)%12; if(calMonth === 11) calYear--; } // → anterior
         renderCalMode();
+      }
+    }, { passive:true });
+  })();
+
+  /* swipe horizontal para cambiar de pestaña (Próximos/Calendario/Horarios),
+     SALVO en Calendario con un mes abierto (ahí el swipe cambia de mes) */
+  (function(){
+    var r = $('#result'), sx = 0, sy = 0, ORDER = ['prox','cal','horarios'];
+    r.addEventListener('touchstart', function(e){ sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive:true });
+    r.addEventListener('touchend', function(e){
+      if(evMode === 'cal' && calMonth != null) return;   // ahí manda el swipe de meses
+      var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+      if(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.6){
+        var i = ORDER.indexOf(evMode);
+        if(dx < 0 && i < ORDER.length - 1) setEvMode(ORDER[i + 1]);   // ← siguiente pestaña
+        else if(dx > 0 && i > 0)           setEvMode(ORDER[i - 1]);   // → pestaña anterior
       }
     }, { passive:true });
   })();

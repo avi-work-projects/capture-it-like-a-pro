@@ -158,7 +158,16 @@
         var d = wk[di], inM = d.getMonth()===month;
         var isT = inM && d.getTime()===today.getTime();
         var wknd = di>=5;
-        h += '<div class="cal-day' + (inM?'':' out') + (isT?' today':'') + (wknd?' wknd':'') + '">' +
+        /* cierre del cuadrado: cada celda lleva borde sup+izq; añadimos der/inf
+           cuando el vecino es de otro mes (o es el límite) para que NO queden
+           cuadrados abiertos junto a las casillas "fuera de mes" */
+        var edge = '';
+        if(inM){
+          var D = d.getDate(), L = last.getDate();
+          if(di === 6 || D === L)  edge += ' r';   // última columna o último día del mes
+          if(D + 7 > L)            edge += ' b';   // no hay día del mes justo debajo
+        }
+        h += '<div class="cal-day' + (inM?'':' out') + (isT?' today':'') + (wknd?' wknd':'') + edge + '">' +
              '<span class="cal-dn">' + (inM?d.getDate():'') + '</span>' +
              '</div>';
       }
