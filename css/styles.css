@@ -365,7 +365,7 @@ body{
      padding-bottom: holgura para que el último slot ("Tipo") NUNCA quede pegado
      al borde redondeado (en móvil el redondeo sub-píxel lo recortaba). */
   overflow:visible;
-  padding-bottom:4px;
+  padding-bottom:7px;
   transition:opacity .3s ease, background-color .35s;
 }
 .slot{
@@ -1445,10 +1445,14 @@ body{
    de padding de la vista) para que el contenido no se cuele por ningún borde */
 /* el fondo opaco se extiende ARRIBA y a los LADOS hasta MÁS ALLÁ del borde de
    pantalla (padding lateral 26px), para que NADA del contenido (ni el resplandor
-   :active de una tarjeta ni sub-píxeles) asome por los laterales al scrollear. */
+   :active de una tarjeta ni sub-píxeles) asome por los laterales/huecos al
+   scrollear. REGLA UNIFICADA y específica (#view2 …) para GANAR a las reglas por
+   id de cada bloque (p.ej. #evModeTabs y .panel-mini tenían su propio box-shadow
+   de solo 0 -7px, SIN laterales → por ahí se colaban las tarjetas). */
+#view2 .pinned, #view2 .date-head, #viewProfile .pinned{
+  box-shadow:0 -20px 0 var(--bg), -60px 0 0 var(--bg), 60px 0 0 var(--bg);
+}
 .pinned{box-shadow:0 -18px 0 var(--bg), -60px 0 0 var(--bg), 60px 0 0 var(--bg)}
-/* las cabeceras de día pegajosas también tapan los laterales (mismo motivo) */
-.date-head{box-shadow:-60px 0 0 var(--bg), 60px 0 0 var(--bg)}
 .cal-monthtop,.cal-monthnav,.sala-head,#salaTabs,#calSubTabs,#profTabs{background:var(--bg)}
 /* fila superior del mes: año (vuelve a la rejilla) + switch "Ver eventos pasados" */
 .cal-monthtop{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0 2px}
