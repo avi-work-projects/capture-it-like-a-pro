@@ -1106,9 +1106,9 @@ body{
 .evts{display:flex;flex-direction:column;gap:10px}
 /* cabecera de día en la lista agrupada por fechas */
 .date-head{
-  font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
   color:var(--text);                       /* blanco neutro, no el acento de pantalla */
-  padding:6px 2px 4px;
+  padding:7px 2px 6px;
   margin-top:10px;
   border-bottom:1px solid var(--line);
   /* cabecera de día PEGAJOSA: al hacer scroll, el grupo del día (Ahora/Hoy/
@@ -1197,6 +1197,18 @@ body{
   padding:3px 7px;
 }
 .evt-cams.on{color:var(--accent);border-color:var(--accent)}
+/* HORA destacada de la tarjeta (lista "Próximos"): protagonista, mono y
+   coloreada según el tipo de evento (igual que el borde izquierdo). */
+.evt-when{
+  display:block;margin-top:4px;
+  font-family:var(--mono);font-weight:700;
+  font-size:15px;letter-spacing:.06em;
+  color:var(--text);
+}
+.evt.t-sala .evt-when{color:#c46bff}
+.evt.t-congreso .evt-when{color:#3da9ff}
+.evt.t-exterior .evt-when{color:#ffd60a}
+.app.light .evt.t-sala .evt-when{color:#9a4fe0}
 
 /* vista 3: detalle del evento */
 .ev-tags{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
@@ -1431,7 +1443,12 @@ body{
    sombra hacia arriba para que NO se cuele texto por ningún micro-hueco. */
 /* el fondo del bloque fijo se extiende hacia arriba y a los LADOS (los 26px
    de padding de la vista) para que el contenido no se cuele por ningún borde */
-.pinned{box-shadow:0 -18px 0 var(--bg), -30px 0 0 var(--bg), 30px 0 0 var(--bg)}
+/* el fondo opaco se extiende ARRIBA y a los LADOS hasta MÁS ALLÁ del borde de
+   pantalla (padding lateral 26px), para que NADA del contenido (ni el resplandor
+   :active de una tarjeta ni sub-píxeles) asome por los laterales al scrollear. */
+.pinned{box-shadow:0 -18px 0 var(--bg), -60px 0 0 var(--bg), 60px 0 0 var(--bg)}
+/* las cabeceras de día pegajosas también tapan los laterales (mismo motivo) */
+.date-head{box-shadow:-60px 0 0 var(--bg), 60px 0 0 var(--bg)}
 .cal-monthtop,.cal-monthnav,.sala-head,#salaTabs,#calSubTabs,#profTabs{background:var(--bg)}
 /* fila superior del mes: año (vuelve a la rejilla) + switch "Ver eventos pasados" */
 .cal-monthtop{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0 2px}

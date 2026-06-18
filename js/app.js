@@ -352,6 +352,10 @@
     if(!m) return null;
     return m.querySelector('.scroll-body') || m;
   }
+  /* mientras se está "revelando" el histórico al ritmo del scroll (ver criterios
+     comprimibles), el rebote de contenido NO debe actuar (si no, el contenido
+     botaría a la vez que crece el panel). */
+  var critRevealing = false;
   /* rebote SOLO del contenido en #view2: el contenido se estira/esconde tras
      las cabeceras fijas y vuelve con muelle al soltar; el chrome no se inmuta.
      El scroll normal sigue siendo nativo sobre #view2 (cabeceras sticky). */
@@ -370,7 +374,7 @@
       body = activeBody(); pull = 0; startY = e.touches[0].clientY;
     }, { passive:true });
     v2.addEventListener('touchmove', function(e){
-      if(!body) return;
+      if(!body || critRevealing){ if(pull){ pull=0; body.style.transition='none'; body.style.transform=''; } return; }
       var dy = e.touches[0].clientY - startY;
       var atTop = v2.scrollTop <= 0;
       var atBottom = v2.scrollTop + v2.clientHeight >= v2.scrollHeight - 1;
@@ -507,19 +511,64 @@
   }
   function camCountOf(ev){ return ev.camIds.length + (joined[ev.id] ? 1 : 0); }
 
+  /* "HH:MM–HH:MM" → [iniMin, finMin] (fin puede pasar de medianoche) */
+  function tlMinsApp(tl){
+    var p = (tl || '').replace('–','-').replace('—','-').split('-');
+    function m(s){ var x = s.trim().split(':'); return (+x[0]) * 60 + (+x[1]); }
+    var s = m(p[0] || '0:0'), e = m(p[1] || '0:0'); if(e <= s) e += 1440; return [s, e];
+  }
+  /* ocurrencias concretas de una sala semanal dentro de [fromTs, toTs] que aún
+     no han terminado (así, al ampliar el rango, las salas se repiten) */
+  function weeklyOccs(ev, fromTs, toTs){
+    var days = ev.weekdays || [ev.weekday];
+    var tl = tlMinsApp(ev.timeLabel), durMs = (tl[1] - tl[0]) * 60000;
+    var now = Date.now(), d0 = new Date(fromTs);
+    d0 = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate());
+    var out = [];
+    for(var add = 0; add < 400 && out.length < 120; add++){
+      var d = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + add, Math.floor(tl[0]/60), tl[0]%60, 0, 0);
+      var s = d.getTime();
+      if(s > toTs) break;
+      if(days.indexOf(d.getDay()) === -1) continue;
+      if(s + durMs < now) continue;          // ya terminó
+      out.push({ start:s, end:s + durMs });
+    }
+    return out;
+  }
   function renderResults(){
-    var list = EVENTS.filter(function(ev){
-      if(eventStatus(ev) === 'terminado') return false;   // el pasado no se busca
+    var now = Date.now();
+    /* filtro opcional por día o rango de días */
+    var fv = $('#dateFrom').value, tv = $('#dateTo').value;
+    var from = fv ? new Date(fv + 'T00:00:00').getTime() : null;
+    var to   = tv ? new Date(tv + 'T23:59:59').getTime() : null;
+    var winFrom = from || now, winTo = to || (now + 60 * 86400000);   // sin 'to': ventana de 60 días
+    function passes(ev){
       if(!inFilter(state.country, ev.country)) return false;
       if(!inFilter(state.city, ev.city)) return false;
       if(!inFilter(state.type, ev.type)) return false;
       if(state.subtype && !inFilter(state.subtype, ev.sub)) return false;
       return true;
+    }
+    function instance(ev, s, e){ return Object.assign({}, ev, { id: ev.id + '@' + s, startsAt:s, endsAt:e, recurrence:'oneoff' }); }
+    /* construye la lista EXPANDIENDO las salas semanales en sus ocurrencias
+       dentro de la ventana (antes solo aparecía la próxima de cada sala, así que
+       ampliar el rango no traía las repeticiones). */
+    var list = [];
+    EVENTS.forEach(function(ev){
+      if(!passes(ev)) return;
+      if(ev.recurrence === 'weekly'){
+        var occFrom = winFrom;
+        if(eventStatus(ev) === 'directo'){
+          list.push(ev);                       // instancia EN DIRECTO (demo) → grupo "Ahora"
+          var t = new Date(); t.setHours(0,0,0,0); t.setDate(t.getDate()+1);   // sus ocurrencias desde mañana (hoy ya lo cubre el directo)
+          occFrom = Math.max(occFrom, t.getTime());
+        }
+        weeklyOccs(ev, occFrom, winTo).forEach(function(o){ list.push(instance(ev, o.start, o.end)); });
+      } else {
+        if(eventStatus(ev) === 'terminado') return;   // el pasado no se busca
+        list.push(ev);
+      }
     });
-    /* filtro opcional por día o rango de días */
-    var fv = $('#dateFrom').value, tv = $('#dateTo').value;
-    var from = fv ? new Date(fv + 'T00:00:00').getTime() : null;
-    var to   = tv ? new Date(tv + 'T23:59:59').getTime() : null;
     list = list.filter(function(ev){
       return (!from || ev.endsAt >= from) && (!to || ev.startsAt <= to);
     });
@@ -563,7 +612,10 @@
     $('#resEmpty').style.display = list.length ? 'none' : 'flex';
     if(evMode === 'prox') scheduleRelayout();   // rellena y ancla
   }
-  /* contenido interno de una tarjeta de evento (reutilizable) */
+  /* contenido interno de una tarjeta de evento (lista "Próximos").
+     Formato limpio: nombre + CAM arriba; HORA destacada debajo. SIN dirección
+     ni ciudad (sobran aquí; están en el detalle). El día lo da la cabecera de
+     grupo pegajosa. */
   function evtCardInner(ev){
     var n = camCountOf(ev);
     var foll = ev.camIds.filter(function(id){ return follows[id]; }).length;
@@ -576,7 +628,7 @@
           '<span class="evt-cams' + (n ? ' on' : '') + '">CAM ×' + n + '</span>' +
         '</span>' +
       '</div>' +
-      '<span class="evt-meta">' + when + ' · ' + ev.venue + ' · ' + CITY_LABELS[ev.city] + '</span>';
+      '<span class="evt-when">' + when + '</span>';
   }
   /* el filtro de fecha re-filtra en vivo (y marca que el usuario lo tocó,
      para no re-imponer el rango por defecto de 7 días) */
@@ -850,16 +902,72 @@
        usuario no quiere que se mueva al sobre-scrollear; para editar criterios
        ahí está el botón "Editar"). En Calendario SÍ se permite desplegar tirando
        hacia arriba (el mes cabe sin scroll, así que es la forma natural). */
+    function canEffort(){
+      return critReady() && v2.classList.contains('crit-collapsed') && v2.scrollTop <= 2 &&
+             !(evMode === 'horarios' && horSala != null);
+    }
+    /* RUEDA (escritorio): mismo umbral pero despliegue instantáneo. */
     function tryEffort(amount){
-      if(!critReady() || !v2.classList.contains('crit-collapsed') || v2.scrollTop > 2) return;
-      if(evMode === 'horarios' && horSala != null) return;
+      if(!canEffort()) return;
       if(!locked()){ collapse(false); return; }
       effort += amount;
       if(effort > EFFORT){ collapse(false); v2.scrollTop = 0; }
     }
     v2.addEventListener('wheel', function(e){ if(e.deltaY < 0) tryEffort(-e.deltaY); else effort = 0; }, { passive:true });
+
+    /* TÁCTIL: tras superar el "esfuerzo", el histórico se despliega AL RITMO del
+       propio arrastre (no de golpe). El panel crece y la barra mini se desvanece
+       en proporción al dedo; al soltar, si se reveló lo suficiente se completa,
+       si no, vuelve a colapsarse. */
+    var revealing = false, revFrac = 0, pFull = 0, sFull = 0, mFull = 0;
+    function natural(el){            // alto natural del bloque (medido sin pintar)
+      var mh = el.style.maxHeight, tr = el.style.transition, ov = el.style.overflow;
+      el.style.transition = 'none'; el.style.overflow = 'hidden'; el.style.maxHeight = 'none';
+      var h = el.scrollHeight;
+      el.style.maxHeight = mh; el.style.transition = tr; el.style.overflow = ov;
+      return h;
+    }
+    function partial(el, full, frac){
+      el.style.transition = 'none'; el.style.overflow = 'hidden';
+      el.style.maxHeight = (full * frac) + 'px';
+      el.style.opacity = String(frac);
+    }
+    function revealStart(){
+      revealing = true; critRevealing = true;
+      pFull = natural(panel) || 1;
+      sFull = subp.classList.contains('show') ? natural(subp) : 0;
+      mFull = mini.offsetHeight || 40;
+    }
+    function revealTo(frac){
+      frac = Math.max(0, Math.min(1, frac)); revFrac = frac;
+      partial(panel, pFull, frac);
+      if(sFull) partial(subp, sFull, frac);
+      mini.style.transition = 'none'; mini.style.overflow = 'hidden';
+      mini.style.maxHeight = (mFull * (1 - frac)) + 'px'; mini.style.opacity = String(1 - frac);
+    }
+    function revealEnd(){
+      if(!revealing) return;
+      var done = revFrac >= 0.4;
+      revealing = false; critRevealing = false;
+      mini.style.maxHeight = ''; mini.style.opacity = ''; mini.style.overflow = ''; mini.style.transition = '';
+      if(done){ collapse(false); }                       // completar (animado)
+      else { setBox(panel, true, false); setBox(subp, true, false); effort = 0; tops(); fillMode(); }  // cancelar
+    }
     v2.addEventListener('touchstart', function(e){ touchY = e.touches[0].clientY; effort = 0; }, { passive:true });
-    v2.addEventListener('touchmove', function(e){ var y = e.touches[0].clientY, dy = y - touchY; touchY = y; if(dy > 0) tryEffort(dy); }, { passive:true });
+    v2.addEventListener('touchmove', function(e){
+      var y = e.touches[0].clientY, dy = y - touchY; touchY = y;
+      if(!canEffort()){ if(revealing) revealEnd(); return; }
+      if(!locked()){ if(dy > 0) collapse(false); return; }   // <0,5 s desde el colapso → despliega solo
+      effort = Math.max(0, effort + dy);                      // arriba suma, abajo resta
+      if(effort > EFFORT){
+        if(!revealing) revealStart();
+        revealTo((effort - EFFORT) / pFull);                 // 1:1 con el arrastre
+      } else if(revealing){
+        revealTo(0);
+      }
+    }, { passive:true });
+    v2.addEventListener('touchend',    function(){ if(revealing) revealEnd(); }, { passive:true });
+    v2.addEventListener('touchcancel', function(){ if(revealing) revealEnd(); }, { passive:true });
     mini.addEventListener('click', function(){ v2.scrollTop = 0; collapse(false); });
   })();
 
