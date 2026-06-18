@@ -1455,6 +1455,11 @@ body{
 #view2 .pinned, #view2 .date-head, #viewProfile .pinned{
   box-shadow:0 -20px 0 var(--bg), -60px 0 0 var(--bg), 60px 0 0 var(--bg);
 }
+/* las PESTAÑAS principales NO llevan sombra superior: encima tienen el panel de
+   criterios (contenido real, expandido) o la barra mini (contigua), y una sombra
+   hacia arriba TAPABA la mitad inferior de "Tipo" (en claro, color crema → parecía
+   recortado). Solo sombras laterales. Especificidad #view2 #id gana a la unificada. */
+#view2 #evModeTabs{box-shadow:-60px 0 0 var(--bg), 60px 0 0 var(--bg)}
 .pinned{box-shadow:0 -18px 0 var(--bg), -60px 0 0 var(--bg), 60px 0 0 var(--bg)}
 .cal-monthtop,.cal-monthnav,.sala-head,#salaTabs,#calSubTabs,#profTabs{background:var(--bg)}
 /* fila superior del mes: año (vuelve a la rejilla) + switch "Ver eventos pasados" */
