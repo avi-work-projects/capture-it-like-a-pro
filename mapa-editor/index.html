@@ -47,6 +47,8 @@ body{background:#000;font-family:var(--body);overflow:hidden}
   --c-carretera:#8a8f96;
   --c-iglesia:#d9b65d;
   --c-monumento:#b8b3a8;
+  --c-arbusto:#4e9e4a;
+  --c-banco:#9c7b50;
 
   position:relative;
   width:100%;max-width:430px;height:100dvh;margin:0 auto;
@@ -176,6 +178,11 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 #floor .rm-dash{fill:none;stroke:#f4f4f4;stroke-width:1.3;stroke-dasharray:4 5;vector-effect:non-scaling-stroke;stroke-linecap:round;opacity:.92}
 /* agua: olas claras y sutiles */
 #floor .dec-wave{fill:none;stroke:#d4ecff;stroke-width:1;vector-effect:non-scaling-stroke;stroke-linecap:round;opacity:.6}
+/* escalera / grada: peldaños */
+#floor .step-line{fill:none;stroke:rgba(0,0,0,.42);stroke-width:1;vector-effect:non-scaling-stroke}
+#floor .step-grada{stroke:rgba(0,0,0,.55);stroke-width:1.5}
+/* pistas deportivas: líneas blancas */
+#floor .court-line{fill:none;stroke:#f4f4f4;stroke-width:1;vector-effect:non-scaling-stroke;opacity:.92;stroke-linejoin:round}
 /* jardín: matas de hierba (briznas verdes) + alguna florecilla diminuta */
 #floor .dec-grass{fill:#4ea63f;stroke:#1d5523;stroke-width:.45;vector-effect:non-scaling-stroke;stroke-linejoin:round;opacity:.95}
 #floor .dec-petal{fill:#ff9ec4;opacity:.85}
@@ -223,6 +230,9 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 .mode-ext .el .ic svg{width:62%;height:62%;max-width:none;max-height:none;filter:drop-shadow(0 0 .5px rgba(0,0,0,.4))}
 /* etiqueta en su color original sobre una pastilla oscura → legible en cualquier fondo */
 .mode-ext .el .lb{background:rgba(20,20,20,.62);border-radius:4px;padding:0 4px;text-shadow:none;opacity:1}
+/* SILUETAS (árbol/arbusto/banco): sin recuadro, icono RELLENO del color (con filo oscuro) */
+.mode-ext .el.sil .ic{background:none;border:none;box-shadow:none}
+.mode-ext .el.sil .ic svg{width:96%;height:96%;fill:var(--el-c);stroke:rgba(0,0,0,.34);stroke-width:.7;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}
 /* INTERIOR: el fondo del mapa no se puede editar */
 .mode-int #bg-btn{display:none}
 .el.t-columna .ic{border-radius:50%}
@@ -380,6 +390,9 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 /* exterior: más piezas (carretera/camino/agua/jardín) → rejilla de 4, etiqueta a 2 líneas */
 .shapes.ext{display:grid;grid-template-columns:repeat(4,1fr)}
 .shapes.ext .shape-btn span{white-space:normal;line-height:1.05;text-align:center}
+/* exterior sin nombres: solo la forma, icono algo mayor y botón compacto */
+.shapes.noname .shape-btn{padding:12px 2px}
+.shapes.noname .shape-btn svg{width:30px;height:30px}
 /* panel de orden/navegación de formas (solo exterior · Estructura) */
 .piece-nav{display:flex;align-items:stretch;justify-content:center;gap:8px;margin-bottom:7px}
 .piece-nav .pn-group{display:flex;gap:5px}
@@ -816,14 +829,28 @@ const STRUCT_EXT = ['carretera','carretera_c','agua_c','jardin'];
 const CARRETERA_COLOR = '#3a3d42';
 const AGUA_COLOR = '#1e6aa6';
 const GREEN_COLORS = ['#2f6b34', '#3f8f43'];   // jardín (default) y preset "Verde"
+const ESCALERA_COLOR = '#a7a7ac';              // gris escalera → decoración de peldaños
+const GRADA_COLOR    = '#b0aca3';              // hormigón de grada → peldaños más marcados
+/* colores de PISTA (mapean a sus líneas) — solo para la forma cuadrado redondeado (jardín) */
+const COURTS = { '#2e8b3d':'futbol', '#2f6e9e':'tenis', '#1f6f6a':'padel', '#b5762f':'baloncesto' };
 /* colores sugeridos al recolorear una pieza (+ paleta de colores extensa por <input type=color>) */
 const PIECE_COLORS = [
   { name:'Carretera', color:CARRETERA_COLOR },
   { name:'Acera',     color:'#b9bcc2' },
+  { name:'Acera 2',   color:'#8c9197' },
   { name:'Verde',     color:'#3f8f43' },
   { name:'Camino 1',  color:'#6e5a40' },
   { name:'Camino 2',  color:'#9c7b4e' },
-  { name:'Agua',      color:'#1e6aa6' }
+  { name:'Agua',      color:'#1e6aa6' },
+  { name:'Escalera',  color:ESCALERA_COLOR },
+  { name:'Grada',     color:GRADA_COLOR }
+];
+/* colores de PISTA — se añaden a la hoja SOLO cuando la pieza es cuadrado redondeado (jardín) */
+const COURT_COLORS = [
+  { name:'Fútbol',     color:'#2e8b3d' },
+  { name:'Tenis',      color:'#2f6e9e' },
+  { name:'Pádel',      color:'#1f6f6a' },
+  { name:'Baloncesto', color:'#b5762f' }
 ];
 /* fondos de mapa sugeridos */
 const BG_COLORS = [
@@ -871,9 +898,14 @@ const TYPES = {
     icon:'<svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>' },
   camarografo:{ label:'Cámara',    color:'var(--c-cam)',    w:24, h:24,
     icon:'<svg viewBox="0 0 24 24"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="M15 10l6-3v10l-6-3"/></svg>' },
-  /* ── elementos de EXTERIOR (texto editable: se les puede poner nombre propio) ── */
-  arbol:     { label:'Árbol',          color:'var(--c-arbol)',     editable:true, w:24, h:28,
-    icon:'<svg viewBox="0 0 24 24"><path d="M12 2l4 6h-2.6l3 5h-2.6l2.4 4H7.8l2.4-4H7.6l3-5H8z"/><path d="M12 17v5"/></svg>' },
+  /* ── elementos de EXTERIOR ── */
+  /* silueta rellena, SIN recuadro ni nombre (silhouette): árbol, arbusto, banco */
+  arbol:     { label:'Árbol',          color:'var(--c-arbol)',     silhouette:true, w:30, h:34,
+    icon:'<svg viewBox="0 0 24 24"><path d="M10.7 13.5h2.6V22h-2.6z"/><path d="M12 2C8.4 2 6 4.5 6 7.4c0 1 .3 1.9.8 2.6-.9.7-1.4 1.7-1.4 2.8 0 2.6 2.7 4.2 6.6 4.2s6.6-1.6 6.6-4.2c0-1.1-.5-2.1-1.4-2.8.5-.7.8-1.6.8-2.6C18 4.5 15.6 2 12 2z"/></svg>' },
+  arbusto:   { label:'Arbusto',        color:'var(--c-arbusto)',   silhouette:true, w:30, h:22,
+    icon:'<svg viewBox="0 0 24 24"><path d="M2 20c-.3-2.6 1.4-4.4 3.6-4.1.2-2.3 2.3-3.7 4.4-2.7.9-1.7 3.6-1.9 4.9-.2 2.4-.6 4.6 1.1 4.5 3.4 1.8.4 2.8 2.3 1.9 3.6z"/></svg>' },
+  banco:     { label:'Banco',          color:'var(--c-banco)',     silhouette:true, w:40, h:22,
+    icon:'<svg viewBox="0 0 24 24"><path d="M3 9.5h18v2.2H3z"/><path d="M3 13.6h18v2.2H3z"/><path d="M4.3 15.6h1.7V21H4.3zM18 15.6h1.7V21H18z"/></svg>' },
   fuente:    { label:'Fuente',         color:'var(--c-fuente)',    editable:true, w:42, h:44,
     icon:'<svg viewBox="0 0 24 24"><path d="M4 21h16"/><path d="M6.5 21l1-3.5h9l1 3.5"/><path d="M9 17.5v-2a3 3 0 0 1 6 0v2"/><path d="M12 15.5V7.4"/><path d="M12 7.4C9.8 7.4 8.7 9.2 8.7 11.4"/><path d="M12 7.4c2.2 0 3.3 1.8 3.3 4"/><circle cx="12" cy="5.5" r="1.1"/></svg>' },
   comida:    { label:'Comida',         color:'var(--c-comida)',    editable:true, w:38, h:26,
@@ -884,8 +916,8 @@ const TYPES = {
     icon:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M7 16V8l5 6 5-6v8"/></svg>' },
   iglesia:   { label:'Iglesia',        color:'var(--c-iglesia)',   editable:true, w:48, h:56,
     icon:'<svg viewBox="0 0 24 24"><path d="M12 2v5M10 4h4"/><path d="M6 21V10l6-4 6 4v11"/><path d="M10 21v-5h4v5"/></svg>' },
-  monumento: { label:'Monumento',      color:'var(--c-monumento)', editable:true, w:40, h:54,
-    icon:'<svg viewBox="0 0 24 24"><path d="M10 3h4l-1 13h-2z"/><path d="M8 21l1-3h6l1 3"/><path d="M6 21h12"/></svg>' },
+  monumento: { label:'Monumento',      color:'var(--c-monumento)', editable:true, w:42, h:56,
+    icon:'<svg viewBox="0 0 24 24"><path d="M7 22h10"/><path d="M8.5 22v-3h7v3"/><path d="M10 19l1.4-9h1.2l1.4 9z"/><circle cx="12" cy="7.6" r="1.6"/><path d="M12.8 9.4l2.9-3.1"/><path d="M15.7 6.3l-.5-1.5M15.7 6.3l1-1.1M15.7 6.3l.1-1.5"/></svg>' },
   /* agua/carretera siguen definidos para no romper mapas exteriores antiguos (ya no en la paleta) */
   agua:      { label:'Agua',           color:'var(--c-agua)',      w:56, h:40,
     icon:'<svg viewBox="0 0 24 24"><path d="M3 8c2-1.5 4 1.5 6 0s4-1.5 6 0 4 1.5 6 0"/><path d="M3 13c2-1.5 4 1.5 6 0s4-1.5 6 0 4 1.5 6 0"/><path d="M3 18c2-1.5 4 1.5 6 0s4-1.5 6 0 4 1.5 6 0"/></svg>' },
@@ -899,7 +931,7 @@ function pieceMin(p){ return PIECES_DEF[p.kind].path === P_DONUT ? DONUT_MIN : P
 
 /* reparto de la paleta por sección (los "main" cambian según el modo) */
 const GROUP = {
-  main:  EXT ? ['arbol','fuente','comida','edificio','iglesia','monumento']
+  main:  EXT ? ['arbol','arbusto','banco','fuente','comida','edificio','iglesia','monumento']
              : ['acceso','banos','columna','dj','bar','escenario'],
   otros: ['gen_estrella','gen_circulo','gen_cuadrado'],
   cam:   ['camarografo']
@@ -1058,6 +1090,39 @@ function roadMarks(p){
   }
   return s;
 }
+/* peldaños (escalera / grada de hormigón): líneas paralelas a lo ancho */
+function stepMarks(p, kind){
+  const tr = pieceTransform(p), n = 6, cls = kind === 'grada' ? 'step-line step-grada' : 'step-line';
+  let s = '';
+  for(let i = 1; i < n; i++){
+    const y = (i / n).toFixed(3);
+    s += '<path class="' + cls + '" d="M0.05 ' + y + ' H0.95" transform="' + tr + '"/>';
+  }
+  return s;
+}
+/* líneas de PISTA (fútbol/tenis/pádel/baloncesto) en coords unitarias 0..1 */
+function courtMarks(p, sport){
+  const tr = pieceTransform(p), a = 0.07, b = 0.93, c = 0.5;
+  const P = d => '<path class="court-line" d="' + d + '" transform="' + tr + '"/>';
+  const C = (cx, cy, r) => '<circle class="court-line" cx="' + cx + '" cy="' + cy + '" r="' + r + '" transform="' + tr + '"/>';
+  let s = P('M' + a + ' ' + a + ' H' + b + ' V' + b + ' H' + a + ' Z');     // borde exterior
+  if(sport === 'futbol'){
+    s += P('M' + a + ' ' + c + ' H' + b) + C(c, c, 0.12);                   // medio campo + círculo central
+    s += P('M0.3 ' + a + ' V0.2 H0.7 V' + a) + P('M0.3 ' + b + ' V0.8 H0.7 V' + b);  // áreas
+  }else if(sport === 'tenis'){
+    s += P('M' + a + ' ' + c + ' H' + b);                                   // red
+    s += P('M0.18 ' + a + ' V' + b + ' M0.82 ' + a + ' V' + b);             // individuales
+    s += P('M0.18 0.3 H0.82 M0.18 0.7 H0.82 M' + c + ' 0.3 V0.7');          // saque
+  }else if(sport === 'padel'){
+    s += P('M' + a + ' ' + c + ' H' + b);                                   // red
+    s += P('M' + a + ' 0.3 H' + b + ' M' + a + ' 0.7 H' + b + ' M' + c + ' 0.3 V0.7');
+  }else if(sport === 'baloncesto'){
+    s += P('M' + a + ' ' + c + ' H' + b) + C(c, c, 0.1);                    // medio campo + círculo
+    s += P('M0.36 ' + a + ' V0.26 H0.64 V' + a) + C(c, 0.26, 0.08);         // zona arriba
+    s += P('M0.36 ' + b + ' V0.74 H0.64 V' + b) + C(c, 0.74, 0.08);         // zona abajo
+  }
+  return s;
+}
 /* ola: trazo ondulado HORIZONTAL (todas en la misma dirección, sin rotar) */
 function waveGlyph(x, y){
   return '<path class="dec-wave" d="M-1.7 0 q0.85 -0.85 1.7 0 q0.85 0.85 1.7 0" transform="translate(' + x + ' ' + y + ')"/>';
@@ -1126,6 +1191,9 @@ function renderFloor(){
     const col = fill.toLowerCase();
     let dec = '';
     if(def.road && col === CARRETERA_COLOR) dec = roadMarks(p);
+    else if(col === ESCALERA_COLOR) dec = stepMarks(p, 'stairs');
+    else if(col === GRADA_COLOR) dec = stepMarks(p, 'grada');
+    else if(COURTS[col]) dec = courtMarks(p, COURTS[col]);
     else if(def.path !== P_DONUT){
       if(col === AGUA_COLOR) dec = decorMarks(p, 'waves');
       else if(GREEN_COLORS.includes(col)) dec = decorMarks(p, 'flowers');
@@ -1159,7 +1227,7 @@ function renderElements(){
 function makeNode(e){
   const t = TYPES[e.type];
   const n = document.createElement('div');
-  n.className = 'el t-' + e.type + (e.id === selEl ? ' sel' : '') + (e.locked ? ' locked' : '');
+  n.className = 'el t-' + e.type + (t.silhouette ? ' sil' : '') + (e.id === selEl ? ' sel' : '') + (e.locked ? ' locked' : '');
   n.dataset.id = e.id;
   n.style.setProperty('--el-c', t.color);
   n.style.setProperty('--rot', (e.rot||0) + 'deg');
@@ -1170,7 +1238,7 @@ function makeNode(e){
   /* texto: el escrito por el usuario manda; si no hay, los genéricos van en blanco
      (blankLabel) y el resto muestra su etiqueta por defecto */
   const hasText = e.text != null && e.text !== '';
-  const labelText = hasText ? e.text : (t.blankLabel ? '' : t.label);
+  const labelText = t.silhouette ? '' : (hasText ? e.text : (t.blankLabel ? '' : t.label));
   n.innerHTML = '<div class="ic">' + t.icon + '</div>' +
                 (labelText ? '<div class="lb">' + escapeHtml(labelText) + '</div>' : '') +
                 '<span class="lock-badge"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>';
@@ -1348,10 +1416,12 @@ $('#btn-color').addEventListener('click', () => {
   const p = state.pieces.find(x => x.id === selPiece);
   if(!p) return;
   const def = PIECES_DEF[p.kind];
+  /* las pistas (fútbol/tenis/pádel/baloncesto) solo para el cuadrado redondeado (jardín) */
+  const presets = (p.kind === 'jardin') ? PIECE_COLORS.concat(COURT_COLORS) : PIECE_COLORS;
   openColorSheet({
     title:'Color de la pieza',
     current: p.color || def.fill || '',
-    presets: PIECE_COLORS,
+    presets: presets,
     onPick: col => { p.color = col; renderFloor(); saveDraft(); }
   });
 });
@@ -1796,10 +1866,11 @@ const STRUCT_ICON = {
 if(EXT){
   const sh = $('#shapes');
   sh.classList.add('ext');
+  /* solo la forma, sin nombre (siguen creando carretera/curva/lago/jardín al pulsar) */
+  sh.classList.add('noname');
   sh.innerHTML = STRUCT_EXT.map(k =>
-    '<button class="shape-btn" data-kind="' + k + '">' +
-    '<svg viewBox="0 0 100 100">' + STRUCT_ICON[k] + '</svg>' +
-    '<span>' + PIECES_DEF[k].label + '</span></button>').join('');
+    '<button class="shape-btn" data-kind="' + k + '" title="' + PIECES_DEF[k].label + '">' +
+    '<svg viewBox="0 0 100 100">' + STRUCT_ICON[k] + '</svg></button>').join('');
   const hint = $('#pane-estructura .pane-hint');
   if(hint) hint.textContent = 'Toca para añadir · solapa piezas del mismo tipo para fusionarlas (quedan abiertas).';
 
