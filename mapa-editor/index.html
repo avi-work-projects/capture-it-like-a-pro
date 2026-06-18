@@ -49,6 +49,8 @@ body{background:#000;font-family:var(--body);overflow:hidden}
   --c-monumento:#b8b3a8;
   --c-arbusto:#4e9e4a;
   --c-banco:#9c7b50;
+  --c-pino:#2f7d3a;
+  --c-palmera:#3f9e47;
 
   position:relative;
   width:100%;max-width:430px;height:100dvh;margin:0 auto;
@@ -444,6 +446,22 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 .pal-item[data-type="gen_circulo"] .ic{border-radius:50%}
 .pal-item .ic svg{width:12px;height:12px;stroke:var(--pal-c);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .pal-item span{font-family:var(--mono);font-size:7.5px;letter-spacing:.02em;text-transform:uppercase;color:var(--pal-c)}
+
+/* exterior: 2 secciones (siluetas / elementos), 3 ejemplos + «+» por fila */
+.el-sec{margin-bottom:7px}
+.el-sec-lbl{display:block;font-family:var(--mono);font-size:7.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.el-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.pal-item.add-more{color:var(--accent);border-style:dashed;cursor:pointer}
+.pal-item.add-more .ic{border-color:var(--accent)}
+.pal-item.add-more .ic svg{stroke:var(--accent)}
+.pal-item.add-more span{color:var(--accent)}
+/* submenú «+» (se queda abierto al colocar; se cierra con ✕) */
+.el-more{display:none;margin-top:4px;background:var(--surface);border:1px solid var(--accent);border-radius:11px;padding:8px}
+.el-more.open{display:block}
+.el-more-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.el-more-head span{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text)}
+.el-more-x{background:none;border:none;color:var(--muted);font-size:14px;line-height:1;cursor:pointer;padding:2px 6px}
+.el-more-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 
 /* subsección "Otros" (figuras genéricas sin texto) */
 .otros{display:flex;align-items:center;gap:9px;margin-top:1px;padding-top:6px;border-top:1px solid var(--line)}
@@ -901,7 +919,11 @@ const TYPES = {
   /* ── elementos de EXTERIOR ── */
   /* silueta rellena, SIN recuadro ni nombre (silhouette): árbol, arbusto, banco */
   arbol:     { label:'Árbol',          color:'var(--c-arbol)',     silhouette:true, w:30, h:34,
-    icon:'<svg viewBox="0 0 24 24"><path d="M10.7 13.5h2.6V22h-2.6z"/><path d="M12 2C8.4 2 6 4.5 6 7.4c0 1 .3 1.9.8 2.6-.9.7-1.4 1.7-1.4 2.8 0 2.6 2.7 4.2 6.6 4.2s6.6-1.6 6.6-4.2c0-1.1-.5-2.1-1.4-2.8.5-.7.8-1.6.8-2.6C18 4.5 15.6 2 12 2z"/></svg>' },
+    icon:'<svg viewBox="0 0 24 24"><path fill="#7a5230" d="M10.7 12.5h2.6V22h-2.6z"/><path fill="#54a64a" d="M12 2c-2 0-3.7 1.2-4.4 3C5.7 5 4 6.6 4 8.7c0 .9.3 1.7.9 2.3-.9.6-1.5 1.6-1.5 2.7 0 2.1 1.9 3.5 4.4 3.5h8.4c2.5 0 4.4-1.4 4.4-3.5 0-1.1-.6-2.1-1.5-2.7.6-.6.9-1.4.9-2.3 0-2.1-1.7-3.7-3.6-3.7C15.7 3.2 14 2 12 2z"/></svg>' },
+  pino:      { label:'Pino',           color:'var(--c-pino)',      silhouette:true, w:28, h:38,
+    icon:'<svg viewBox="0 0 24 24"><path fill="#5a3d22" d="M10.9 17h2.2v5h-2.2z"/><path fill="#2f7d3a" d="M12 2l3.6 5.6H8.4zM12 6.4l4.4 6.2H7.6zM12 10.8l5.1 7.2H6.9z"/></svg>' },
+  palmera:   { label:'Palmera',        color:'var(--c-palmera)',   silhouette:true, w:32, h:42,
+    icon:'<svg viewBox="0 0 24 24"><path fill="#7a5733" d="M11.1 8c-.5 4.3-1.4 9.3-2.4 14h2.7c.6-5 1.4-9.2 2.1-13.2z"/><path fill="#3f9e47" d="M12 7.4C9.1 5.6 5.4 5.9 2.8 8.3c2.8-1.1 5.2-.7 7.2.9zM12 7.4c2.9-1.8 6.6-1.5 9.2.9-2.8-1.1-5.2-.7-7.2.9zM12 7.4C10.6 4.2 7.8 2.4 4.3 2.5c2.6 1 4.5 2.9 5.7 5.3zM12 7.4c1.4-3.2 4.2-5 7.7-4.9-2.6 1-4.5 2.9-5.7 5.3zM12 7.4c-.3-3 .2-5.1 1-7.1-1.6 2.1-1.9 4.5-1.6 7z"/></svg>' },
   arbusto:   { label:'Arbusto',        color:'var(--c-arbusto)',   silhouette:true, w:30, h:22,
     icon:'<svg viewBox="0 0 24 24"><path d="M2 20c-.3-2.6 1.4-4.4 3.6-4.1.2-2.3 2.3-3.7 4.4-2.7.9-1.7 3.6-1.9 4.9-.2 2.4-.6 4.6 1.1 4.5 3.4 1.8.4 2.8 2.3 1.9 3.6z"/></svg>' },
   banco:     { label:'Banco',          color:'var(--c-banco)',     silhouette:true, w:40, h:22,
@@ -1848,8 +1870,45 @@ function buildPalItem(type, opts){
   b.addEventListener('pointerdown', ev => startDragPal(ev, type, b));
   return b;
 }
-GROUP.main.forEach(tp => $('#pal-main').appendChild(buildPalItem(tp)));
-GROUP.otros.forEach(tp => $('#pal-otros').appendChild(buildPalItem(tp, { iconOnly:true })));
+/* exterior: la pestaña Elementos se parte en 2 secciones (SILUETAS / ELEMENTOS),
+   cada una con 3 ejemplos + un botón «+» que abre un submenú con TODO el tipo.
+   El submenú se queda ABIERTO al colocar (se cierra solo con ✕). */
+const EXT_SIL = ['arbol','arbusto','banco','pino','palmera'];           // todas las siluetas
+const EXT_PIN = ['monumento','fuente','edificio','iglesia','comida'];   // todos los principales
+const EXT_SIL_EX = ['arbol','arbusto','banco'];                         // 3 ejemplos fila 1
+const EXT_PIN_EX = ['monumento','fuente','edificio'];                   // 3 ejemplos fila 2
+function buildAddMore(cat){
+  const b = document.createElement('div');
+  b.className = 'pal-item add-more';
+  b.title = 'Más';
+  b.innerHTML = '<div class="ic"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div><span>Más</span>';
+  b.addEventListener('click', () => openMore(cat));
+  return b;
+}
+function openMore(cat){
+  const list = cat === 'sil' ? EXT_SIL : EXT_PIN;
+  $('#el-more-title').textContent = cat === 'sil' ? 'Más siluetas' : 'Más elementos';
+  const grid = $('#el-more-grid'); grid.innerHTML = '';
+  list.forEach(t => grid.appendChild(buildPalItem(t)));
+  $('#el-more').classList.add('open');
+}
+if(EXT){
+  $('#pane-elementos').innerHTML =
+    '<div class="el-sec"><span class="el-sec-lbl">Siluetas</span><div class="el-row" id="row-sil"></div></div>' +
+    '<div class="el-sec"><span class="el-sec-lbl">Elementos</span><div class="el-row" id="row-pin"></div></div>' +
+    '<div class="otros"><span class="otros-lbl">Otros</span><div class="otros-row" id="pal-otros"></div></div>' +
+    '<div class="el-more" id="el-more"><div class="el-more-head"><span id="el-more-title"></span><button id="el-more-close" class="el-more-x">✕</button></div><div class="el-more-grid" id="el-more-grid"></div></div>' +
+    '<p class="pane-hint">Toca o arrastra para colocar · «+» abre más (se queda abierto).</p>';
+  EXT_SIL_EX.forEach(t => $('#row-sil').appendChild(buildPalItem(t)));
+  $('#row-sil').appendChild(buildAddMore('sil'));
+  EXT_PIN_EX.forEach(t => $('#row-pin').appendChild(buildPalItem(t)));
+  $('#row-pin').appendChild(buildAddMore('pin'));
+  GROUP.otros.forEach(tp => $('#pal-otros').appendChild(buildPalItem(tp, { iconOnly:true })));
+  $('#el-more-close').addEventListener('click', () => $('#el-more').classList.remove('open'));
+}else{
+  GROUP.main.forEach(tp => $('#pal-main').appendChild(buildPalItem(tp)));
+  GROUP.otros.forEach(tp => $('#pal-otros').appendChild(buildPalItem(tp, { iconOnly:true })));
+}
 GROUP.cam.forEach(tp => $('#pal-cam').appendChild(buildPalItem(tp, { big:true })));
 
 /* ───────── piezas de estructura (interior fijo en HTML; exterior se genera) ───────── */
