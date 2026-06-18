@@ -355,6 +355,7 @@ body{
 /* panel de selecciones: huecos predefinidos que se van rellenando */
 .panel{
   margin-top:16px;
+  margin-bottom:14px;   /* separa el panel de criterios de las pestañas (solo expandido; al colapsar se pone 0) → el último slot "Tipo" NUNCA queda pegado/tapado por el bloque de pestañas */
   background:var(--surface);
   border:1px solid var(--line);
   border-radius:6px;
@@ -1082,7 +1083,7 @@ body{
 #evModeTabs{
   position:sticky;top:0;z-index:6;
   background:var(--bg);
-  margin-top:0;margin-bottom:12px;padding-top:6px;
+  margin-top:0;margin-bottom:0;padding-top:6px;   /* sin hueco con el bloque de "Fecha"/contenido: contiguos → sin ranura lateral en la esquina (la esquina del hueco dejaba asomar el borde de una tarjeta) */
   /* tapa cualquier micro-hueco por encima para que NO se vea texto por detrás */
   box-shadow:0 -7px 0 var(--bg);
   transition:background-color .35s;
@@ -1357,7 +1358,7 @@ body{
 
 /* ═══════════════════ CALENDARIO DE EVENTOS (calendar.js) ═══════════════════ */
 .evmode{margin-bottom:6px}
-#modeProx,#modeCal,#modeHorarios{margin-top:4px}
+#modeProx,#modeCal,#modeHorarios{margin-top:0}   /* contiguo con las pestañas: sin hueco → sin ranura en las esquinas laterales por la que asomaban tarjetas */
 
 /* navegación año / mes */
 .cal-yearnav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0 4px}
