@@ -766,13 +766,9 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
    ══════════════════════════════════════════════════════════════ */
 
 /* modo: interior (por defecto) o exterior (?mode=exterior) — reaprovecha TODO el editor */
-const PARAMS = new URLSearchParams(location.search);
-const EXT = PARAMS.get('mode') === 'exterior';
-/* DEMO (?demo=1): sandbox de PRUEBAS VISUALES — claves de localStorage aparte (no pisa
-   el borrador real) y, si está vacío, carga un mapa de muestra. TEMPORAL de desarrollo. */
-const DEMO = PARAMS.get('demo') === '1';
-const DRAFT_KEY = (EXT ? 'cip_mapa_ext' : 'cip_mapa_editor') + (DEMO ? '_demo' : '') + '_v1';
-const LIB_KEY   = (EXT ? 'cip_mapas_ext' : 'cip_mapas')      + (DEMO ? '_demo' : '') + '_v1';
+const EXT = new URLSearchParams(location.search).get('mode') === 'exterior';
+const DRAFT_KEY = EXT ? 'cip_mapa_ext_v1' : 'cip_mapa_editor_v1';
+const LIB_KEY   = EXT ? 'cip_mapas_ext_v1' : 'cip_mapas_v1';
 
 /* paths unitarios reutilizables (0..1) */
 const P_RECT  = 'M0 0 H1 V1 H0 Z';
@@ -951,28 +947,11 @@ function lockTabBodyHeight(){
   body.style.minHeight = (max + pad) + 'px';
 }
 
-/* mapa de muestra para el sandbox de pruebas visuales (?demo=1) */
-function sampleExtMap(){
-  return { id:'mDemo', name:'Plaza de muestra', bg:'#e7e2d4', gridOff:false,
-    pieces:[
-      { id:1, kind:'carretera', x:50, y:14, w:90, h:14, rot:0 },
-      { id:2, kind:'jardin',    x:22, y:74, w:38, h:40, rot:0 },
-      { id:3, kind:'agua_c',    x:62, y:55, w:40, h:40, rot:0 }
-    ],
-    elements:[
-      { id:11, type:'arbol',     x:18, y:30, rot:0, w:24, h:28 },
-      { id:12, type:'fuente',    x:46, y:34, rot:0, w:42, h:44 },
-      { id:13, type:'edificio',  x:80, y:32, rot:0, w:56, h:58 },
-      { id:14, type:'iglesia',   x:26, y:84, rot:0, w:48, h:56 },
-      { id:15, type:'monumento', x:58, y:86, rot:0, w:40, h:54 },
-      { id:16, type:'comida',    x:84, y:80, rot:0, w:38, h:26 }
-    ] };
-}
 /* ───────── persistencia ───────── */
 function loadDraft(){
   try{
     const raw = localStorage.getItem(DRAFT_KEY);
-    if(!raw){ if(DEMO && EXT){ state = sampleExtMap(); syncSeq(); saveDraft(); } return; }
+    if(!raw) return;
     let d = JSON.parse(raw);
     if(!d) return;
     /* migración desde v0.1 (forma única + salida/entrada separadas) */
