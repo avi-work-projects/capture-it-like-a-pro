@@ -6,6 +6,23 @@
 
   var state = { role:null, country:null, city:null, type:null, subtype:null };
   var ROLE_META = { cam:'Camarógrafo', dancer:'Bailarín' };
+  /* iconos de rol: se muestran junto a los títulos de nivel 1 (en vez del slot
+     "Rol" del histórico). dancer = figura bailando; cam = videocámara. */
+  var ROLE_ICON = {
+    dancer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="14.5" cy="4" r="2"/><path d="M14 6.3l-1.7 4.4 2.7 1.6.6 4.7"/><path d="M12.3 10.7 7.7 9"/><path d="M15 12.3l4 2.3"/><path d="M12.3 15.5 8 19"/></svg>',
+    cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="M15.5 10.8l6-3.3v9l-6-3.3"/></svg>'
+  };
+  /* coloca el icono del rol actual junto a CADA título de nivel 1 (.v2-title) */
+  function updateRoleIcons(){
+    var r = state.role && state.role.value;
+    var svg = (r && ROLE_ICON[r]) ? ROLE_ICON[r] : '';
+    document.querySelectorAll('.v2-title').forEach(function(t){
+      var ico = t.querySelector('.role-ico');
+      if(!ico){ ico = document.createElement('span'); ico.className = 'role-ico'; t.insertBefore(ico, t.firstChild); }
+      ico.innerHTML = svg;
+      ico.title = state.role ? state.role.label : '';
+    });
+  }
   var ORDER = ['role','country','city','type','subtype'];   // orden lógico de los pasos
   var resultTimer = null;
 
@@ -152,7 +169,7 @@
   /* ── panel de selecciones (huecos predefinidos) ───────────────────── */
   function renderPanel(){
     var firstEmpty = null;
-    ['role','country','city','type'].forEach(function(key){
+    ['country','city','type'].forEach(function(key){
       var slot = document.querySelector('#panel .slot[data-key="'+key+'"]');
       slot.classList.remove('now');
       if(state[key]){
@@ -408,6 +425,7 @@
       state.role = { value:role, label:ROLE_META[role] };
       try{ localStorage.setItem('cilap-role', role); }catch(e){}
       renderPanel();
+      updateRoleIcons();
       updateHub();
       goView('viewHub', 'ac-red');
     });
@@ -1075,7 +1093,7 @@
     var ev = currentEvent;
     var st = eventStatus(ev);
     var soyCam = state.role && state.role.value === 'cam';
-    $('#evName').textContent = ev.name;
+    $('#evName').textContent = ev.name; updateRoleIcons();   // textContent borra el icono de rol → re-añadir
     $('#evMeta').textContent = fmtDate(ev.startsAt) + ' · ' + evHours(ev) + ' · ' + ev.venue;
     $('#evTags').innerHTML =
       (st === 'directo'   ? '<span class="tag2 hl">● En directo</span>' : '') +
@@ -1515,7 +1533,7 @@
   function renderProfile(){
     var c = currentProfile;
     var dancedWith = MY_DANCES.filter(function(d){ return d.camId === c.id; }).length;
-    $('#profName').textContent = c.name;
+    $('#profName').textContent = c.name; updateRoleIcons();   // textContent borra el icono de rol → re-añadir
     $('#profSub').textContent = CITY_LABELS[c.city];
     var bio = $('#profBio');
     bio.textContent = c.bio || '';
@@ -1687,7 +1705,7 @@
     try{
       state.role = { value: s.role, label: ROLE_META[s.role] };
       state.country = s.country; state.city = s.city; state.type = s.type; state.subtype = s.subtype;
-      renderPanel(); updateHub();
+      renderPanel(); updateRoleIcons(); updateHub();
       var v = s.view;
       if(v === 'view1' || v === 'viewHub'){ goView('viewHub','ac-red'); return; }
       if(v === 'viewCams'){ renderCamDir(); goView('viewCams','ac-amber'); return; }

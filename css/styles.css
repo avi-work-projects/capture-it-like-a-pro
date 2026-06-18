@@ -351,6 +351,15 @@ body{
   text-transform:uppercase;
   margin-bottom:2px;
 }
+/* icono del rol (bailarín/camarógrafo) junto al título de nivel 1 */
+.role-ico{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:23px;height:23px;
+  margin-right:9px;vertical-align:-3px;
+  color:var(--accent);
+}
+.role-ico:empty{display:none}
+.role-ico svg{width:100%;height:100%}
 .v2-sub{color:var(--muted);font-size:13px;margin-bottom:0}
 /* panel de selecciones: huecos predefinidos que se van rellenando */
 .panel{
