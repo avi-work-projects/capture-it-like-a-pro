@@ -352,8 +352,12 @@
      sticky). Es lo único que el rebote traslada. */
   function activeBody(){
     if(!$('#modeProx').hidden) return $('#evtList');
-    var m = !$('#modeCal').hidden ? $('#modeCal')
-          : (!$('#modeHorarios').hidden ? $('#modeHorarios') : null);
+    /* CALENDARIO: SIN rebote. Su .scroll-body contiene las cabeceras de día
+       sticky de la Agenda, y el transform del rebote rompe el position:sticky
+       (durante el muelle de vuelta la cabecera se descoloca y "desaparece" al
+       soltar). El mes/agenda cabe o scrollea nativo de sobra. */
+    if(!$('#modeCal').hidden) return null;
+    var m = !$('#modeHorarios').hidden ? $('#modeHorarios') : null;
     if(!m) return null;
     return m.querySelector('.scroll-body') || m;
   }
