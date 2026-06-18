@@ -1121,7 +1121,11 @@ body{
      que pasan por detrás. */
   position:sticky;
   top:var(--group-top,0px);
-  z-index:2;
+  /* z-index 1: por encima de las tarjetas (z auto) pero POR DEBAJO del chrome
+     fijo (pinBelow usa z≥2). Si fuera z2 (igual que las sub-pestañas) su sombra
+     superior 0 -20px, al ir después en el DOM, pintaba ENCIMA de las sub-pestañas
+     (Agenda/Calendario) y las tapaba al scrollear. */
+  z-index:1;
   background:var(--bg);
 }
 .date-head:first-child{margin-top:0}
