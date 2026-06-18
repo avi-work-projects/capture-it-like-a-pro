@@ -8,10 +8,13 @@
   var ROLE_META = { cam:'Camarógrafo', dancer:'Bailarín' };
   /* iconos de rol: se muestran junto a los títulos de nivel 1 (en vez del slot
      "Rol" del histórico). dancer = figura bailando; cam = videocámara. */
+  /* MISMO símbolo que las tarjetas de rol de la pantalla principal (view1) */
   var ROLE_ICON = {
-    dancer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="14.5" cy="4" r="2"/><path d="M14 6.3l-1.7 4.4 2.7 1.6.6 4.7"/><path d="M12.3 10.7 7.7 9"/><path d="M15 12.3l4 2.3"/><path d="M12.3 15.5 8 19"/></svg>',
-    cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="M15.5 10.8l6-3.3v9l-6-3.3"/></svg>'
+    dancer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="14.8" cy="3.8" r="1.9"/><path d="M14.2 6.8c-.7 2.4-1.6 3.9-3.4 5.4"/><path d="M14.6 8.2l4.9-2.3"/><path d="M13.8 8.7l-4.9-1.5"/><path d="M10.8 12.2l3.1 3.9-1 4.9"/><path d="M10.8 12.2l-3.3 3.4 1.4 4.3"/></svg>',
+    cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="M15.5 10.8l6-3.3v9l-6-3.3"/><circle cx="7.5" cy="12" r="2.2"/></svg>'
   };
+  /* MISMO color que en la pantalla principal (view1 .card[data-role]) */
+  var ROLE_COLOR = { dancer:'#c46bff', cam:'#ffd60a' };
   /* coloca el icono del rol actual junto a CADA título de nivel 1 (.v2-title) */
   function updateRoleIcons(){
     var r = state.role && state.role.value;
@@ -20,6 +23,7 @@
       var ico = t.querySelector('.role-ico');
       if(!ico){ ico = document.createElement('span'); ico.className = 'role-ico'; t.insertBefore(ico, t.firstChild); }
       ico.innerHTML = svg;
+      ico.style.color = (r && ROLE_COLOR[r]) ? ROLE_COLOR[r] : '';
       ico.title = state.role ? state.role.label : '';
     });
   }
@@ -141,6 +145,12 @@
   /* abre el primer paso pendiente; si no queda ninguno, busca eventos.
      El subtipo solo aplica al tipo "Al exterior". */
   function advance(){
+    if(refMode){                       // lugar habitual: solo País → Ciudad
+      if(!state.country){ openStep('stepA'); }
+      else if(!state.city){ openStep('stepB'); }
+      else { finishRefPick(); }
+      return;
+    }
     if(!state.country){ openStep('stepA'); }
     else if(!state.city){ openStep('stepB'); }
     else if(!state.type){ openStep('stepC'); }
@@ -166,10 +176,60 @@
     $('#dateTo').value   = iso(fin);
   }
 
+  /* ── lugar habitual (Configuración) usando el picker de pasos ───────── */
+  function startRefPick(){
+    refMode = true;
+    savedSearch = { country:state.country, city:state.city, type:state.type, subtype:state.subtype };
+    state.country = null; state.city = null;      // empieza en País, como "En otro lugar"
+    editing = null;
+    var v2 = $('#view2');
+    v2.classList.add('ref-mode');
+    v2.querySelector('.v2-title').textContent = 'Lugar habitual';
+    v2.querySelector('.v2-sub').textContent   = 'Elige tu país y ciudad de referencia.';
+    updateRoleIcons();                            // textContent borró el icono → re-pónlo
+    closeAll();
+    renderPanel();
+    goView('view2','ac-violet');
+    advance();                                    // → paso País
+  }
+  function finishRefPick(){
+    var toArr = function(v){ return Array.isArray(v) ? v.slice() : [v]; };
+    var countries = toArr(state.country.value);
+    if(state.city.value === 'all'){               // "Todas" → todas las ciudades de esos países
+      ref.cities = countries.reduce(function(acc, k){
+        return acc.concat(k === 'es' ? ['mad','sev','bcn'] : ['waw','kra']);
+      }, []);
+    } else {
+      ref.cities = toArr(state.city.value);
+    }
+    ref.countries = countries;
+    save('cilap-ref', ref);
+    exitRefMode(true);
+    refreshRefUI();
+    renderSettings();                             // refresca la etiqueta del lugar
+    goView('viewSettings','ac-violet');
+  }
+  function exitRefMode(restore){
+    refMode = false;
+    var v2 = $('#view2');
+    v2.classList.remove('ref-mode');
+    v2.querySelector('.v2-title').textContent = 'Encuentra tu pista';
+    v2.querySelector('.v2-sub').textContent   = 'Filtra para ver los eventos disponibles.';
+    updateRoleIcons();                            // textContent borró el icono → re-pónlo
+    if(restore && savedSearch){
+      state.country = savedSearch.country; state.city = savedSearch.city;
+      state.type    = savedSearch.type;    state.subtype = savedSearch.subtype;
+    }
+    savedSearch = null;
+    editing = null;
+    closeAll();
+    renderPanel();
+  }
+
   /* ── panel de selecciones (huecos predefinidos) ───────────────────── */
   function renderPanel(){
     var firstEmpty = null;
-    ['country','city','type'].forEach(function(key){
+    (refMode ? ['country','city'] : ['country','city','type']).forEach(function(key){
       var slot = document.querySelector('#panel .slot[data-key="'+key+'"]');
       slot.classList.remove('now');
       if(state[key]){
@@ -184,7 +244,7 @@
     });
     // subtipo: sección aparte, solo existe si el tipo es "Al exterior"
     var sp = $('#subPanel');
-    var isExt = state.type && state.type.value === 'exterior';
+    var isExt = !refMode && state.type && state.type.value === 'exterior';
     sp.classList.toggle('show', isExt);
     sp.classList.remove('now');
     if(isExt && state.subtype){
@@ -198,7 +258,7 @@
     }
     if(firstEmpty) firstEmpty.classList.add('now');
     /* resumen para la barra de criterios comprimida */
-    var sum = ['country','city','type','subtype'].map(function(k){
+    var sum = (refMode ? ['country','city'] : ['country','city','type','subtype']).map(function(k){
       return state[k] ? state[k].label : null;
     }).filter(Boolean).join(' · ');
     var ms = $('#panelMiniSum'); if(ms) ms.textContent = sum || 'Sin criterios';
@@ -234,6 +294,10 @@
      Regla: la ciudad depende del país (país nuevo → ciudad a reelegir);
      el tipo es independiente y permanece fijado. */
   var editing = null;   // clave en edición, o null
+  /* modo "lugar habitual": reutiliza el MISMO picker de pasos (País → Ciudad)
+     pero, en vez de terminar en resultados, guarda en la referencia (cilap-ref)
+     y vuelve a Configuración. savedSearch preserva la búsqueda en curso. */
+  var refMode = false, savedSearch = null;
   function editSlot(key){
     editing = key;
     closeAll();
@@ -275,6 +339,11 @@
   $('#navBack').addEventListener('click', function(){
     editing = null;
     var open = function(id){ return $('#'+id).classList.contains('open'); };
+    if(refMode){                          // lugar habitual: Ciudad → País → Configuración
+      if(open('stepB')){ state.city = null; renderPanel(); closeStep('stepB'); openStep('stepA', state.country && state.country.value); }
+      else { exitRefMode(true); goView('viewSettings','ac-violet'); }
+      return;
+    }
     if(open('result')){
       goBackTo((state.type && state.type.value === 'exterior') ? 'subtype' : 'type');
     }
@@ -287,6 +356,7 @@
   /* ── botón home: al hub tras el rol (rol intacto, búsqueda limpia) ── */
   function goHome(){
     editing = null;
+    if(refMode) exitRefMode(false);       // sal del modo lugar sin tocar la búsqueda guardada
     ['country','city','type','subtype'].forEach(function(k){ state[k] = null; });
     closeAll();
     renderPanel();
@@ -297,7 +367,7 @@
   $('#homeBtnEC').addEventListener('click', goHome);
 
   /* ── transición genérica entre vistas ─────────────────────────────── */
-  var VIEW_IDS = ['view1','viewHub','view2','viewSettings','viewCams','viewProfile','viewMine','view3','viewEvCams'];
+  var VIEW_IDS = ['view1','viewHub','viewWhere','view2','viewSettings','viewCams','viewProfile','viewMine','view3','viewEvCams'];
   function goView(toId, accent){
     var to = $('#'+toId);
     if(accent) setAccent(accent);
@@ -1271,9 +1341,12 @@
      bloqueado y aviso en el engranaje mientras no se haya rellenado */
   function refreshRefUI(){
     var ok = hasRef();
-    $('#hubMyCity').classList.toggle('locked', !ok);
-    $('#hubMyCity').disabled = !ok;
-    $('#hubMyCitySub').textContent = ok ? refLabel() : 'Configúralo en ⚙ para activarlo';
+    var wc = $('#whereCity');
+    if(wc){
+      wc.classList.toggle('locked', !ok);
+      wc.disabled = !ok;
+      $('#whereCitySub').textContent = ok ? refLabel() : 'Configúralo en ⚙ para activarlo';
+    }
     $('#settingsBadge').hidden = ok;
   }
   function refLabel(){
@@ -1281,13 +1354,17 @@
     return 'Tu país y ciudad de referencia';
   }
   $('#hubBack').addEventListener('click', function(){ goView('view1','ac-red'); });
-  $('#hubEvent').addEventListener('click', function(){
+  /* "Próximos eventos" → pregunta ¿Dónde? (En mi ciudad / En otro lugar) */
+  $('#hubProx').addEventListener('click', function(){ goView('viewWhere','ac-red'); });
+  $('#whereBack').addEventListener('click', function(){ goView('viewHub','ac-red'); });
+  /* "En otro lugar" = la búsqueda libre de antes ("Busco evento") */
+  $('#whereOther').addEventListener('click', function(){
     goView('view2');
-    advance();                       // retoma la búsqueda donde estuviera
+    advance();                       // retoma la búsqueda donde estuviera (paso País)
   });
-  /* "Eventos en mi ciudad": filtros con país y ciudad ya fijados a la
-     referencia guardada; solo queda elegir el Tipo */
-  $('#hubMyCity').addEventListener('click', function(){
+  /* "En mi ciudad": país y ciudad fijados a la referencia + TODOS los tipos →
+     va directo a los resultados (sin pasar por elegir Tipo). */
+  $('#whereCity').addEventListener('click', function(){
     if(!hasRef()) return;
     var COUNTRY_LBL = function(k){ return k === 'es' ? 'España' : 'Polonia'; };
     var cities = ref.cities.slice();
@@ -1300,12 +1377,13 @@
     }
     state.country = pack(countries, COUNTRY_LBL);
     state.city    = pack(cities, function(c){ return CITY_LABELS[c]; });
-    state.type = null; state.subtype = null;   // el tipo se elige ahora
+    state.type = { value:'all', label:'Todos' };   // ya filtrado por TODOS los tipos
+    state.subtype = null;
     editing = null;
     closeAll();
     renderPanel();
     goView('view2');
-    advance();                       // país+ciudad puestos → abre directamente "Tipo"
+    advance();                       // país+ciudad+tipo puestos → resultados directos
   });
   $('#hubCams').addEventListener('click', function(){
     renderCamDir();
@@ -1317,58 +1395,28 @@
   });
 
   /* ── configuración: país y ciudad de referencia (⚙) ──────────────────── */
-  var setCountries = [], setCities = [];   // selección temporal hasta "Guardar"
   function renderSettings(){
-    document.querySelectorAll('#setCountries .po').forEach(function(o){
-      o.classList.toggle('multi-on', setCountries.indexOf(o.dataset.c) !== -1);
-    });
-    var cities = setCountries.length
-      ? setCountries.reduce(function(acc, k){ return acc.concat(k === 'es' ? ['mad','sev','bcn'] : ['waw','kra']); }, [])
-      : ['mad','sev','bcn','waw','kra'];
-    $('#setCities').innerHTML = cities.map(function(c){
-      return '<button class="opt po" data-city="' + c + '"><span class="lbl"><b>' + CITY_LABELS[c] + '</b></span><span class="mbox"></span></button>';
-    }).join('');
-    document.querySelectorAll('#setCities .po').forEach(function(o){
-      o.classList.toggle('multi-on', setCities.indexOf(o.dataset.city) !== -1);
-    });
+    $('#setPlaceVal').textContent = hasRef() ? refLabel() : 'Sin configurar';
     document.querySelectorAll('#setPrivacy .privacy-opt').forEach(function(o){
       o.classList.toggle('multi-on', (o.dataset.priv === 'private') === setPrivate);
     });
   }
   var setPrivate = false;
-  $('#hubSettings').addEventListener('click', function(){
-    setCountries = ref.countries.slice();
-    setCities    = ref.cities.slice();
-    setPrivate   = !!isPrivate;
+  function openSettings(){
+    setPrivate = !!isPrivate;
     renderSettings();
     goView('viewSettings','ac-violet');
-  });
+  }
+  $('#hubSettings').addEventListener('click', openSettings);
+  /* "Indicar lugar habitual": abre el MISMO picker de pasos, solo País + Ciudad */
+  $('#setPlaceBtn').addEventListener('click', startRefPick);
   $('#setPrivacy').addEventListener('click', function(e){
     var o = e.target.closest('.privacy-opt'); if(!o) return;
     setPrivate = (o.dataset.priv === 'private');
     renderSettings();
   });
   $('#setBack').addEventListener('click', function(){ goView('viewHub','ac-red'); });
-  $('#setCountries').addEventListener('click', function(e){
-    var o = e.target.closest('.po'); if(!o) return;
-    var k = o.dataset.c, i = setCountries.indexOf(k);
-    if(i === -1) setCountries.push(k); else setCountries.splice(i, 1);
-    setCities = setCities.filter(function(c){ return !setCountries.length || setCountries.indexOf(CITY_COUNTRY[c]) !== -1; });
-    renderSettings();
-  });
-  $('#setCities').addEventListener('click', function(e){
-    var o = e.target.closest('.po'); if(!o) return;
-    var c = o.dataset.city, i = setCities.indexOf(c);
-    if(i === -1) setCities.push(c); else setCities.splice(i, 1);
-    renderSettings();
-  });
   $('#setSave').addEventListener('click', function(){
-    // ciudad sin país marcado: deriva el país para mantener coherencia
-    ref.cities = setCities.slice();
-    ref.countries = setCountries.length
-      ? setCountries.slice()
-      : ref.cities.map(function(c){ return CITY_COUNTRY[c]; }).filter(function(k, i, a){ return a.indexOf(k) === i; });
-    save('cilap-ref', ref);
     isPrivate = setPrivate;
     save('cilap-private', isPrivate);
     refreshRefUI();
@@ -1707,7 +1755,7 @@
       state.country = s.country; state.city = s.city; state.type = s.type; state.subtype = s.subtype;
       renderPanel(); updateRoleIcons(); updateHub();
       var v = s.view;
-      if(v === 'view1' || v === 'viewHub'){ goView('viewHub','ac-red'); return; }
+      if(v === 'view1' || v === 'viewHub' || v === 'viewWhere'){ goView('viewHub','ac-red'); return; }
       if(v === 'viewCams'){ renderCamDir(); goView('viewCams','ac-amber'); return; }
       if(v === 'viewMine'){ renderMine(); goView('viewMine','ac-lime'); return; }
       if(v === 'viewSettings'){ $('#hubSettings').click(); return; }

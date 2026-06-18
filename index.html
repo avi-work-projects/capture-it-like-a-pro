@@ -45,7 +45,7 @@
       <h1>Capture it<br>like a <span class="pro">pro</span></h1>
       <p>Tu turno de baile, perfectamente capturado.</p>
     </header>
-    <h2 class="ask enter" style="animation-delay:.16s">¿Cómo entras?</h2>
+    <h2 class="ask enter" style="animation-delay:.16s">¿Qué eres?</h2>
     <div class="cards">
       <button class="card enter" style="animation-delay:.24s" data-role="cam">
         <span class="src">SRC 01</span>
@@ -86,16 +86,11 @@
     </div>
     <div class="hub">
       <div class="hub-top">
-        <button class="card big" id="hubMyCity">
-          <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.4-6.5-10.5A6.5 6.5 0 0 1 12 4a6.5 6.5 0 0 1 6.5 6.5C18.5 15.6 12 21 12 21z"/><circle cx="12" cy="10.3" r="2.4"/></svg>
-          <span class="name">Eventos en mi ciudad</span>
-          <span class="sub" id="hubMyCitySub">Tu país y ciudad de referencia</span>
+        <button class="card big" id="hubProx">
+          <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 3v4M16 3v4"/><path d="M7.5 13h3M7.5 16.5h6"/></svg>
+          <span class="name">Próximos eventos</span>
+          <span class="sub">En tu ciudad o donde quieras</span>
           <span class="hub-go" aria-hidden="true">→</span>
-        </button>
-        <button class="card" id="hubEvent">
-          <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
-          <span class="name">Busco evento</span>
-          <span class="sub">Filtra país, ciudad y tipo</span>
         </button>
       </div>
       <div class="hub-row">
@@ -119,6 +114,34 @@
     </div>
   </section>
 
+  <!-- ════════════════ ¿DÓNDE? (tras "Próximos eventos") ════════════════ -->
+  <section class="view hidden" id="viewWhere">
+    <div class="v2-head">
+      <div class="nav-btns">
+        <button class="nav-back" id="whereBack" title="Volver">←</button>
+      </div>
+      <div>
+        <h2 class="v2-title">¿Dónde?</h2>
+        <p class="v2-sub">Elige dónde buscar eventos.</p>
+      </div>
+    </div>
+    <div class="hub">
+      <div class="hub-top">
+        <button class="card big" id="whereCity">
+          <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.4-6.5-10.5A6.5 6.5 0 0 1 12 4a6.5 6.5 0 0 1 6.5 6.5C18.5 15.6 12 21 12 21z"/><circle cx="12" cy="10.3" r="2.4"/></svg>
+          <span class="name">En mi ciudad</span>
+          <span class="sub" id="whereCitySub">Tu país y ciudad de referencia</span>
+          <span class="hub-go" aria-hidden="true">→</span>
+        </button>
+        <button class="card" id="whereOther">
+          <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
+          <span class="name">En otro lugar</span>
+          <span class="sub">Filtra país, ciudad y tipo</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
   <!-- ════════════════ CONFIGURACIÓN (país/ciudad de referencia) ════════════════ -->
   <section class="view hidden" id="viewSettings">
     <div class="v2-head">
@@ -131,13 +154,12 @@
       </div>
     </div>
     <div class="setblock">
-      <div class="pm-h">País (uno o varios)</div>
-      <div class="opts" id="setCountries">
-        <button class="opt po" data-c="es"><span class="lbl"><b>España</b></span><span class="mbox"></span></button>
-        <button class="opt po" data-c="pl"><span class="lbl"><b>Polonia</b></span><span class="mbox"></span></button>
-      </div>
-      <div class="pm-h">Ciudad (una o varias)</div>
-      <div class="opts" id="setCities"></div>
+      <div class="pm-h">Lugar habitual</div>
+      <button class="set-place" id="setPlaceBtn">
+        <span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.4-6.5-10.5A6.5 6.5 0 0 1 12 4a6.5 6.5 0 0 1 6.5 6.5C18.5 15.6 12 21 12 21z"/><circle cx="12" cy="10.3" r="2.4"/></svg></span>
+        <span class="lbl"><b id="setPlaceVal">Sin configurar</b><small>Tu país y ciudad de referencia</small></span>
+        <span class="hub-go" aria-hidden="true">→</span>
+      </button>
 
       <div class="pm-h" style="margin-top:22px">Privacidad de la cuenta</div>
       <div class="privacy" id="setPrivacy">
