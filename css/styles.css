@@ -1503,3 +1503,16 @@ body{
   font-size:14px;letter-spacing:.04em;text-transform:uppercase;
 }
 .sala-day .evt-time{margin-bottom:0}
+/* "Elige un día para apuntarte": fijo arriba, con holgura clara antes de las
+   tarjetas (padding opaco dentro del bloque fijo). */
+.sala-occ-head{padding-bottom:13px}
+/* separación entre las tarjetas de día (próximos días de una sala) */
+#modeHorarios .scroll-body .evt{margin-bottom:11px}
+/* separadores por semana ("Próxima semana", "En una semana", …) */
+.occ-week{
+  font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);
+  margin:16px 0 9px;padding-bottom:5px;
+  border-bottom:1px solid var(--line);
+}
+.occ-week:first-child{margin-top:2px}

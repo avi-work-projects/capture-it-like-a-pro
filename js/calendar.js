@@ -265,6 +265,9 @@
         '<button class="fchip' + (tab==='horario'?' on':'') + '" data-stab="horario">Horario semanal</button>' +
         '<button class="fchip' + (tab==='proximos'?' on':'') + '" data-stab="proximos">Próximos días</button>' +
       '</div>';
+      /* "Elige un día" queda FUERA del .scroll-body → fijo arriba (como el
+         contador de la lista de salas), separado del listado. */
+      if(tab === 'proximos') h += '<p class="res-count sala-occ-head">Elige un día para apuntarte</p>';
       h += '<div class="scroll-body">';
       if(tab === 'horario'){
         order.forEach(function(wd){
@@ -273,14 +276,25 @@
                '<span class="evt-time">🕒 ' + (sala.timeLabel || '—') + '</span></div>';
         });
       } else {
-        /* próximos días concretos: cada uno es un evento de un día → apuntarte */
+        /* próximos días concretos: cada uno es un evento de un día → apuntarte.
+           Agrupados por semana relativa a hoy con separador. */
         var occ = upcomingDates(sala, 10);
-        h += '<p class="res-count">Elige un día para apuntarte</p>';
         if(!occ.length){
           h += '<p class="cal-empty">Sin próximas fechas.</p>';
         } else {
+          var WK = ['Próxima semana','En una semana','En dos semanas','En tres semanas'];
+          var hoy0 = new Date(); hoy0.setHours(0,0,0,0);
+          var lastWk = -99;
           occ.forEach(function(o){
             var d = new Date(o.start);
+            var d0 = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            var wk = Math.floor((d0.getTime() - hoy0.getTime()) / (7 * 86400000));
+            if(wk < 0) wk = 0;
+            if(wk > 3) return;   // como máximo hasta "En tres semanas"
+            if(wk !== lastWk){
+              h += '<div class="occ-week">' + (WK[wk] || ('En ' + wk + ' semanas')) + '</div>';
+              lastWk = wk;
+            }
             h += '<button class="evt t-sala" data-occ="' + o.start + '_' + o.end + '">' +
                  '<div class="evt-head"><span class="evt-name">' + DOW_FULL[(d.getDay()+6)%7] + ' ' + d.getDate() + ' ' + MNS[d.getMonth()].toLowerCase() + '</span>' +
                  '<span class="evt-badges"><span class="evt-cams on">Apuntarme ›</span></span></div>' +

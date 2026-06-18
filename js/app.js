@@ -797,6 +797,7 @@
       els.push(v2.querySelector('#modeHorarios .cal-monthnav'),   // ‹ Salas
                v2.querySelector('#modeHorarios .sala-head'),       // subtítulo (sala)
                $('#salaTabs'));                                    // sub-pestañas
+      if(horSub === 'proximos') els.push(v2.querySelector('#modeHorarios .sala-occ-head'));   // "Elige un día" fijo
     } else if(evMode === 'cal' && calMonth != null){
       els.push(v2.querySelector('#modeCal .cal-monthtop'),   // año + switch
                v2.querySelector('#modeCal .cal-monthnav'),    // ‹ mes ›
@@ -854,6 +855,7 @@
     var panel = $('#panel'), subp = $('#subPanel');
     var EFFORT = 80, LOCK_MS = 500, effort = 0, touchY = 0, collapsedAt = 0;
     function critReady(){ return $('#result').classList.contains('open'); }
+    function inDetailView(){ return (evMode === 'cal' && calMonth != null) || (evMode === 'horarios' && horSala != null); }
     function headH(){ var h = v2.querySelector('.v2-head'); return h ? h.offsetHeight : 0; }
     function locked(){ return Date.now() - collapsedAt >= LOCK_MS; }   // anclado tras 0,5 s
     function setBox(el, on, anim){
@@ -893,8 +895,12 @@
         var head = v2.querySelector('.v2-head');
         var hb = head ? head.getBoundingClientRect().bottom : 0;
         if(panel.getBoundingClientRect().bottom <= hb + 2) collapse(true, true);   // gesto
-      } else if(v2.scrollTop <= 2 && !locked()){
-        collapse(false);                                          // subir antes de 0,5 s → despliega solo
+      } else if(v2.scrollTop <= 2 && !locked() && !inDetailView()){
+        /* "subir rápido = volver a desplegar" SOLO fuera de vistas de detalle.
+           En detalle (sala / mes) al colapsar se quita el min-height → el
+           contenido cabe → scrollTop salta a 0 → esto se disparaba en BUCLE
+           re-desplegando el histórico. Ahí solo se despliega con Editar/arrastre. */
+        collapse(false);
       }
     }, { passive:true });
     /* tras 0,5 s anclado: desplegar exige "esfuerzo" (sobre-scroll arriba).
