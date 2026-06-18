@@ -227,9 +227,14 @@
     var map = { country:'stepA', city:'stepB', type:'stepC', subtype:'stepD' };
     openStep(map[key], state[key] && state[key].value);
   }
-  document.querySelectorAll('.slot .se').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      editSlot(btn.closest('.slot').dataset.key);
+  /* editar = pulsar sobre la PROPIA tarjeta (País/Ciudad/Tipo/Subtipo); el rol no
+     se edita aquí. La ✕ (quitar) tiene su propio handler → no dispara la edición. */
+  [].forEach.call(document.querySelectorAll('#panel .slot[data-key], #subPanel'), function(slot){
+    var key = slot.dataset.key;
+    if(key === 'role') return;
+    slot.addEventListener('click', function(e){
+      if(e.target.closest('.sx')) return;
+      editSlot(key);
     });
   });
 
