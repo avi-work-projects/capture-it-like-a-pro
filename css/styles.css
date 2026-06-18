@@ -1407,8 +1407,11 @@ body{
 .cal-day{border:1px solid var(--line);border-right:none;border-bottom:none;padding:2px 0 0 4px;min-height:56px}
 .cal-day.r{border-right:1px solid var(--line)}
 .cal-day.b{border-bottom:1px solid var(--line)}
-.cal-day.out{background:transparent;border-color:transparent}
 .cal-day.wknd{background:rgba(160,160,200,.07)}
+/* fuera de mes SIEMPRE invisible, aunque sea finde (si no, las celdas .out.wknd
+   de la última semana mostraban el gris de finde → casillas "sueltas" fuera del
+   recuadro y bajo los días). Va DESPUÉS de .wknd y con mayor especificidad. */
+.cal-day.out,.cal-day.out.wknd{background:transparent;border-color:transparent}
 .cal-day.today{box-shadow:inset 0 0 0 2px var(--accent)}
 .cal-dn{font-family:var(--mono);font-size:11px;color:var(--muted)}
 .cal-day.today .cal-dn{color:var(--accent);font-weight:700}

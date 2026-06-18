@@ -56,7 +56,46 @@ esconderlo tras el bloque fijo: dar `min-height` al contenedor de la pestaña
 - No transicionar custom properties registradas con `@property` (se congelan):
   fundir por-propiedad.
 - Cache-busting `?v=Date.now()` (document.write) en los includes — TEMPORAL dev.
-- Verificar siempre en el preview con sondas (`preview_eval`); las capturas dan timeout.
+
+## Cómo verificar bien (workflow probado)
+- **Usar el VISOR del preview** (MCP `Claude_Preview`: `preview_eval` + `preview_screenshot`
+  con el `serverId` que devuelve `preview_start`). Ese navegador headless está
+  `visibilityState:visible` → screenshots y timers funcionan. **Verificar en MODO
+  CLARO** (`document.querySelector('.app').classList.add('light')`): muchos bugs de
+  fondos/sombras (color crema) NO se ven en oscuro.
+- **NO depender de la pestaña de Edge** del usuario: suele estar en segundo plano
+  (`visibilityState:hidden`), lo que (a) **congela `setTimeout`** → rompe TODO el
+  flujo de la app (picks, `goView`, relayout) y parece que hay bugs que no existen,
+  y (b) hace que el screenshot del MCP de Edge dé timeout (`document_idle`).
+- El visor tiene su **propio localStorage**: para llegar a resultados, `localStorage
+  .setItem('cilap-ref', JSON.stringify({countries:['es'],cities:['mad']}))` + reload,
+  luego conducir: rol → `#hubMyCity` → `#stepC .opt[data-value="all"]`.
+- Si hay que conducir una pestaña oculta, parchear `window.setTimeout` a síncrono
+  (con guard de profundidad) tras cargar.
+- **Las sondas de medición mienten para problemas de TAPADO**: un elemento puede
+  estar entero en el DOM pero quedar cubierto por la sombra/fondo de otro (ver
+  abajo). Para "no se ve / sale cortado / se cuela", confiar en la CAPTURA, no solo
+  en `getBoundingClientRect`.
+
+## Gotchas de tapado opaco y cascada (los que más nos atascaron)
+- Los bloques fijos tapan huecos/laterales con `box-shadow` de `var(--bg)`
+  (`0 -Npx` arriba, `±60px` lados). PERO una **sombra superior tapa el contenido
+  que haya ENCIMA**: la sombra `0 -20px` de `#evModeTabs` cubría media palabra
+  "Tipo" del panel expandido (en claro, crema → parecía recortado aunque el DOM
+  estaba bien). Regla: una sombra superior solo si encima hay CHROME (no contenido).
+  Solución usada: sombra superior de las pestañas **condicional** (`#view2
+  .crit-collapsed #evModeTabs` la lleva —encima va la barra mini—; expandido NO).
+- Mejor **bloques CONTIGUOS** (margin 0) que tapar huecos con sombra: si dos
+  bloques fijos tienen hueco, la **esquina** del hueco (lados) no la cubren las
+  sombras laterales y asoma el borde de una tarjeta ("ranura lateral").
+- Espaciado dentro del chrome fijo = **padding (opaco)**, no margin (transparente,
+  deja ver lo de detrás al scrollear).
+- **Cascada en este entorno**: a igual especificidad gana la regla MÁS TARDÍA
+  (p.ej. `.cal-day.wknd` tras `.cal-day.out` hacía que las celdas fuera-de-mes de
+  finde mostraran el gris). Para ganar a una regla por `id` usar `#view2 #id` o
+  `#view2 .clase` (id+clase gana a id solo).
+- La cabecera `.v2-head` va a `z-index:9` (por encima del chrome `z≤6`) para que
+  la barra mini y su sombra no tapen los botones del título (atrás/home).
 
 ## Despliegue
 `git add` (solo archivos propios) → commit (co-author) → push → esperar build de
