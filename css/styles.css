@@ -319,7 +319,7 @@ body{
    que cancela el padding lateral de .view) y deja hueco para el OSD. */
 .v2-head{
   display:flex;align-items:center;gap:14px;
-  position:sticky;top:0;z-index:6;
+  position:sticky;top:0;z-index:9;   /* POR ENCIMA del chrome fijo (pinBelow usa z≤6): así la barra mini y su sombra NUNCA tapan los botones del título (atrás/home) */
   background:var(--bg);
   margin:0 -26px;padding:52px 26px 12px;
   transition:background-color .35s;
