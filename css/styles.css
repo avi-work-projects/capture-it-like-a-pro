@@ -200,7 +200,7 @@ body{
   transition:opacity .25s var(--ease), transform .3s var(--ease);
 }
 /* solo las pantallas que llenan el alto necesitan columna flex */
-#view1,#viewHub{display:flex;flex-direction:column}
+#view1,#viewHub,#viewWhere{display:flex;flex-direction:column}
 /* view1 no tiene cabecera fija → su propio espacio superior bajo el OSD */
 #view1{padding-top:52px}
 .view.hidden{opacity:0;pointer-events:none}
@@ -659,10 +659,12 @@ body{
   align-content:center;
   column-gap:16px;row-gap:4px;
 }
-/* fila inferior: "Ver camarógrafos" arriba y debajo [Mis bailes | engranaje] */
+/* zona inferior: [Mis bailes | Mis eventos] y debajo [Ver camarógrafos | engranaje] */
 .hub-row{display:flex;flex-direction:column;gap:14px;flex:none}
-.hub-row #hubCams,.hub-row #hubMyEvents,.hub-mine-row #hubMine{
-  flex:1;height:var(--hub-sm);
+.hub-pair{display:flex;gap:14px;flex:none}
+.hub-mine-row{display:flex;gap:14px;flex:none}
+.hub-pair .card,.hub-mine-row #hubCams{
+  flex:1;min-width:0;height:var(--hub-sm);
   display:grid;
   grid-template-columns:auto 1fr;
   grid-template-rows:auto auto;
@@ -670,8 +672,6 @@ body{
   column-gap:14px;row-gap:2px;
   padding:12px 18px;
 }
-.hub-row #hubCams,.hub-row #hubMyEvents{flex:none}
-.hub-mine-row{display:flex;gap:14px;flex:none}
 /* engranaje: botón cuadrado, solo icono centrado, sin enmarques de esquina */
 .hub-mine-row .gear{
   flex:none;width:var(--hub-sm);height:var(--hub-sm);
@@ -688,10 +688,10 @@ body{
   box-shadow:0 0 8px rgba(255,59,48,.7);
 }
 .gear-badge[hidden]{display:none}
-.hub-row #hubCams .icn-hub,.hub-row #hubMyEvents .icn-hub,.hub-mine-row #hubMine .icn-hub{grid-row:1 / span 2;align-self:center;width:28px;height:28px}
+.hub-pair .card .icn-hub,.hub-mine-row #hubCams .icn-hub{grid-row:1 / span 2;align-self:center;width:28px;height:28px}
 .hub .card.big .icn-hub,.hub-top #hubEvent .icn-hub{grid-row:1 / span 2;align-self:center;width:30px;height:30px}
-.hub-top #hubEvent .name,.hub-row #hubCams .name,.hub-row #hubMyEvents .name,.hub-mine-row #hubMine .name{font-size:19px}
-.hub-top #hubEvent .sub,.hub-row #hubCams .sub,.hub-row #hubMyEvents .sub,.hub-mine-row #hubMine .sub{font-size:12px}
+.hub-pair .card .name,.hub-mine-row #hubCams .name{font-size:19px}
+.hub-pair .card .sub,.hub-mine-row #hubCams .sub{font-size:12px}
 /* cada acción del hub tiene su acento: el color de la sección que abre */
 #hubProx{--hac:#3da9ff;--hglow:rgba(61,169,255,.30)}     /* azul = próximos eventos */
 #whereCity{--hac:#3da9ff;--hglow:rgba(61,169,255,.30)}   /* azul = país/ciudad */
@@ -763,12 +763,12 @@ body{
 .set-place .lbl b{font-family:var(--opt-font);font-size:17px;font-weight:700}
 .set-place .lbl small{font-size:12px;color:var(--muted)}
 .set-place .hub-go{flex:none;color:var(--muted);font-size:18px}
-/* modo "lugar habitual" del picker: solo se muestran Pais + Ciudad, y sin
-   multiselección (ni casillas ni botón Continuar) */
+/* picker de "lugar" (Configuración o Camarógrafos): solo País + Ciudad */
 #view2.ref-mode #panel .slot[data-key="type"],
-#view2.ref-mode #subPanel,
-#view2.ref-mode .step .mbox,
-#view2.ref-mode .step .multi-continue{display:none}
+#view2.ref-mode #subPanel{display:none}
+/* single-select (lugar habitual): sin casillas multi ni botón Continuar */
+#view2.place-single .step .mbox,
+#view2.place-single .step .multi-continue{display:none}
 
 /* ───────────────────────── directorio de camarógrafos ──────────────────── */
 .ctrl{display:flex;align-items:center;gap:10px;margin-top:12px}
@@ -1090,9 +1090,11 @@ body{
   background:var(--surface);
   border:1px solid var(--line);
   border-radius:6px;
+  color:var(--text);                 /* los <button> heredan un color oscuro del navegador → fijarlo o el título no se ve en oscuro */
   transition:background-color .35s;
 }
 .dance b{
+  color:var(--text);
   font-family:var(--opt-font);font-weight:600;
   font-size:15px;letter-spacing:.05em;text-transform:uppercase;
 }
@@ -1131,8 +1133,14 @@ body{
 .dance-card{width:100%;text-align:left;cursor:pointer;
   transition:border-color .15s, box-shadow .15s, background-color .35s}
 .dance-card:hover,.dance-card:active{border-color:var(--accent);box-shadow:0 0 18px var(--accent-glow)}
-#mineList .date-head,#myEvList .date-head{position:static;top:auto}
 #mineList,#myEvList{display:flex;flex-direction:column;gap:10px}
+/* indicadores de estado en la tarjeta de baile (estado + valoración) */
+.d-tags{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px}
+.st.pend{color:var(--muted);border-color:var(--line)}
+/* buscador anclado arriba (sticky) como el resto de buscadores de la app */
+.mine-search{position:sticky;top:var(--head-top,0px);z-index:6}
+/* barra de "Ver pasados" en Mis eventos (sticky bajo la cabecera) */
+.me-toolbar{display:flex;justify-content:flex-end;padding:4px 0 10px;background:var(--bg);position:sticky;top:var(--head-top,0px);z-index:6}
 
 /* valoración mini en la tarjeta de baile */
 .drate{font-size:12px;color:var(--muted);margin-top:4px}
@@ -1147,6 +1155,10 @@ body{
 .me-chip.attend{color:#3da9ff;border-color:#3da9ff}
 .me-chip.wish{color:#c6ff00;border-color:#c6ff00}
 .me-chip.cam{color:#ffd60a;border-color:#ffd60a}
+/* tema claro: los acentos muy claros (lima/ámbar) no se leen → tonos oscuros */
+.app.light .me-chip.attend{color:#1d6fc0;border-color:#1d6fc0}
+.app.light .me-chip.wish{color:#5a7d00;border-color:#5a7d00}
+.app.light .me-chip.cam{color:#9a7a00;border-color:#9a7a00}
 
 /* detalle de baile + valoración de la cámara */
 .dance-detail{display:flex;flex-direction:column;gap:18px;margin-top:14px}

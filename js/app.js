@@ -185,42 +185,55 @@
     $('#dateTo').value   = iso(fin);
   }
 
-  /* ── lugar habitual (Configuración) usando el picker de pasos ───────── */
-  function startRefPick(){
-    refStackMark = navStack.length;               // el historial del picker de lugar no contamina el global
+  /* ── picker de pasos reutilizable (País → Ciudad) para "lugar":
+     refTarget 'settings' = lugar habitual (single-select, guarda en ref);
+     refTarget 'cams' = filtro de lugar del directorio (multi, como histórico) ── */
+  var refTarget = 'settings';
+  function refSingle(){ return refTarget === 'settings'; }
+  function startRefPick(target){
+    refTarget = target || 'settings';
+    refStackMark = navStack.length;               // el historial del picker no contamina el global
     refMode = true;
     savedSearch = { country:state.country, city:state.city, type:state.type, subtype:state.subtype };
-    state.country = null; state.city = null;      // empieza en País, como "En otro lugar"
+    state.country = null; state.city = null;      // empieza en País
     editing = null;
     var v2 = $('#view2');
     v2.classList.add('ref-mode');
-    v2.querySelector('.v2-title').textContent = 'Lugar habitual';
-    v2.querySelector('.v2-sub').textContent   = 'Elige tu país y ciudad de referencia.';
+    v2.classList.toggle('place-single', refSingle());   // single oculta casillas multi
+    v2.querySelector('.v2-title').textContent = refSingle() ? 'Lugar habitual' : 'Lugar';
+    v2.querySelector('.v2-sub').textContent   = refSingle() ? 'Elige tu país y ciudad de referencia.' : 'Elige país y ciudad para filtrar camarógrafos.';
     updateRoleIcons();                            // textContent borró el icono → re-pónlo
     closeAll();
     renderPanel();
-    goView('view2','ac-violet');
+    goView('view2', refSingle() ? 'ac-violet' : 'ac-amber');
     advance();                                    // → paso País
   }
   function finishRefPick(){
     var toArr = function(v){ return Array.isArray(v) ? v.slice() : [v]; };
     var countries = toArr(state.country.value);
-    if(state.city.value === 'all'){               // "Todas" → todas las ciudades de esos países
-      ref.cities = countries.reduce(function(acc, k){
-        return acc.concat(k === 'es' ? ['mad','sev','bcn'] : ['waw','kra']);
-      }, []);
-    } else {
-      ref.cities = toArr(state.city.value);
+    var target = refTarget;
+    if(target === 'settings'){
+      if(state.city.value === 'all'){             // "Todas" → todas las ciudades de esos países
+        ref.cities = countries.reduce(function(acc, k){ return acc.concat(k === 'es' ? ['mad','sev','bcn'] : ['waw','kra']); }, []);
+      } else { ref.cities = toArr(state.city.value); }
+      ref.countries = countries;
+      save('cilap-ref', ref);
+      exitRefMode(true);
+      refreshRefUI();
+      renderSettings();
+      histLock = true; goView('viewSettings','ac-violet'); histLock = false;
+    } else {                                       // 'cams': aplica al filtro de lugar del directorio
+      placeCountries = countries;
+      placeCities = (state.city.value === 'all') ? [] : toArr(state.city.value);   // "Todas" → sin filtro de ciudad
+      $('#placeLbl').textContent = placeLabel();
+      exitRefMode(true);
+      renderCamDir();
+      histLock = true; goView('viewCams','ac-amber'); histLock = false;
     }
-    ref.countries = countries;
-    save('cilap-ref', ref);
-    exitRefMode(true);
-    refreshRefUI();
-    renderSettings();                             // refresca la etiqueta del lugar
-    histLock = true; goView('viewSettings','ac-violet'); histLock = false;   // salida del picker: no apila
   }
   function exitRefMode(restore){
     refMode = false;
+    $('#view2').classList.remove('place-single');
     if(navStack.length > refStackMark) navStack.length = refStackMark;   // descarta el historial del picker
     var v2 = $('#view2');
     v2.classList.remove('ref-mode');
@@ -353,10 +366,17 @@
      País → Configuración, que es su flujo natural de 2 pasos. */
   $('#navBack').addEventListener('click', function(){
     var open = function(id){ return $('#'+id).classList.contains('open'); };
-    if(refMode){                          // lugar habitual: Ciudad → País → Configuración
+    if(refMode){                          // picker de lugar: Ciudad → País → vista origen
       editing = null;
       if(open('stepB')){ state.city = null; renderPanel(); closeStep('stepB'); openStep('stepA'); }
-      else { exitRefMode(true); histLock = true; goView('viewSettings','ac-violet'); histLock = false; }
+      else {
+        var back = refTarget;
+        exitRefMode(true);
+        histLock = true;
+        if(back === 'cams'){ renderCamDir(); goView('viewCams','ac-amber'); }
+        else goView('viewSettings','ac-violet');
+        histLock = false;
+      }
       return;
     }
     histBack();
@@ -560,7 +580,7 @@
       opt.addEventListener('click', function(e){
         var multiActivo = !!stepEl.querySelector('.opt.multi-on');
         var esTodas = opt.dataset.value === 'all';
-        if(!refMode && !esTodas && (e.target.closest('.mbox') || multiActivo)){   // multi-toggle (no en lugar habitual)
+        if((!refMode || !refSingle()) && !esTodas && (e.target.closest('.mbox') || multiActivo)){   // multi-toggle (single solo en lugar habitual)
           var eraSeleccion = opt.classList.contains('selected');
           /* si venías de una selección simple (p.ej. al EDITAR), pásala a multi
              para no perderla al empezar a multi-seleccionar */
@@ -760,9 +780,10 @@
   $('#dateFrom').addEventListener('change', function(){ dateTouched = true; updateDateLabel(); renderResults(); });
   $('#dateTo').addEventListener('change', function(){ dateTouched = true; updateDateLabel(); renderResults(); });
   $('#dateClear').addEventListener('click', function(){
-    dateTouched = true;          // "ver todo": no volver a meter los 7 días
+    dateTouched = false;         // restaura el rango por defecto (próximos 7 días)
     $('#dateFrom').value = '';
     $('#dateTo').value = '';
+    defaultDateRange();          // vuelve a poner hoy → +7
     updateDateLabel();
     renderResults();
   });
@@ -1214,9 +1235,13 @@
      SALVO en Calendario con un mes abierto (ahí el swipe cambia de mes — se
      gestiona dentro del propio handler, sobre todo el área de resultados) */
   (function(){
-    var r = $('#result'), sx = 0, sy = 0, ORDER = ['prox','cal','horarios'];
+    /* el gesto escucha en TODO #view2 (no solo en #result) para que el swipe de
+       mes funcione aunque el contenido del mes/agenda sea corto o esté vacío
+       (debajo de "No hay eventos…" el área ya no es #result, pero sí #view2) */
+    var r = $('#view2'), sx = 0, sy = 0, ORDER = ['prox','cal','horarios'];
     r.addEventListener('touchstart', function(e){ sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive:true });
     r.addEventListener('touchend', function(e){
+      if(!$('#result').classList.contains('open')) return;   // solo sobre los resultados
       var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
       if(!(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.6)) return;
       var dir = dx < 0 ? 1 : -1;
@@ -1663,11 +1688,8 @@
       o.classList.toggle('multi-on', placeCities.indexOf(o.dataset.city) !== -1);
     });
   }
-  $('#placeBtn').addEventListener('click', function(){
-    var m = $('#placeMenu');
-    m.hidden = !m.hidden;
-    if(!m.hidden) renderPlaceMenu();
-  });
+  /* "Lugar" abre el picker de pasos (País → Ciudad), como el menú histórico */
+  $('#placeBtn').addEventListener('click', function(){ startRefPick('cams'); });
   $('#pmCountries').addEventListener('click', function(e){
     var o = e.target.closest('.po'); if(!o) return;
     var k = o.dataset.c, i = placeCountries.indexOf(k);
@@ -1799,6 +1821,17 @@
     return h;
   }
   var mineQuery = '';
+  /* ancla cabecera + (buscador/toggle) sticky y fija --group-top para que las
+     cabeceras de fecha (.date-head) se peguen al hacer scroll (estilo iOS).
+     Norma general: toda vista con separadores de fecha usa esto. */
+  function pinHeads(viewId, extraEls){
+    var v = $('#'+viewId); if(!v) return;
+    var head = v.querySelector('.v2-head');
+    var top = head ? head.offsetHeight : 0;
+    v.style.setProperty('--head-top', top + 'px');
+    (extraEls || []).forEach(function(el){ if(el && !el.hidden) top += el.offsetHeight; });
+    v.style.setProperty('--group-top', top + 'px');
+  }
   function renderMine(){
     var dancer = state.role && state.role.value === 'dancer';
     $('#mineTitle').textContent = dancer ? 'Mis bailes' : 'Mis sesiones';
@@ -1818,15 +1851,18 @@
         if(q && hay.indexOf(q) === -1) return;
         var st = DANCE_STATUS[d.status];
         var r = myRatings[danceKey(d)];
-        var rateHtml = r
+        var rateTag = r
           ? '<span class="drate rated">' + starsRow(r.stars) + '</span>'
-          : '<span class="drate">Toca para valorar a ' + cam.name + '</span>';
+          : '<span class="st pend">Pendiente de valorar</span>';
         rows.push({ ts:parseMyDate(d.date), date:d.date,
           html:'<button class="dance dance-card" data-i="' + i + '">' +
-            '<b>' + d.song + '</b>' +
-            '<span class="dinfo">' + ev.name + ' · te grabó ' + cam.name + ' · con ' + p.name + '</span>' +
-            rateHtml +
-            '<span class="st ' + st.cls + '">' + st.txt + '</span></button>' });
+            '<b>' + ev.name + '</b>' +                                  /* lugar (1) */
+            '<span class="dinfo">' + d.song + '</span>' +              /* canción */
+            '<span class="dinfo">Te grabó ' + cam.name + '</span>' +   /* quién grabó (2) */
+            '<span class="d-tags">' +
+              '<span class="st ' + st.cls + '">' + st.txt + '</span>' +
+              rateTag +
+            '</span></button>' });
       });
     } else {
       MY_SESSIONS.forEach(function(s){
@@ -1859,6 +1895,7 @@
         c.addEventListener('click', function(){ openDance(Number(c.dataset.i)); });
       });
     }
+    setTimeout(function(){ pinHeads('viewMine', [$('#mineSearchBox')]); }, 60);
   }
   $('#mineSearch').addEventListener('input', function(){ mineQuery = this.value; renderMine(); });
   $('#mineBack').addEventListener('click', histBack);
@@ -1930,17 +1967,21 @@
   $('#dnHome').addEventListener('click', goHome);
 
   /* ── Mis eventos: eventos marcados (asistir / interés en grabar / con cámara) ── */
+  var myEvPast = false;
   function resolveEv(id){ return EVENTS_BY_ID[id] || EVENTS_BY_ID[(id||'').split('@')[0]] || null; }
+  /* fecha concreta de una intención: instancia (@ts) → su ts; semanal → próxima
+     ocurrencia; puntual → su inicio */
+  function intentTs(id, ev){
+    if(id.indexOf('@') !== -1) return Number(id.split('@')[1]);
+    if(ev.recurrence === 'weekly'){ var occ = weeklyOccs(ev, Date.now(), Date.now() + 60 * 86400000); return occ.length ? occ[0].start : Date.now(); }
+    return ev.startsAt || Date.now();
+  }
   function renderMyEvents(){
-    /* reúne por evento base las intenciones marcadas */
-    var byEv = {};   // baseId -> {ev, ts, attend, wish, cams:[]}
+    var byEv = {};   // id de instancia (o base) -> {ev, id, ts, attend, wish, cams:[]}
     function bucket(id){
       var ev = resolveEv(id); if(!ev) return null;
-      var ts = id.indexOf('@') !== -1 ? Number(id.split('@')[1]) : (ev.startsAt || parseMyDate('1 ene 2100'));
-      var k = ev.id;
-      if(!byEv[k]) byEv[k] = { ev:ev, ts:ts, attend:false, wish:false, cams:[] };
-      else if(ts < byEv[k].ts) byEv[k].ts = ts;
-      return byEv[k];
+      if(!byEv[id]) byEv[id] = { ev:ev, id:id, ts:intentTs(id, ev), attend:false, wish:false, cams:[] };
+      return byEv[id];
     }
     Object.keys(attend).forEach(function(id){ if(attend[id]){ var b = bucket(id); if(b) b.attend = true; } });
     Object.keys(wishrec).forEach(function(id){ if(wishrec[id]){ var b = bucket(id); if(b) b.wish = true; } });
@@ -1951,26 +1992,38 @@
       var b = bucket(evId); var cam = CAMS_BY_ID[camId];
       if(b && cam && b.cams.indexOf(cam.name) === -1) b.cams.push(cam.name);
     });
+    var hoy = new Date(); hoy.setHours(0,0,0,0); var todayTs = hoy.getTime();
     var list = Object.keys(byEv).map(function(k){ return byEv[k]; });
+    var hasPast = list.some(function(b){ return b.ts < todayTs; });
+    if(!myEvPast) list = list.filter(function(b){ return b.ts >= todayTs; });
     list.sort(function(a, b){ return a.ts - b.ts; });   // próximos primero
+    /* el toggle "Ver pasados" solo aparece si hay alguno */
+    $('#myEvToggle').style.display = hasPast ? 'flex' : 'none';
+    $('#myEvPastSw').classList.toggle('on', myEvPast);
     var box = $('#myEvList');
     $('#myEvEmpty').style.display = list.length ? 'none' : 'flex';
-    box.innerHTML = list.map(function(b){
-      var ev = b.ev;
+    /* agrupado por fecha (cabeceras .date-head sticky), como Mis bailes */
+    var lastKey = null, h = '';
+    list.forEach(function(b){
+      var ev = b.ev, d = new Date(b.ts);
+      var key = d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+      if(key !== lastKey){ h += '<div class="date-head">' + dateHeaderLabel(b.ts) + '</div>'; lastKey = key; }
       var chips = '';
       if(b.attend) chips += '<span class="me-chip attend">Voy a asistir</span>';
       if(b.wish)   chips += '<span class="me-chip wish">Interesado en grabar</span>';
       b.cams.forEach(function(n){ chips += '<span class="me-chip cam">Grabar con ' + n + '</span>'; });
-      var when = (ev.recurrence === 'oneoff') ? fmtDate(ev.startsAt) : 'Sala semanal';
-      return '<button class="dance dance-card" data-ev="' + ev.id + '">' +
+      h += '<button class="dance dance-card" data-ev="' + b.id + '">' +
         '<b>' + ev.name + '</b>' +
-        '<span class="dinfo">' + when + ' · ' + ev.venue + ' · ' + (CITY_LABELS[ev.city] || ev.city) + '</span>' +
+        '<span class="dinfo">' + ev.venue + ' · ' + (CITY_LABELS[ev.city] || ev.city) + '</span>' +
         '<span class="me-chips">' + chips + '</span></button>';
-    }).join('');
-    box.querySelectorAll('.dance-card').forEach(function(c){
-      c.addEventListener('click', function(){ openEvent(EVENTS_BY_ID[c.dataset.ev]); });
     });
+    box.innerHTML = h;
+    box.querySelectorAll('.dance-card').forEach(function(c){
+      c.addEventListener('click', function(){ openEvent(resolveEv(c.dataset.ev)); });
+    });
+    setTimeout(function(){ pinHeads('viewMyEvents', [$('#myEvToggle')]); }, 60);
   }
+  $('#myEvPastSw').addEventListener('click', function(){ myEvPast = !myEvPast; renderMyEvents(); });
   $('#meBack').addEventListener('click', histBack);
   $('#meHome').addEventListener('click', goHome);
 

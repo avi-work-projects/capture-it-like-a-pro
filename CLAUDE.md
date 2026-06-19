@@ -49,6 +49,28 @@ esconderlo tras el bloque fijo: dar `min-height` al contenedor de la pestaña
 (p. ej. `#modeHorarios{min-height:125vh}`). Excepción: el calendario de mes debe
 "caber" sin scroll, así que `#modeCal` usa un `min-height` menor (82vh).
 
+## Normas generales de UI (aplican SIEMPRE)
+- **Cabeceras de fecha pegajosas (sticky):** en CUALQUIER vista donde las fechas
+  actúen como separadores/agrupadores entre tarjetas (resultados Próximos, Agenda,
+  Mis bailes, Mis eventos…), las `.date-head` deben quedarse ancladas al hacer
+  scroll (estilo iOS): la del grupo actual se queda fija justo bajo el chrome y la
+  siguiente la empuja. `.date-head` ya es `position:sticky; top:var(--group-top)`.
+  En vistas tipo "lista" (no `#view2`) usar `pinHeads(viewId, [extraEls])`: ancla
+  la `.v2-head` (ya sticky top:0) + el buscador/toggle (sticky `top:var(--head-top)`)
+  y fija `--group-top` (= alto cabecera + extras) en la vista. Llamarlo tras el
+  render (setTimeout 60). En `#view2` lo hace `restickView2`/`pinBelow`.
+- **Buscadores anclados arriba:** todo buscador de lista va sticky bajo la cabecera
+  (`top:var(--head-top)`), nunca scrollea con el contenido.
+- **Texto visible en tema OSCURO:** los `<button>` heredan un color de texto oscuro
+  del navegador → si una tarjeta/título es un `<button>` (o vive en uno) hay que
+  fijar `color:var(--text)` explícitamente, o el título NO se ve sobre fondo oscuro
+  (pasó con `.dance b`). Regla: toda tarjeta/título pulsable fija su color.
+- **Acentos claros en tema CLARO:** los acentos muy claros (lima `#c6ff00`, ámbar
+  `#ffd60a`) son ilegibles sobre fondo claro → dar override `.app.light` con un tono
+  oscuro de la misma familia (como `.st.ok`/`.me-chip.wish`).
+- **Validar SIEMPRE en el visor** (capturas) en CLARO y OSCURO antes de dar por
+  bueno un cambio visible.
+
 ## Otros gotchas
 - La transición de `max-height` NO "tickea" en el preview headless: las medidas de
   altura mienten a mitad de transición (medir con `transition:none`); en navegador

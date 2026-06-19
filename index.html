@@ -92,21 +92,23 @@
         </button>
       </div>
       <div class="hub-row">
-        <button class="card" id="hubCams">
-          <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="M15.5 10.8l6-3.3v9l-6-3.3"/><circle cx="7.5" cy="12" r="2.2"/></svg>
-          <span class="name">Ver camarógrafos</span>
-          <span class="sub">Elige quién te graba</span>
-        </button>
-        <button class="card" id="hubMyEvents">
-          <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 3v4M16 3v4"/><path d="m8.5 14 2.2 2.2 4.8-4.7"/></svg>
-          <span class="name">Mis eventos</span>
-          <span class="sub">Lo que te interesa</span>
-        </button>
-        <div class="hub-mine-row">
+        <div class="hub-pair">
           <button class="card" id="hubMine">
             <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M3 9h18M8 4.5V9M16 4.5V9"/><path d="M10.5 12.5l4 2.5-4 2.5z"/></svg>
             <span class="name" id="hubMineName">Mis bailes</span>
             <span class="sub" id="hubMineSub">Tu historial grabado</span>
+          </button>
+          <button class="card" id="hubMyEvents">
+            <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 3v4M16 3v4"/><path d="m8.5 14 2.2 2.2 4.8-4.7"/></svg>
+            <span class="name">Mis eventos</span>
+            <span class="sub">Lo que te interesa</span>
+          </button>
+        </div>
+        <div class="hub-mine-row">
+          <button class="card" id="hubCams">
+            <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="M15.5 10.8l6-3.3v9l-6-3.3"/><circle cx="7.5" cy="12" r="2.2"/></svg>
+            <span class="name">Ver camarógrafos</span>
+            <span class="sub">Elige quién te graba</span>
           </button>
           <button class="card gear" id="hubSettings" title="Configuración">
             <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -450,6 +452,9 @@
         <h2 class="v2-title">Mis eventos</h2>
         <p class="v2-sub">Eventos que has marcado.</p>
       </div>
+    </div>
+    <div class="me-toolbar" id="myEvToggle">
+      <button class="cal-pastsw" id="myEvPastSw"><span class="sw-track"><span class="sw-knob"></span></span>Ver eventos pasados</button>
     </div>
     <div id="myEvList"></div>
     <div class="notice" id="myEvEmpty" style="display:none">
