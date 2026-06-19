@@ -854,9 +854,9 @@
     return [ base[0] + Math.cos(ang) * r * 0.75, base[1] + Math.sin(ang) * r ];
   }
   function mapTypeGlyph(type, color){
-    if(type === 'congreso') return '<path d="M0,-3.4 L3,2.6 L-3,2.6 Z" fill="' + color + '"/>';
-    if(type === 'exterior') return '<path d="M0,-3.6 L1,-1 L3.6,0 L1,1 L0,3.6 L-1,1 L-3.6,0 L-1,-1 Z" fill="' + color + '"/>';
-    return '<circle r="3" fill="' + color + '"/>';
+    if(type === 'congreso') return '<path d="M0,-2.2 L1.9,1.7 L-1.9,1.7 Z" fill="' + color + '"/>';
+    if(type === 'exterior') return '<path d="M0,-2.3 L0.7,-0.7 L2.3,0 L0.7,0.7 L0,2.3 L-0.7,0.7 L-2.3,0 L-0.7,-0.7 Z" fill="' + color + '"/>';
+    return '<circle r="1.9" fill="' + color + '"/>';
   }
   function openMap(){
     mapDays = mapBuildDays();
@@ -880,7 +880,7 @@
     var markers = day.events.map(function(ev, i){
       var p = mapMarkerXY(ev, i), col = MAP_TYPE_COLOR[ev.type] || '#888';
       return '<g class="map-mk" data-ev="' + i + '" transform="translate(' + p[0].toFixed(1) + ',' + p[1].toFixed(1) + ')">' +
-        '<circle class="mk-halo" r="3" fill="none" stroke="' + col + '"/>' +
+        '<circle class="mk-halo" r="1.9" fill="none" stroke="' + col + '"/>' +
         mapTypeGlyph(ev.type, col) + '</g>';
     }).join('');
     stage.innerHTML = '<svg viewBox="0 0 100 100" class="map-svg" preserveAspectRatio="xMidYMid meet">' + MAP_PROVINCES_SVG + markers + '</svg>';
