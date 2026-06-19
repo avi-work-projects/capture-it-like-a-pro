@@ -791,25 +791,36 @@
   /* ── MAPA DE EVENTOS (un día concreto, navegable día a día) ───────────── */
   var MAP_TYPE_COLOR = { sala:'#c46bff', congreso:'#3da9ff', exterior:'#ffd60a' };
   var MAP_TYPE_LABEL = { sala:'Sala de baile', congreso:'Congreso', exterior:'Al exterior' };
-  /* posiciones aproximadas (viewBox 0..100) — Madrid centrado, vecinas alrededor */
-  var MAP_CITY_XY = { mad:[49,47], tol:[26,80], gua:[80,30], seg:[50,11], avila:[13,38], cuenca:[80,80], sev:[40,93], bcn:[93,7], waw:[95,5], kra:[92,9] };
+  /* posiciones (viewBox 0..100) DENTRO del contorno de Madrid (aprox. por zona):
+     centro, norte (sierra), sur (Aranjuez), este (corredor del Henares)… */
+  var MAP_CITY_XY = { mad:[50,52], tol:[40,82], gua:[78,40], seg:[52,12], avila:[12,52], cuenca:[88,72], sev:[42,93], bcn:[93,8], waw:[95,5], kra:[92,9] };
   var mapDays = [], mapDayIdx = 0;
-  /* mapa provincial: silueta real (aprox.) de la Comunidad de Madrid resaltada,
-     rodeada de las provincias vecinas que comparten su frontera (rombo inclinado
-     con punta al norte —Somosierra— y al sur —Aranjuez—, ensanchado al este). */
-  var MAD = '50,20 58,27 65,40 63,55 57,67 48,73 40,66 36,54 33,43 39,30';   // vértices Madrid (horario)
+  /* CONTORNO REAL (aprox.) de la Comunidad de Madrid: vértices = frontera real
+     proyectada (lon/lat→viewBox). Rasgos: punta N (Somosierra), saliente E hacia
+     Estremera, punta S (Aranjuez), esquina O (Cenicientos) y sierra al NO. */
+  var MAD = '60,15 67,28 66,41 73,53 83,61 83,71 74,78 59,86 49,77 39,71 29,65 19,66 21,57 26,47 38,38 47,28 56,22';
   var MAP_PROVINCES_SVG =
     '<defs><clipPath id="mapClip"><rect x="3" y="3" width="94" height="94" rx="11"/></clipPath></defs>' +
     '<g clip-path="url(#mapClip)">' +
+      '<rect class="map-bg" x="3" y="3" width="94" height="94"/>' +
+      '<g class="map-border">' +
+        '<line x1="38" y1="38" x2="5" y2="6"/>' +      /* Segovia | Ávila (NO) */
+        '<line x1="60" y1="15" x2="62" y2="2"/>' +     /* Segovia (N) */
+        '<line x1="67" y1="28" x2="98" y2="10"/>' +    /* Segovia | Guadalajara (NE) */
+        '<line x1="83" y1="61" x2="99" y2="58"/>' +    /* Guadalajara | Cuenca (E) */
+        '<line x1="78" y1="76" x2="84" y2="99"/>' +    /* Cuenca | Toledo (SE) */
+        '<line x1="49" y1="77" x2="40" y2="99"/>' +    /* Toledo (S) */
+        '<line x1="19" y1="66" x2="2" y2="72"/>' +     /* Ávila (O) */
+      '</g>' +
       '<g class="map-prov">' +
-        '<polygon points="39,30 50,20 58,27 75,3 25,3"/><text x="50" y="13">Segovia</text>' +
-        '<polygon points="58,27 65,40 63,55 97,55 97,3 75,3"/><text x="84" y="26">Guadalajara</text>' +
-        '<polygon points="63,55 57,67 48,73 50,97 97,97 97,55"/><text x="80" y="84">Cuenca</text>' +
-        '<polygon points="48,73 40,66 36,54 3,55 3,97 50,97"/><text x="24" y="86">Toledo</text>' +
-        '<polygon points="36,54 33,43 39,30 25,3 3,3 3,55"/><text x="14" y="32">Ávila</text>' +
+        '<text x="50" y="9" text-anchor="middle">Segovia</text>' +
+        '<text x="97" y="20" text-anchor="end">Guadalajara</text>' +
+        '<text x="97" y="91" text-anchor="end">Cuenca</text>' +
+        '<text x="40" y="96" text-anchor="middle">Toledo</text>' +
+        '<text x="3" y="42" text-anchor="start">Ávila</text>' +
       '</g>' +
       '<polygon class="map-madrid" points="' + MAD + '"/>' +
-      '<text class="map-madrid-lbl" x="49" y="62">MADRID</text>' +
+      '<text class="map-madrid-lbl" x="51" y="33">MADRID</text>' +
     '</g>' +
     '<rect class="map-region" x="3" y="3" width="94" height="94" rx="11"/>';
 
@@ -837,9 +848,10 @@
   }
   function mapMarkerXY(ev, i){
     var base = MAP_CITY_XY[ev.city] || [50, 50];
-    var ang = i * 2.39996;                       // ángulo áureo → dispersión determinista
-    var r = (i === 0) ? 0 : 4 + (i % 3) * 3;
-    return [ base[0] + Math.cos(ang) * r, base[1] + Math.sin(ang) * r ];
+    /* reparte los eventos por el interior (espiral áurea); más estrecho en X que
+       en Y porque el contorno es más alto que ancho */
+    var ang = i * 2.39996, r = (i === 0) ? 0 : 7 + (i % 4) * 4;
+    return [ base[0] + Math.cos(ang) * r * 0.75, base[1] + Math.sin(ang) * r ];
   }
   function mapTypeGlyph(type, color){
     if(type === 'congreso') return '<path d="M0,-3.4 L3,2.6 L-3,2.6 Z" fill="' + color + '"/>';
