@@ -61,6 +61,11 @@
   }
   var currentEvent = null;
 
+  /* ── historial de navegación: el botón ← vuelve al MOMENTO anterior (no por
+     jerarquía). Se apila un snapshot del estado actual ANTES de cada paso
+     adelante (en goView y en las transiciones internas de la vista 2). ── */
+  var navStack = [], histLock = false, refStackMark = 0;
+
   /* ── acento por pantalla ──────────────────────────────────────────── */
   var ACCENT_CLASSES = ['ac-red','ac-blue','ac-amber','ac-lime','ac-violet'];
   var ACCENTS = { view1:'ac-red', stepA:'ac-blue', stepB:'ac-amber',
@@ -182,6 +187,7 @@
 
   /* ── lugar habitual (Configuración) usando el picker de pasos ───────── */
   function startRefPick(){
+    refStackMark = navStack.length;               // el historial del picker de lugar no contamina el global
     refMode = true;
     savedSearch = { country:state.country, city:state.city, type:state.type, subtype:state.subtype };
     state.country = null; state.city = null;      // empieza en País, como "En otro lugar"
@@ -211,10 +217,11 @@
     exitRefMode(true);
     refreshRefUI();
     renderSettings();                             // refresca la etiqueta del lugar
-    goView('viewSettings','ac-violet');
+    histLock = true; goView('viewSettings','ac-violet'); histLock = false;   // salida del picker: no apila
   }
   function exitRefMode(restore){
     refMode = false;
+    if(navStack.length > refStackMark) navStack.length = refStackMark;   // descarta el historial del picker
     var v2 = $('#view2');
     v2.classList.remove('ref-mode');
     v2.querySelector('.v2-title').textContent = 'Encuentra tu pista';
@@ -303,6 +310,7 @@
      y vuelve a Configuración. savedSearch preserva la búsqueda en curso. */
   var refMode = false, savedSearch = null;
   function editSlot(key){
+    pushHist();                          // momento previo (← vuelve a donde estabas)
     editing = key;
     closeAll();
     renderPanel();
@@ -340,23 +348,18 @@
     else if(key === 'subtype'){   closeFrom('subtype'); openStep('stepD'); }
   }
 
-  /* ── botón atrás: SUBIR un nivel de jerarquía desde el paso visible.
-     No es un "volver a donde estabas": también en edición sube de nivel. */
+  /* ── botón atrás: vuelve al MOMENTO anterior (historial), no por jerarquía.
+     Excepción: dentro del picker de "lugar habitual" (refMode) hace Ciudad →
+     País → Configuración, que es su flujo natural de 2 pasos. */
   $('#navBack').addEventListener('click', function(){
-    editing = null;
     var open = function(id){ return $('#'+id).classList.contains('open'); };
     if(refMode){                          // lugar habitual: Ciudad → País → Configuración
+      editing = null;
       if(open('stepB')){ state.city = null; renderPanel(); closeStep('stepB'); openStep('stepA'); }
-      else { exitRefMode(true); goView('viewSettings','ac-violet'); }
+      else { exitRefMode(true); histLock = true; goView('viewSettings','ac-violet'); histLock = false; }
       return;
     }
-    if(open('result')){
-      goBackTo((state.type && state.type.value === 'exterior') ? 'subtype' : 'type');
-    }
-    else if(open('stepD'))  goBackTo('type');
-    else if(open('stepC'))  goBackTo('city');
-    else if(open('stepB'))  goBackTo('country');
-    else                    goView('viewHub','ac-red');   // padre del paso país = hub
+    histBack();
   });
 
   /* ── botón home: al hub tras el rol (rol intacto, búsqueda limpia) ── */
@@ -366,7 +369,8 @@
     ['country','city','type','subtype'].forEach(function(k){ state[k] = null; });
     closeAll();
     renderPanel();
-    goView('viewHub','ac-red');
+    navStack.length = 0;                   // inicio = reinicio del historial
+    histLock = true; goView('viewHub','ac-red'); histLock = false;
   }
   $('#homeBtn2').addEventListener('click', goHome);
   $('#homeBtn3').addEventListener('click', goHome);
@@ -385,6 +389,7 @@
       if(v !== to && !v.classList.contains('hidden')) froms.push(v);
     });
     if(!froms.length) return;
+    pushHist();                       // apila el momento que dejamos (← vuelve aquí)
     froms.forEach(function(f){ f.classList.remove('in'); f.classList.add('out'); });
     setTimeout(function(){
       froms.forEach(function(f){ f.classList.add('hidden'); f.classList.remove('out'); });
@@ -535,6 +540,7 @@
         var vals = [], labels = [];
         stepEl.querySelectorAll('.opt.multi-on').forEach(function(o){ vals.push(o.dataset.value); labels.push(o.dataset.label); });
         if(!vals.length) return;
+        pushHist();                                  // momento previo (← vuelve a este paso)
         var single = vals.length === 1;
         state[key] = { value: single ? vals[0] : vals, label: labels.join(', '), multi: !single };
         editing = null;
@@ -568,6 +574,7 @@
           return;
         }
         if(opt.classList.contains('picked')) return;
+        pushHist();                                  // momento previo (← vuelve a este paso)
         var prev = state[key] ? state[key].value : null;
         stepEl.querySelectorAll('.opt').forEach(function(o){   // selección directa: limpia multi
           o.classList.remove('selected','picked','dim','multi-on');
@@ -762,6 +769,7 @@
   function goCalMonth(delta){
     var lim = calLimits(), v = ymVal(calYear, calMonth) + delta;
     if(v < lim.lower || v > lim.upper) return;
+    pushHist();                          // cambio de mes: ← vuelve al mes anterior
     calYear = Math.floor(v / 12); calMonth = v % 12; renderCalMode();
   }
   function eventsByFilter(rec, withSub){
@@ -779,15 +787,15 @@
     var c = $('#modeCal');
     if(calMonth == null){
       Calendar.renderYear(c, calYear, eventsByFilter('oneoff', true), {
-        onYear:  function(y){ calYear = y; renderCalMode(); },
-        onMonth: function(m){ calMonth = m; calSub = 'agenda'; renderCalMode(); }   // al abrir un mes → Agenda primero
+        onYear:  function(y){ pushHist(); calYear = y; renderCalMode(); },
+        onMonth: function(m){ pushHist(); calMonth = m; calSub = 'agenda'; renderCalMode(); }   // al abrir un mes → Agenda primero
       });
     } else {
       var lim = calLimits(), v = ymVal(calYear, calMonth);
       var nav = { canPrev: v > lim.lower, canNext: v < lim.upper, past: calPast };
       Calendar.renderMonth(c, calYear, calMonth, eventsByFilter('oneoff', true), calSub, nav, {
-        onBack:  function(){ calMonth = null; renderCalMode(); },
-        onSub:   function(s){ calSub = s; renderCalMode(); },
+        onBack:  function(){ pushHist(); calMonth = null; renderCalMode(); },
+        onSub:   function(s){ if(s!==calSub) pushHist(); calSub = s; renderCalMode(); },
         onStep:  function(d){ goCalMonth(d); },
         onEvent: calEvent,
         onTogglePast: function(){
@@ -805,9 +813,9 @@
   var horSala = null, horSub = 'horario';   // sala seleccionada + pestaña (horario/proximos)
   function renderHorariosMode(){
     Calendar.renderHorarios($('#modeHorarios'), eventsByFilter('weekly', false), horSala, horSub, {
-      onSala:  function(id){ horSala = id; horSub = 'horario'; renderHorariosMode(); },
-      onBack:  function(){ horSala = null; renderHorariosMode(); },
-      onSub:   function(s){ horSub = s; renderHorariosMode(); },
+      onSala:  function(id){ pushHist(); horSala = id; horSub = 'horario'; renderHorariosMode(); },
+      onBack:  function(){ pushHist(); horSala = null; renderHorariosMode(); },
+      onSub:   function(s){ if(s!==horSub) pushHist(); horSub = s; renderHorariosMode(); },
       onEvent: calEvent,
       /* un día concreto de la sala = un evento puntual de esa fecha (apuntarte) */
       onOccurrence: function(id, start, end){
@@ -818,6 +826,7 @@
     scheduleRelayout();   // fija subtítulo (sala) + sub-pestañas (tras asentar layout)
   }
   function setEvMode(mode){
+    if(mode !== evMode) pushHist();      // cambio de pestaña de resultados: ← vuelve a la anterior
     evMode = mode;
     document.querySelectorAll('#evModeTabs .fchip').forEach(function(t){ t.classList.toggle('on', t.dataset.mode === mode); });
     $('#modeProx').hidden     = mode !== 'prox';
@@ -1293,7 +1302,7 @@
     saveIntents(); renderIntents(ev);
   });
   $('#revealCams').addEventListener('click', function(){ renderEventCams(); goView('viewEvCams','ac-red'); });
-  $('#ecBack').addEventListener('click', function(){ goView('view3','ac-red'); });
+  $('#ecBack').addEventListener('click', histBack);
 
   function openEvent(ev){
     currentEvent = ev;
@@ -1302,10 +1311,7 @@
     goView('view3', 'ac-red');
   }
 
-  $('#backToEvents').addEventListener('click', function(){
-    if($('#result').classList.contains('open')) renderResults();  // refresca CAM ×n
-    goView('view2', 'ac-red');
-  });
+  $('#backToEvents').addEventListener('click', histBack);
 
   $('#joinBtn').addEventListener('click', function(){
     if(!currentEvent) return;
@@ -1348,10 +1354,10 @@
     if(ref.cities.length) return ref.cities.map(function(c){ return CITY_LABELS[c]; }).join(', ');
     return 'Tu país y ciudad de referencia';
   }
-  $('#hubBack').addEventListener('click', function(){ goView('view1','ac-red'); });
+  $('#hubBack').addEventListener('click', histBack);
   /* "Próximos eventos" → pregunta ¿Dónde? (En mi ciudad / En otro lugar) */
   $('#hubProx').addEventListener('click', function(){ goView('viewWhere','ac-red'); });
-  $('#whereBack').addEventListener('click', function(){ goView('viewHub','ac-red'); });
+  $('#whereBack').addEventListener('click', histBack);
   /* "En otro lugar" = la búsqueda libre de antes ("Busco evento") */
   $('#whereOther').addEventListener('click', function(){
     goView('view2');
@@ -1418,7 +1424,7 @@
     setPrivate = (o.dataset.priv === 'private');
     renderSettings();
   });
-  $('#setBack').addEventListener('click', function(){ goView('viewHub','ac-red'); });
+  $('#setBack').addEventListener('click', histBack);
   $('#setSave').addEventListener('click', function(){
     isPrivate = setPrivate;
     save('cilap-private', isPrivate);
@@ -1566,7 +1572,7 @@
     this.classList.toggle('on', rev3On);
     renderCamDir();
   });
-  $('#camsBack').addEventListener('click', function(){ goView('viewHub','ac-red'); });
+  $('#camsBack').addEventListener('click', histBack);
   $('#camsHome').addEventListener('click', goHome);
 
   /* ── perfil del camarógrafo (estadísticas detalladas) ─────────────── */
@@ -1654,7 +1660,7 @@
   $('#profFollowBtn').addEventListener('click', function(){
     if(currentProfile){ toggleFollow(currentProfile.id); renderProfile(); }
   });
-  $('#profBack').addEventListener('click', function(){ profileBack(); });
+  $('#profBack').addEventListener('click', histBack);
   $('#profHome').addEventListener('click', goHome);
 
   /* ── mis bailes (bailarín) / mis sesiones (camarógrafo) ───────────── */
@@ -1736,7 +1742,7 @@
     }
   }
   $('#mineSearch').addEventListener('input', function(){ mineQuery = this.value; renderMine(); });
-  $('#mineBack').addEventListener('click', function(){ goView('viewHub','ac-red'); });
+  $('#mineBack').addEventListener('click', histBack);
   $('#mineHome').addEventListener('click', goHome);
 
   /* ── detalle de un baile: info + vincular pareja + valorar a la cámara ──── */
@@ -1801,7 +1807,7 @@
       s.addEventListener('click', function(){ dnStars = idx + 1; $('#dnStarPick').innerHTML = starsRow(dnStars); bindDnStars(); });
     });
   }
-  $('#dnBack').addEventListener('click', function(){ renderMine(); goView('viewMine','ac-lime'); });
+  $('#dnBack').addEventListener('click', histBack);
   $('#dnHome').addEventListener('click', goHome);
 
   /* ── Mis eventos: eventos marcados (asistir / interés en grabar / con cámara) ── */
@@ -1846,12 +1852,66 @@
       c.addEventListener('click', function(){ openEvent(EVENTS_BY_ID[c.dataset.ev]); });
     });
   }
-  $('#meBack').addEventListener('click', function(){ goView('viewHub','ac-red'); });
+  $('#meBack').addEventListener('click', histBack);
   $('#meHome').addEventListener('click', goHome);
 
   /* ── restaurar la posición tras recargar (botón ⟳ o refresco) ──────────
      guardamos un snapshot de navegación al salir de la página y, al cargar,
      intentamos dejar al usuario donde estaba (o lo más cerca posible). */
+  /* ── snapshot/restore para el historial del botón ← (en memoria) ──────── */
+  var ALL_STEPS_H = ['stepA','stepB','stepC','stepD','result'];
+  function currentViewId(){ return VIEW_IDS.filter(function(id){ return !$('#'+id).classList.contains('hidden'); })[0] || 'view1'; }
+  function openStepNow(){ return ALL_STEPS_H.filter(function(id){ return $('#'+id).classList.contains('open'); })[0] || null; }
+  function snapNav(){
+    return {
+      view: currentViewId(),
+      country: state.country, city: state.city, type: state.type, subtype: state.subtype,
+      evMode: evMode, horSala: horSala, horSub: horSub,
+      calMonth: calMonth, calYear: calYear, calSub: calSub, calPast: calPast,
+      step: openStepNow(), editing: editing, refMode: refMode,
+      event: currentEvent, profile: currentProfile, dance: currentDance
+    };
+  }
+  function pushHist(){ if(histLock) return; navStack.push(snapNav()); if(navStack.length > 60) navStack.shift(); }
+  function applyNav(s){
+    histLock = true;
+    try{
+      if(refMode) exitRefMode(false);            // si veníamos del picker de lugar, sal de ese modo
+      state.country = s.country; state.city = s.city; state.type = s.type; state.subtype = s.subtype;
+      evMode = s.evMode || 'prox'; horSala = s.horSala; horSub = s.horSub || 'horario';
+      calMonth = s.calMonth; calYear = s.calYear; calSub = s.calSub || 'cal'; calPast = !!s.calPast;
+      editing = null;
+      renderPanel(); updateRoleIcons();
+      var v = s.view;
+      if(v === 'view1'){ goView('view1','ac-red'); return; }
+      if(v === 'viewHub' || v === 'viewWhere'){ goView(v, 'ac-red'); return; }
+      if(v === 'viewCams'){ renderCamDir(); goView('viewCams','ac-amber'); return; }
+      if(v === 'viewMine'){ renderMine(); goView('viewMine','ac-lime'); return; }
+      if(v === 'viewMyEvents'){ renderMyEvents(); goView('viewMyEvents','ac-red'); return; }
+      if(v === 'viewSettings'){ openSettings(); return; }
+      if(v === 'viewDance' && s.dance){ currentDance = s.dance; renderDance(); goView('viewDance','ac-lime'); return; }
+      if(v === 'viewProfile' && s.profile){ openProfile(s.profile); return; }
+      if(v === 'view3' && s.event){ openEvent(s.event); return; }
+      if(v === 'viewEvCams' && s.event){ openEvent(s.event); renderEventCams(); goView('viewEvCams','ac-red'); return; }
+      /* vista 2 (filtros / resultados) */
+      goView('view2');
+      if(s.editing){ editSlot(s.editing); }
+      else {
+        closeAll(); advance();
+        if(s.step === 'result'){
+          if(resultTimer){ clearTimeout(resultTimer); resultTimer = null; }
+          $('#result').classList.add('done');
+          if(evMode && evMode !== 'prox'){ setEvMode(evMode); if(evMode === 'horarios' && horSala) renderHorariosMode(); }
+        }
+      }
+    } catch(e){ goView('viewHub','ac-red'); }
+    finally { histLock = false; }
+  }
+  function histBack(){
+    if(navStack.length){ applyNav(navStack.pop()); }
+    else { goHome(); }                            // sin historial: a inicio (hub)
+  }
+
   function captureNav(){
     try{
       var view = VIEW_IDS.filter(function(id){ return !$('#'+id).classList.contains('hidden'); })[0] || 'view1';
@@ -1897,6 +1957,6 @@
       }
     }catch(e){ goView('viewHub','ac-red'); }
   }
-  restoreNav();
+  histLock = true; restoreNav(); histLock = false;   // la restauración inicial no entra en el historial
 })();
 
