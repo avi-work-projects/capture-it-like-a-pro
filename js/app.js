@@ -377,7 +377,7 @@
   $('#homeBtnEC').addEventListener('click', goHome);
 
   /* ── transición genérica entre vistas ─────────────────────────────── */
-  var VIEW_IDS = ['view1','viewHub','viewWhere','view2','viewSettings','viewCams','viewProfile','viewMine','viewMyEvents','viewDance','view3','viewEvCams'];
+  var VIEW_IDS = ['view1','viewHub','viewWhere','view2','viewSettings','viewCams','viewProfile','viewMine','viewMyEvents','viewDance','viewMap','view3','viewEvCams'];
   function goView(toId, accent){
     var to = $('#'+toId);
     if(accent) setAccent(accent);
@@ -720,6 +720,7 @@
     $('#resCount').textContent = list.length === 1
       ? '1 evento encontrado' : list.length + ' eventos encontrados';
     $('#resEmpty').style.display = list.length ? 'none' : 'flex';
+    if($('#dateRangeLbl')) updateDateLabel();
     if(evMode === 'prox') scheduleRelayout();   // rellena y ancla
   }
   /* contenido interno de una tarjeta de evento (lista "Próximos").
@@ -742,14 +743,132 @@
   }
   /* el filtro de fecha re-filtra en vivo (y marca que el usuario lo tocó,
      para no re-imponer el rango por defecto de 7 días) */
-  $('#dateFrom').addEventListener('change', function(){ dateTouched = true; renderResults(); });
-  $('#dateTo').addEventListener('change', function(){ dateTouched = true; renderResults(); });
+  /* etiqueta compacta del rango en el botón "Editar fechas" */
+  function shortDate(v){ if(!v) return ''; var p = v.split('-'); return parseInt(p[2],10) + ' ' + MON[parseInt(p[1],10)-1]; }
+  function updateDateLabel(){
+    var fv = $('#dateFrom').value, tv = $('#dateTo').value;
+    var lbl = $('#dateRangeLbl');
+    if(!fv && !tv) lbl.textContent = 'Todas las fechas';
+    else if(fv && tv) lbl.textContent = shortDate(fv) + ' – ' + shortDate(tv);
+    else lbl.textContent = fv ? ('Desde ' + shortDate(fv)) : ('Hasta ' + shortDate(tv));
+  }
+  $('#dateEditBtn').addEventListener('click', function(){
+    var p = $('#datePanel'); p.hidden = !p.hidden;
+    $('#dateEditBtn').classList.toggle('open', !p.hidden);
+    scheduleRelayout();          // el chrome fijo cambia de alto al desplegar/plegar
+  });
+  $('#dateFrom').addEventListener('change', function(){ dateTouched = true; updateDateLabel(); renderResults(); });
+  $('#dateTo').addEventListener('change', function(){ dateTouched = true; updateDateLabel(); renderResults(); });
   $('#dateClear').addEventListener('click', function(){
     dateTouched = true;          // "ver todo": no volver a meter los 7 días
     $('#dateFrom').value = '';
     $('#dateTo').value = '';
+    updateDateLabel();
     renderResults();
   });
+
+  /* ── MAPA DE EVENTOS (un día concreto, navegable día a día) ───────────── */
+  var MAP_TYPE_COLOR = { sala:'#c46bff', congreso:'#3da9ff', exterior:'#ffd60a' };
+  var MAP_TYPE_LABEL = { sala:'Sala de baile', congreso:'Congreso', exterior:'Al exterior' };
+  /* posiciones aproximadas (viewBox 0..100) centradas en Madrid */
+  var MAP_CITY_XY = { mad:[50,46], tol:[46,73], gua:[74,32], seg:[26,20], avila:[16,52], cuenca:[80,62], sev:[30,88], bcn:[88,14], waw:[93,7], kra:[89,11] };
+  var mapDays = [], mapDayIdx = 0;
+  /* decoración: Comunidad de Madrid (resaltada) + provincias de alrededor */
+  var MAP_PROVINCES_SVG =
+    '<rect class="map-region" x="4" y="4" width="92" height="92" rx="10"/>' +
+    '<g class="map-prov">' +
+      '<rect x="9" y="9" width="32" height="20" rx="6"/><text x="25" y="21">Segovia</text>' +
+      '<rect x="59" y="9" width="32" height="20" rx="6"/><text x="75" y="21">Guadalajara</text>' +
+      '<rect x="7" y="42" width="22" height="22" rx="6"/><text x="18" y="55">Ávila</text>' +
+      '<rect x="71" y="42" width="22" height="22" rx="6"/><text x="82" y="55">Cuenca</text>' +
+      '<rect x="36" y="71" width="28" height="20" rx="6"/><text x="50" y="83">Toledo</text>' +
+    '</g>' +
+    '<path class="map-madrid" d="M65,46 L57.5,59 L42.5,59 L35,46 L42.5,33 L57.5,33 Z"/>' +
+    '<text class="map-madrid-lbl" x="50" y="28">MADRID</text>';
+
+  function mapBuildDays(){
+    var now = Date.now(), winFrom = now, winTo = now + 60 * 86400000;
+    function passes(ev){ return inFilter(state.country, ev.country) && inFilter(state.city, ev.city) && inFilter(state.type, ev.type) && (!state.subtype || inFilter(state.subtype, ev.sub)); }
+    function instance(ev, s, e){ return Object.assign({}, ev, { id: ev.id + '@' + s, startsAt:s, endsAt:e, recurrence:'oneoff' }); }
+    var list = [];
+    EVENTS.forEach(function(ev){
+      if(!passes(ev)) return;
+      if(ev.recurrence === 'weekly'){
+        var occFrom = winFrom;
+        if(eventStatus(ev) === 'directo'){ list.push(ev); var t = new Date(); t.setHours(0,0,0,0); t.setDate(t.getDate()+1); occFrom = Math.max(occFrom, t.getTime()); }
+        weeklyOccs(ev, occFrom, winTo).forEach(function(o){ list.push(instance(ev, o.start, o.end)); });
+      } else { if(eventStatus(ev) === 'terminado') return; list.push(ev); }
+    });
+    list.sort(function(a, b){ return a.startsAt - b.startsAt; });
+    var days = [], byKey = {};
+    list.forEach(function(ev){
+      var d = new Date(ev.startsAt), key = d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+      if(!byKey[key]){ byKey[key] = { label:dateHeaderLabel(ev.startsAt), events:[] }; days.push(byKey[key]); }
+      byKey[key].events.push(ev);
+    });
+    return days;
+  }
+  function mapMarkerXY(ev, i){
+    var base = MAP_CITY_XY[ev.city] || [50, 50];
+    var ang = i * 2.39996;                       // ángulo áureo → dispersión determinista
+    var r = (i === 0) ? 0 : 4 + (i % 3) * 3;
+    return [ base[0] + Math.cos(ang) * r, base[1] + Math.sin(ang) * r ];
+  }
+  function mapTypeGlyph(type, color){
+    if(type === 'congreso') return '<path d="M0,-3.4 L3,2.6 L-3,2.6 Z" fill="' + color + '"/>';
+    if(type === 'exterior') return '<path d="M0,-3.6 L1,-1 L3.6,0 L1,1 L0,3.6 L-1,1 L-3.6,0 L-1,-1 Z" fill="' + color + '"/>';
+    return '<circle r="3" fill="' + color + '"/>';
+  }
+  function openMap(){
+    mapDays = mapBuildDays();
+    mapDayIdx = 0;
+    renderMap();
+    goView('viewMap','ac-red');
+  }
+  function renderMap(){
+    var stage = $('#mapStage'), empty = $('#mapEmpty'), pop = $('#mapPop');
+    pop.hidden = true;
+    if(!mapDays.length){
+      stage.innerHTML = ''; $('#mapDayLbl').textContent = '—'; empty.style.display = 'block';
+      $('#mapPrev').disabled = true; $('#mapNext').disabled = true; return;
+    }
+    empty.style.display = 'none';
+    mapDayIdx = Math.max(0, Math.min(mapDayIdx, mapDays.length - 1));
+    var day = mapDays[mapDayIdx];
+    $('#mapDayLbl').textContent = day.label;
+    $('#mapPrev').disabled = mapDayIdx <= 0;
+    $('#mapNext').disabled = mapDayIdx >= mapDays.length - 1;
+    var markers = day.events.map(function(ev, i){
+      var p = mapMarkerXY(ev, i), col = MAP_TYPE_COLOR[ev.type] || '#888';
+      return '<g class="map-mk" data-ev="' + i + '" transform="translate(' + p[0].toFixed(1) + ',' + p[1].toFixed(1) + ')">' +
+        '<circle class="mk-halo" r="3" fill="none" stroke="' + col + '"/>' +
+        mapTypeGlyph(ev.type, col) + '</g>';
+    }).join('');
+    stage.innerHTML = '<svg viewBox="0 0 100 100" class="map-svg" preserveAspectRatio="xMidYMid meet">' + MAP_PROVINCES_SVG + markers + '</svg>';
+    stage.querySelectorAll('.map-mk').forEach(function(g){
+      g.addEventListener('click', function(){ mapShowPop(day.events[Number(g.dataset.ev)]); });
+    });
+  }
+  function mapShowPop(ev){
+    var pop = $('#mapPop'), col = MAP_TYPE_COLOR[ev.type] || '#888';
+    var multi = (ev.endsAt - ev.startsAt) > 86400000 * 1.1;
+    var when = multi ? (fmtDate(ev.startsAt) + ' – ' + fmtDate(ev.endsAt)) : evHours(ev);
+    pop.innerHTML =
+      '<button class="mp-close" id="mpClose" title="Cerrar">✕</button>' +
+      '<span class="mp-type" style="color:' + col + ';border-color:' + col + '">' + (MAP_TYPE_LABEL[ev.type] || ev.type) + '</span>' +
+      '<b class="mp-name">' + ev.name + '</b>' +
+      '<span class="mp-meta">' + when + ' · ' + ev.venue + ' · ' + (CITY_LABELS[ev.city] || ev.city) + '</span>' +
+      '<span class="mp-meta">CAM ×' + camCountOf(ev) + '</span>' +
+      '<button class="cta mp-enter" id="mpEnter">Entrar al evento</button>';
+    pop.hidden = false;
+    $('#mpClose').addEventListener('click', function(){ pop.hidden = true; });
+    $('#mpEnter').addEventListener('click', function(){ openEvent(ev); });
+  }
+  $('#mapBtn').addEventListener('click', openMap);
+  $('#mapPrev').addEventListener('click', function(){ if(mapDayIdx > 0){ mapDayIdx--; renderMap(); } });
+  $('#mapNext').addEventListener('click', function(){ if(mapDayIdx < mapDays.length - 1){ mapDayIdx++; renderMap(); } });
+  $('#mapBack').addEventListener('click', histBack);
+  $('#mapHome').addEventListener('click', goHome);
 
   /* ── modos del resultado: Próximos · Calendario · Horarios salas ──────── */
   var evMode = 'prox', calYear = (new Date()).getFullYear(), calMonth = null, calSub = 'cal', calPast = false;
@@ -1869,7 +1988,7 @@
       evMode: evMode, horSala: horSala, horSub: horSub,
       calMonth: calMonth, calYear: calYear, calSub: calSub, calPast: calPast,
       step: openStepNow(), editing: editing, refMode: refMode,
-      event: currentEvent, profile: currentProfile, dance: currentDance
+      event: currentEvent, profile: currentProfile, dance: currentDance, mapDayIdx: mapDayIdx
     };
   }
   function pushHist(){ if(histLock) return; navStack.push(snapNav()); if(navStack.length > 60) navStack.shift(); }
@@ -1890,6 +2009,7 @@
       if(v === 'viewMyEvents'){ renderMyEvents(); goView('viewMyEvents','ac-red'); return; }
       if(v === 'viewSettings'){ openSettings(); return; }
       if(v === 'viewDance' && s.dance){ currentDance = s.dance; renderDance(); goView('viewDance','ac-lime'); return; }
+      if(v === 'viewMap'){ mapDays = mapBuildDays(); mapDayIdx = s.mapDayIdx || 0; renderMap(); goView('viewMap','ac-red'); return; }
       if(v === 'viewProfile' && s.profile){ openProfile(s.profile); return; }
       if(v === 'view3' && s.event){ openEvent(s.event); return; }
       if(v === 'viewEvCams' && s.event){ openEvent(s.event); renderEventCams(); goView('viewEvCams','ac-red'); return; }

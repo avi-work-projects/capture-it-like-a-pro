@@ -1259,9 +1259,24 @@ body{
 .app.light .tag2.tt-exterior{color:#b08900;border-color:#b08900}
 
 /* filtro opcional por fecha (un día o un rango) */
-.datefilter{display:flex;align-items:center;gap:8px;margin-bottom:0;background:var(--bg);padding-top:13px;padding-bottom:3px}   /* espacio (opaco) por arriba para que "Fecha" no choque con las pestañas; bloque algo más alto */
-.datefilter .ctrl-lbl{width:auto}
-.datefilter input{
+.datefilter{display:flex;align-items:center;gap:8px;margin-bottom:0;background:var(--bg);padding-top:13px;padding-bottom:3px}   /* barra compacta: "Editar fechas" + "Mapa" */
+.df-edit,.df-map{
+  display:inline-flex;align-items:center;gap:7px;
+  background:var(--surface);border:1px solid var(--line);border-radius:8px;
+  color:var(--text);cursor:pointer;
+  font-family:var(--opt-font);font-weight:600;font-size:12px;letter-spacing:.04em;
+  padding:8px 12px;transition:border-color .15s, color .15s, background-color .35s;
+}
+.df-edit{flex:1;min-width:0}
+.df-edit svg,.df-map svg{width:16px;height:16px;flex:none}
+.df-edit #dateRangeLbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.df-edit.open,.df-edit:hover,.df-edit:active,.df-map:hover,.df-map:active{border-color:var(--accent);color:var(--accent)}
+.df-map{flex:none;color:var(--accent);border-color:var(--accent)}
+/* panel desplegable con los inputs de fecha */
+.date-panel{display:flex;align-items:center;gap:8px;background:var(--bg);padding:8px 0 4px}
+.date-panel[hidden]{display:none}
+.date-panel .ctrl-lbl{width:auto}
+.date-panel input{
   flex:1;min-width:0;
   background:var(--surface);
   border:1px solid var(--line);border-radius:4px;
@@ -1271,8 +1286,34 @@ body{
   color-scheme:dark;
   transition:border-color .15s, background-color .35s;
 }
-.app.light .datefilter input{color-scheme:light}
-.datefilter input:focus{border-color:var(--accent)}
+.app.light .date-panel input{color-scheme:light}
+.date-panel input:focus{border-color:var(--accent)}
+
+/* ── mapa de eventos ── */
+.map-daynav{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px}
+.map-dayttl{font-family:var(--mono);font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--text);min-width:140px;text-align:center}
+.map-wrap{position:relative;margin-top:12px}
+.map-stage{width:100%;max-width:480px;margin:0 auto;aspect-ratio:1/1}
+.map-svg{width:100%;height:100%;display:block}
+.map-region{fill:none;stroke:var(--line);stroke-width:.5}
+.map-prov rect{fill:var(--surface);stroke:var(--line);stroke-width:.4;opacity:.45}
+.map-prov text{fill:var(--muted);font-size:3.1px;text-anchor:middle;font-family:var(--mono);letter-spacing:.04em}
+.map-madrid{fill:var(--accent-glow,rgba(255,59,48,.12));stroke:var(--accent);stroke-width:1}
+.map-madrid-lbl{fill:var(--text);font-size:4px;text-anchor:middle;font-family:var(--display);letter-spacing:.12em}
+.map-mk{cursor:pointer}
+.mk-halo{transform-box:fill-box;transform-origin:center;animation:mkpulse 1.6s ease-out infinite}
+@keyframes mkpulse{0%{transform:scale(.6);stroke-opacity:.9}100%{transform:scale(3);stroke-opacity:0}}
+/* popup de evento sobre el mapa */
+.map-pop{position:absolute;left:10px;right:10px;bottom:10px;
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:14px 16px;display:flex;flex-direction:column;gap:5px;
+  box-shadow:0 10px 34px rgba(0,0,0,.45)}
+.map-pop[hidden]{display:none}
+.mp-close{position:absolute;top:8px;right:10px;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;line-height:1}
+.mp-type{align-self:flex-start;font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;border:1px solid;border-radius:999px;padding:2px 9px}
+.mp-name{font-family:var(--opt-font);font-weight:700;font-size:17px}
+.mp-meta{font-size:12.5px;color:var(--muted)}
+.mp-enter{margin-top:8px}
 .evt-name{
   flex:1;min-width:0;
   font-family:var(--opt-font);font-weight:600;
