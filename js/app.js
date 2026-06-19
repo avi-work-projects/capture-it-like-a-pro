@@ -791,21 +791,27 @@
   /* ── MAPA DE EVENTOS (un día concreto, navegable día a día) ───────────── */
   var MAP_TYPE_COLOR = { sala:'#c46bff', congreso:'#3da9ff', exterior:'#ffd60a' };
   var MAP_TYPE_LABEL = { sala:'Sala de baile', congreso:'Congreso', exterior:'Al exterior' };
-  /* posiciones aproximadas (viewBox 0..100) centradas en Madrid */
-  var MAP_CITY_XY = { mad:[50,46], tol:[46,73], gua:[74,32], seg:[26,20], avila:[16,52], cuenca:[80,62], sev:[30,88], bcn:[88,14], waw:[93,7], kra:[89,11] };
+  /* posiciones aproximadas (viewBox 0..100) — Madrid centrado, vecinas alrededor */
+  var MAP_CITY_XY = { mad:[49,47], tol:[26,80], gua:[80,30], seg:[50,11], avila:[13,38], cuenca:[80,80], sev:[40,93], bcn:[93,7], waw:[95,5], kra:[92,9] };
   var mapDays = [], mapDayIdx = 0;
-  /* decoración: Comunidad de Madrid (resaltada) + provincias de alrededor */
+  /* mapa provincial: silueta real (aprox.) de la Comunidad de Madrid resaltada,
+     rodeada de las provincias vecinas que comparten su frontera (rombo inclinado
+     con punta al norte —Somosierra— y al sur —Aranjuez—, ensanchado al este). */
+  var MAD = '50,20 58,27 65,40 63,55 57,67 48,73 40,66 36,54 33,43 39,30';   // vértices Madrid (horario)
   var MAP_PROVINCES_SVG =
-    '<rect class="map-region" x="4" y="4" width="92" height="92" rx="10"/>' +
-    '<g class="map-prov">' +
-      '<rect x="9" y="9" width="32" height="20" rx="6"/><text x="25" y="21">Segovia</text>' +
-      '<rect x="59" y="9" width="32" height="20" rx="6"/><text x="75" y="21">Guadalajara</text>' +
-      '<rect x="7" y="42" width="22" height="22" rx="6"/><text x="18" y="55">Ávila</text>' +
-      '<rect x="71" y="42" width="22" height="22" rx="6"/><text x="82" y="55">Cuenca</text>' +
-      '<rect x="36" y="71" width="28" height="20" rx="6"/><text x="50" y="83">Toledo</text>' +
+    '<defs><clipPath id="mapClip"><rect x="3" y="3" width="94" height="94" rx="11"/></clipPath></defs>' +
+    '<g clip-path="url(#mapClip)">' +
+      '<g class="map-prov">' +
+        '<polygon points="39,30 50,20 58,27 75,3 25,3"/><text x="50" y="13">Segovia</text>' +
+        '<polygon points="58,27 65,40 63,55 97,55 97,3 75,3"/><text x="84" y="26">Guadalajara</text>' +
+        '<polygon points="63,55 57,67 48,73 50,97 97,97 97,55"/><text x="80" y="84">Cuenca</text>' +
+        '<polygon points="48,73 40,66 36,54 3,55 3,97 50,97"/><text x="24" y="86">Toledo</text>' +
+        '<polygon points="36,54 33,43 39,30 25,3 3,3 3,55"/><text x="14" y="32">Ávila</text>' +
+      '</g>' +
+      '<polygon class="map-madrid" points="' + MAD + '"/>' +
+      '<text class="map-madrid-lbl" x="49" y="62">MADRID</text>' +
     '</g>' +
-    '<path class="map-madrid" d="M65,46 L57.5,59 L42.5,59 L35,46 L42.5,33 L57.5,33 Z"/>' +
-    '<text class="map-madrid-lbl" x="50" y="28">MADRID</text>';
+    '<rect class="map-region" x="3" y="3" width="94" height="94" rx="11"/>';
 
   function mapBuildDays(){
     var now = Date.now(), winFrom = now, winTo = now + 60 * 86400000;
