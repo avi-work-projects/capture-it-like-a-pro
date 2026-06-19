@@ -81,7 +81,6 @@
       <div>
         <h2 class="v2-title">¿Qué buscas?</h2>
         <p class="v2-sub" id="hubSub">—</p>
-        <span class="saldo" id="hubSaldo"></span>
       </div>
     </div>
     <div class="hub">
@@ -90,7 +89,6 @@
           <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 3v4M16 3v4"/><path d="M7.5 13h3M7.5 16.5h6"/></svg>
           <span class="name">Próximos eventos</span>
           <span class="sub">En tu ciudad o donde quieras</span>
-          <span class="hub-go" aria-hidden="true">→</span>
         </button>
       </div>
       <div class="hub-row">
@@ -98,6 +96,11 @@
           <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="M15.5 10.8l6-3.3v9l-6-3.3"/><circle cx="7.5" cy="12" r="2.2"/></svg>
           <span class="name">Ver camarógrafos</span>
           <span class="sub">Elige quién te graba</span>
+        </button>
+        <button class="card" id="hubMyEvents">
+          <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 3v4M16 3v4"/><path d="m8.5 14 2.2 2.2 4.8-4.7"/></svg>
+          <span class="name">Mis eventos</span>
+          <span class="sub">Lo que te interesa</span>
         </button>
         <div class="hub-mine-row">
           <button class="card" id="hubMine">
@@ -125,15 +128,14 @@
         <p class="v2-sub">Elige dónde buscar eventos.</p>
       </div>
     </div>
-    <div class="hub">
+    <div class="hub hub-where">
       <div class="hub-top">
         <button class="card big" id="whereCity">
           <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.4-6.5-10.5A6.5 6.5 0 0 1 12 4a6.5 6.5 0 0 1 6.5 6.5C18.5 15.6 12 21 12 21z"/><circle cx="12" cy="10.3" r="2.4"/></svg>
           <span class="name">En mi ciudad</span>
           <span class="sub" id="whereCitySub">Tu país y ciudad de referencia</span>
-          <span class="hub-go" aria-hidden="true">→</span>
         </button>
-        <button class="card" id="whereOther">
+        <button class="card big" id="whereOther">
           <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
           <span class="name">En otro lugar</span>
           <span class="sub">Filtra país, ciudad y tipo</span>
@@ -154,7 +156,10 @@
       </div>
     </div>
     <div class="setblock">
-      <div class="pm-h">Lugar habitual</div>
+      <div class="pm-h" id="setSaldoHead">Saldo</div>
+      <div class="set-saldo" id="setSaldo"></div>
+
+      <div class="pm-h" style="margin-top:22px">Lugar habitual</div>
       <button class="set-place" id="setPlaceBtn">
         <span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.4-6.5-10.5A6.5 6.5 0 0 1 12 4a6.5 6.5 0 0 1 6.5 6.5C18.5 15.6 12 21 12 21z"/><circle cx="12" cy="10.3" r="2.4"/></svg></span>
         <span class="lbl"><b id="setPlaceVal">Sin configurar</b><small>Tu país y ciudad de referencia</small></span>
@@ -416,7 +421,45 @@
         <p class="v2-sub" id="mineSub">—</p>
       </div>
     </div>
+    <div class="mine-search" id="mineSearchBox">
+      <svg class="srch-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
+      <input type="search" id="mineSearch" placeholder="Sala, compañero, canción, fecha, cámara…">
+    </div>
     <div id="mineList"></div>
+  </section>
+
+  <!-- ════════════════ MIS EVENTOS (intenciones marcadas) ════════════════ -->
+  <section class="view hidden" id="viewMyEvents">
+    <div class="v2-head">
+      <div class="nav-btns">
+        <button class="nav-back" id="meHome" title="Inicio"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10.5V20h12v-9.5"/></svg></button>
+        <button class="nav-back" id="meBack" title="Subir un nivel">←</button>
+      </div>
+      <div>
+        <h2 class="v2-title">Mis eventos</h2>
+        <p class="v2-sub">Eventos que has marcado.</p>
+      </div>
+    </div>
+    <div id="myEvList"></div>
+    <div class="notice" id="myEvEmpty" style="display:none">
+      <span class="nosig">Sin marcar</span>
+      <p>Marca eventos como «Voy a asistir» o «Interesado en grabar» y aparecerán aquí.</p>
+    </div>
+  </section>
+
+  <!-- ════════════════ DETALLE DE UN BAILE (valorar cámara) ════════════════ -->
+  <section class="view hidden" id="viewDance">
+    <div class="v2-head">
+      <div class="nav-btns">
+        <button class="nav-back" id="dnHome" title="Inicio"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10.5V20h12v-9.5"/></svg></button>
+        <button class="nav-back" id="dnBack" title="Volver a mis bailes">←</button>
+      </div>
+      <div>
+        <h2 class="v2-title" id="dnSong">—</h2>
+        <p class="v2-sub" id="dnMeta">—</p>
+      </div>
+    </div>
+    <div class="dance-detail" id="dnBody"></div>
   </section>
 
   <!-- ════════════════ VISTA 3 · DETALLE DEL EVENTO ════════════════ -->

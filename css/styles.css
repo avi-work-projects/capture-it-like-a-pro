@@ -355,7 +355,7 @@ body{
 .role-ico{
   display:inline-flex;align-items:center;justify-content:center;
   width:23px;height:23px;
-  margin-right:9px;vertical-align:-3px;
+  margin-left:9px;vertical-align:-3px;
   color:var(--accent);
 }
 .role-ico:empty{display:none}
@@ -651,8 +651,8 @@ body{
 .hub{--hub-sm:74px}
 .hub-top{display:flex;flex-direction:column;gap:14px;flex:1;min-height:0}
 .hub .card.big{flex:1;min-height:150px}
-.hub-top #hubEvent,.hub-top #whereOther{flex:none;height:var(--hub-sm)}
-.hub .card.big,.hub-top #hubEvent,.hub-top #whereOther{
+.hub-top #hubEvent{flex:none;height:var(--hub-sm)}
+.hub .card.big,.hub-top #hubEvent{
   display:grid;
   grid-template-columns:auto 1fr;
   grid-template-rows:auto auto;
@@ -661,7 +661,7 @@ body{
 }
 /* fila inferior: "Ver camarógrafos" arriba y debajo [Mis bailes | engranaje] */
 .hub-row{display:flex;flex-direction:column;gap:14px;flex:none}
-.hub-row #hubCams,.hub-mine-row #hubMine{
+.hub-row #hubCams,.hub-row #hubMyEvents,.hub-mine-row #hubMine{
   flex:1;height:var(--hub-sm);
   display:grid;
   grid-template-columns:auto 1fr;
@@ -670,7 +670,7 @@ body{
   column-gap:14px;row-gap:2px;
   padding:12px 18px;
 }
-.hub-row #hubCams{flex:none}
+.hub-row #hubCams,.hub-row #hubMyEvents{flex:none}
 .hub-mine-row{display:flex;gap:14px;flex:none}
 /* engranaje: botón cuadrado, solo icono centrado, sin enmarques de esquina */
 .hub-mine-row .gear{
@@ -688,15 +688,16 @@ body{
   box-shadow:0 0 8px rgba(255,59,48,.7);
 }
 .gear-badge[hidden]{display:none}
-.hub-row #hubCams .icn-hub,.hub-mine-row #hubMine .icn-hub{grid-row:1 / span 2;align-self:center;width:28px;height:28px}
-.hub .card.big .icn-hub,.hub-top #hubEvent .icn-hub,.hub-top #whereOther .icn-hub{grid-row:1 / span 2;align-self:center;width:30px;height:30px}
-.hub-top #hubEvent .name,.hub-top #whereOther .name,.hub-row #hubCams .name,.hub-mine-row #hubMine .name{font-size:19px}
-.hub-top #hubEvent .sub,.hub-top #whereOther .sub,.hub-row #hubCams .sub,.hub-mine-row #hubMine .sub{font-size:12px}
+.hub-row #hubCams .icn-hub,.hub-row #hubMyEvents .icn-hub,.hub-mine-row #hubMine .icn-hub{grid-row:1 / span 2;align-self:center;width:28px;height:28px}
+.hub .card.big .icn-hub,.hub-top #hubEvent .icn-hub{grid-row:1 / span 2;align-self:center;width:30px;height:30px}
+.hub-top #hubEvent .name,.hub-row #hubCams .name,.hub-row #hubMyEvents .name,.hub-mine-row #hubMine .name{font-size:19px}
+.hub-top #hubEvent .sub,.hub-row #hubCams .sub,.hub-row #hubMyEvents .sub,.hub-mine-row #hubMine .sub{font-size:12px}
 /* cada acción del hub tiene su acento: el color de la sección que abre */
 #hubProx{--hac:#3da9ff;--hglow:rgba(61,169,255,.30)}     /* azul = próximos eventos */
 #whereCity{--hac:#3da9ff;--hglow:rgba(61,169,255,.30)}   /* azul = país/ciudad */
 #whereOther{--hac:#20d6c0;--hglow:rgba(32,214,192,.30)}  /* turquesa = búsqueda */
 #hubCams {--hac:#ffd60a;--hglow:rgba(255,214,10,.30)}    /* ámbar = directorio */
+#hubMyEvents{--hac:#ff6fae;--hglow:rgba(255,111,174,.30)} /* rosa = mis eventos */
 #hubMine {--hac:#c6ff00;--hglow:rgba(198,255,0,.30)}     /* lima = historial */
 #hubSettings{--hac:#c46bff;--hglow:rgba(196,107,255,.30)} /* violeta = ajustes */
 .card .icn-hub{color:var(--hac, var(--text));transition:color .18s}
@@ -706,18 +707,21 @@ body{
 }
 .hub .card:hover::before,.hub .card:hover::after,
 .hub .card:active::before,.hub .card:active::after{border-color:var(--hac)}
-/* "Eventos en mi ciudad": botón principal, destaca con degradado de acento,
-   borde y resplandor azul, nombre mayor y flecha de acción a la derecha */
-#hubMyCity,#whereCity{
+/* botones azules prominentes (Próximos eventos / En mi ciudad): degradado de
+   acento, borde y resplandor azul, nombre e icono mayores */
+#hubProx,#whereCity{
   border-color:rgba(61,169,255,.55);
   background:linear-gradient(135deg, rgba(61,169,255,.16), var(--surface) 62%);
   box-shadow:0 0 22px rgba(61,169,255,.14);
-  padding-right:46px;
 }
-#hubMyCity .name,#whereCity .name{font-size:25px}
-#hubMyCity .icn-hub,#whereCity .icn-hub{width:36px !important;height:36px !important}
-#hubMyCity::before,#hubMyCity::after,
+#hubProx .name,#whereCity .name{font-size:25px}
+#hubProx .icn-hub,#whereCity .icn-hub{width:36px !important;height:36px !important}
+#hubProx::before,#hubProx::after,
 #whereCity::before,#whereCity::after{border-color:#3da9ff;opacity:.8}
+/* "¿Dónde?": dos botones grandes que se reparten y llenan la pantalla */
+.hub-where .card.big{flex:1;min-height:0}
+.hub-where #whereOther .name{font-size:25px}
+.hub-where #whereOther .icn-hub{width:36px !important;height:36px !important}
 .hub-go{
   position:absolute;top:50%;right:18px;transform:translateY(-50%);
   width:30px;height:30px;border-radius:50%;
@@ -759,9 +763,12 @@ body{
 .set-place .lbl b{font-family:var(--opt-font);font-size:17px;font-weight:700}
 .set-place .lbl small{font-size:12px;color:var(--muted)}
 .set-place .hub-go{flex:none;color:var(--muted);font-size:18px}
-/* modo "lugar habitual" del picker: solo se muestran Pais + Ciudad */
+/* modo "lugar habitual" del picker: solo se muestran Pais + Ciudad, y sin
+   multiselección (ni casillas ni botón Continuar) */
 #view2.ref-mode #panel .slot[data-key="type"],
-#view2.ref-mode #subPanel{display:none}
+#view2.ref-mode #subPanel,
+#view2.ref-mode .step .mbox,
+#view2.ref-mode .step .multi-continue{display:none}
 
 /* ───────────────────────── directorio de camarógrafos ──────────────────── */
 .ctrl{display:flex;align-items:center;gap:10px;margin-top:12px}
@@ -1104,6 +1111,54 @@ body{
 .st.mid{color:#ffd60a;border-color:#ffd60a}
 .app.light .st.ok{color:#7da300;border-color:#7da300}
 .app.light .st.mid{color:#b08900;border-color:#b08900}
+
+/* ── Configuración: saldo ── */
+.set-saldo{
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:14px 18px;margin-bottom:6px;font-size:14px;color:var(--muted);
+}
+.set-saldo b{font-family:var(--mono);font-size:18px;color:#c6ff00;font-weight:400}
+.app.light .set-saldo b{color:#7da300}
+
+/* ── Mis bailes: buscador ── */
+.mine-search{display:flex;align-items:center;gap:9px;margin:4px 0 14px;
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 13px}
+.mine-search .srch-ic{width:17px;height:17px;color:var(--muted);flex:none}
+.mine-search input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:14px}
+.mine-search input::placeholder{color:var(--muted)}
+
+/* tarjeta clicable (mis bailes / mis eventos) */
+.dance-card{width:100%;text-align:left;cursor:pointer;
+  transition:border-color .15s, box-shadow .15s, background-color .35s}
+.dance-card:hover,.dance-card:active{border-color:var(--accent);box-shadow:0 0 18px var(--accent-glow)}
+#mineList .date-head,#myEvList .date-head{position:static;top:auto}
+#mineList,#myEvList{display:flex;flex-direction:column;gap:10px}
+
+/* valoración mini en la tarjeta de baile */
+.drate{font-size:12px;color:var(--muted);margin-top:4px}
+.drate.rated{letter-spacing:1px;font-size:14px}
+.star{color:var(--muted)}
+.star.on{color:#ffd60a}
+
+/* chips de intención en Mis eventos */
+.me-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.me-chip{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+  border:1px solid var(--line);border-radius:999px;padding:3px 9px;color:var(--muted)}
+.me-chip.attend{color:#3da9ff;border-color:#3da9ff}
+.me-chip.wish{color:#c6ff00;border-color:#c6ff00}
+.me-chip.cam{color:#ffd60a;border-color:#ffd60a}
+
+/* detalle de baile + valoración de la cámara */
+.dance-detail{display:flex;flex-direction:column;gap:18px;margin-top:14px}
+.dn-info{display:flex;flex-direction:column;gap:6px;
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.dn-info .dinfo b{color:var(--text)}
+.rate-box{display:flex;flex-direction:column;gap:10px}
+.star-pick{display:flex;gap:8px;font-size:30px;line-height:1;cursor:pointer}
+.star-pick .star{transition:color .12s}
+.rate-text{background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:11px 13px;color:var(--text);font-size:14px;min-height:74px;resize:vertical;outline:none;font-family:inherit}
+.rate-text::placeholder{color:var(--muted)}
 
 /* resultados: lista de eventos */
 /* #result no recorta nunca (sin transición de max-height): así el contenido

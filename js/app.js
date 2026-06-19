@@ -21,7 +21,8 @@
     var svg = (r && ROLE_ICON[r]) ? ROLE_ICON[r] : '';
     document.querySelectorAll('.v2-title').forEach(function(t){
       var ico = t.querySelector('.role-ico');
-      if(!ico){ ico = document.createElement('span'); ico.className = 'role-ico'; t.insertBefore(ico, t.firstChild); }
+      if(!ico){ ico = document.createElement('span'); ico.className = 'role-ico'; }
+      t.appendChild(ico);                 // icono SIEMPRE a la derecha del título
       ico.innerHTML = svg;
       ico.style.color = (r && ROLE_COLOR[r]) ? ROLE_COLOR[r] : '';
       ico.title = state.role ? state.role.label : '';
@@ -45,7 +46,10 @@
   var attend    = store('cilap-attend',  {});   // "voy a asistir" por evento (eventId->true)
   var wishrec   = store('cilap-wishrec', {});   // "me interesará grabar" por evento
   var camreq    = store('cilap-camreq',  {});   // "solicitar a camarógrafo": eventId -> [camIds]
+  var myRatings = store('cilap-myratings', {}); // valoración del bailarín a la cámara de un baile (danceKey -> {stars,text})
   var isPrivate = store('cilap-private', false);// cuenta privada: interacciones anónimas
+  /* normaliza para búsquedas insensibles a tildes/mayúsculas */
+  function norm(s){ return (s||'').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
   function fmtEur(x){ return x.toFixed(2).replace('.', ',') + ' €'; }
   function charge(x){
     saldo = Math.round((saldo - x) * 100) / 100;
@@ -53,7 +57,7 @@
     renderSaldo();
   }
   function renderSaldo(){
-    $('#hubSaldo').innerHTML = 'Saldo <b>' + fmtEur(saldo) + '</b>';
+    var el = $('#setSaldo'); if(el) el.innerHTML = '<b>' + fmtEur(saldo) + '</b> disponibles';
   }
   var currentEvent = null;
 
@@ -306,7 +310,9 @@
     document.querySelectorAll('#panel .slot.now').forEach(function(s){ s.classList.remove('now'); });
     document.querySelector('.slot[data-key="'+key+'"]').classList.add('now');
     var map = { country:'stepA', city:'stepB', type:'stepC', subtype:'stepD' };
-    openStep(map[key], state[key] && state[key].value);
+    /* sin preselección: al reabrir, las opciones salen limpias (con sus casillas
+       de multiselección), no premarcadas como .selected */
+    openStep(map[key]);
   }
   /* editar = pulsar sobre la PROPIA tarjeta (País/Ciudad/Tipo/Subtipo); el rol no
      se edita aquí. La ✕ (quitar) tiene su propio handler → no dispara la edición. */
@@ -340,7 +346,7 @@
     editing = null;
     var open = function(id){ return $('#'+id).classList.contains('open'); };
     if(refMode){                          // lugar habitual: Ciudad → País → Configuración
-      if(open('stepB')){ state.city = null; renderPanel(); closeStep('stepB'); openStep('stepA', state.country && state.country.value); }
+      if(open('stepB')){ state.city = null; renderPanel(); closeStep('stepB'); openStep('stepA'); }
       else { exitRefMode(true); goView('viewSettings','ac-violet'); }
       return;
     }
@@ -367,7 +373,7 @@
   $('#homeBtnEC').addEventListener('click', goHome);
 
   /* ── transición genérica entre vistas ─────────────────────────────── */
-  var VIEW_IDS = ['view1','viewHub','viewWhere','view2','viewSettings','viewCams','viewProfile','viewMine','view3','viewEvCams'];
+  var VIEW_IDS = ['view1','viewHub','viewWhere','view2','viewSettings','viewCams','viewProfile','viewMine','viewMyEvents','viewDance','view3','viewEvCams'];
   function goView(toId, accent){
     var to = $('#'+toId);
     if(accent) setAccent(accent);
@@ -548,7 +554,7 @@
       opt.addEventListener('click', function(e){
         var multiActivo = !!stepEl.querySelector('.opt.multi-on');
         var esTodas = opt.dataset.value === 'all';
-        if(!esTodas && (e.target.closest('.mbox') || multiActivo)){   // multi-toggle
+        if(!refMode && !esTodas && (e.target.closest('.mbox') || multiActivo)){   // multi-toggle (no en lugar habitual)
           var eraSeleccion = opt.classList.contains('selected');
           /* si venías de una selección simple (p.ej. al EDITAR), pásala a multi
              para no perderla al empezar a multi-seleccionar */
@@ -1076,29 +1082,20 @@
 
   window.addEventListener('resize', function(){ relayoutView2(); restickProfile(); });
 
-  /* swipe horizontal en el calendario para cambiar de mes (solo en vista mes) */
-  (function(){
-    var mc = $('#modeCal'), sx = 0, sy = 0;
-    mc.addEventListener('touchstart', function(e){ sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive:true });
-    mc.addEventListener('touchend', function(e){
-      if(calMonth == null) return;                 // solo en vista de mes
-      var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
-      if(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.6){
-        goCalMonth(dx < 0 ? 1 : -1);   // ← siguiente / → anterior (respeta límites)
-      }
-    }, { passive:true });
-  })();
-
   /* swipe horizontal para cambiar de pestaña (Próximos/Calendario/Horarios),
-     SALVO en Calendario con un mes abierto (ahí el swipe cambia de mes) */
+     SALVO en Calendario con un mes abierto (ahí el swipe cambia de mes — se
+     gestiona dentro del propio handler, sobre todo el área de resultados) */
   (function(){
     var r = $('#result'), sx = 0, sy = 0, ORDER = ['prox','cal','horarios'];
     r.addEventListener('touchstart', function(e){ sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive:true });
     r.addEventListener('touchend', function(e){
-      if(evMode === 'cal' && calMonth != null) return;   // ahí manda el swipe de meses
       var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
       if(!(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.6)) return;
       var dir = dx < 0 ? 1 : -1;
+      /* Calendario con un mes abierto: el swipe cambia de mes (se gestiona aquí,
+         sobre TODO el área de resultados, para que funcione aunque el contenido
+         del mes/agenda sea corto o esté vacío) */
+      if(evMode === 'cal' && calMonth != null){ goCalMonth(dir); return; }
       /* dentro de una sala: el swipe alterna sus SUB-pestañas (Horario/Próximos) */
       if(evMode === 'horarios' && horSala != null){
         var subs = ['horario','proximos'], j = subs.indexOf(horSub) + dir;
@@ -1333,8 +1330,6 @@
     $('#hubSub').textContent = dancer ? 'Entraste como bailarín.' : 'Entraste como camarógrafo.';
     $('#hubMineName').textContent = dancer ? 'Mis bailes' : 'Mis sesiones';
     $('#hubMineSub').textContent = dancer ? 'Quién te grabó y qué' : 'Lo que has grabado';
-    renderSaldo();
-    $('#hubSaldo').classList.toggle('show', dancer);   // el saldo es cosa del bailarín
     refreshRefUI();
   }
   /* refleja la config de país/ciudad: botón "Eventos en mi ciudad"
@@ -1393,9 +1388,17 @@
     renderMine();
     goView('viewMine','ac-lime');
   });
+  $('#hubMyEvents').addEventListener('click', function(){
+    renderMyEvents();
+    goView('viewMyEvents','ac-red');
+  });
 
   /* ── configuración: país y ciudad de referencia (⚙) ──────────────────── */
   function renderSettings(){
+    var dancer = state.role && state.role.value === 'dancer';
+    $('#setSaldoHead').style.display = dancer ? '' : 'none';   // el saldo es cosa del bailarín
+    $('#setSaldo').style.display = dancer ? '' : 'none';
+    renderSaldo();
     $('#setPlaceVal').textContent = hasRef() ? refLabel() : 'Sin configurar';
     document.querySelectorAll('#setPrivacy .privacy-opt').forEach(function(o){
       o.classList.toggle('multi-on', (o.dataset.priv === 'private') === setPrivate);
@@ -1660,72 +1663,191 @@
     enviado:   { txt:'Enviado · WeTransfer', cls:'mid' },
     pendiente: { txt:'Pendiente de envío',   cls:''    }
   };
+  /* "12 jun 2026" → timestamp (para ordenar/agrupar) */
+  function parseMyDate(s){ var p = (s||'').split(' '); return new Date(+p[2], MON.indexOf(p[1]), +p[0]).getTime(); }
+  /* clave estable de un baile para guardar su valoración */
+  function danceKey(d){ return d.eventId + '|' + d.song + '|' + d.camId; }
+  /* fila de estrellas 0-6 (★ llenas / ☆ vacías) */
+  function starsRow(n){
+    var h = '';
+    for(var i=1;i<=6;i++) h += '<span class="star' + (i<=n?' on':'') + '">' + (i<=n?'★':'☆') + '</span>';
+    return h;
+  }
+  var mineQuery = '';
   function renderMine(){
     var dancer = state.role && state.role.value === 'dancer';
     $('#mineTitle').textContent = dancer ? 'Mis bailes' : 'Mis sesiones';
     $('#mineSub').textContent = dancer
       ? 'Tus actuaciones grabadas; el vídeo te llega por WeTransfer.'
       : 'Tus grabaciones, evento a evento.';
+    var q = norm(mineQuery);
     var box = $('#mineList');
     box.innerHTML = '';
+    /* construye [{ts, date, html}] ya filtrado, luego ordena por fecha desc y
+       agrupa con cabeceras de fecha (.date-head) entre tarjetas */
+    var rows = [];
     if(dancer){
       MY_DANCES.forEach(function(d, i){
-        var ev = EVENTS_BY_ID[d.eventId], cam = CAMS_BY_ID[d.camId];
+        var ev = EVENTS_BY_ID[d.eventId], cam = CAMS_BY_ID[d.camId], p = d.partner;
+        var hay = norm([d.song, ev.name, ev.venue, d.date, cam.name, p.name].join(' '));
+        if(q && hay.indexOf(q) === -1) return;
         var st = DANCE_STATUS[d.status];
-        var p = d.partner;
-        var linkHtml;
-        if(p.link === 'ok')           linkHtml = '<span class="lk ok">Pareja vinculada ✓</span>';
-        else if(p.link === 'pending') linkHtml = '<span class="lk pend">Esperando confirmación de ' + p.name + '</span>';
-        else                          linkHtml = '<button class="linkbtn" data-link="' + i + '">Vincular pareja</button>';
-        var el = document.createElement('div');
-        el.className = 'dance';
-        el.innerHTML =
-          '<b>' + d.song + '</b>' +
-          '<span class="dmeta">' + ev.name + ' · ' + d.date + '</span>' +
-          '<span class="dinfo">Te grabó ' + cam.name + ' · bailaste con ' + p.name + '</span>' +
-          '<span class="linkrow">' + linkHtml + '</span>' +
-          '<span class="st ' + st.cls + '">' + st.txt + '</span>';
-        box.appendChild(el);
-      });
-      /* vincular pareja: basta su correo; queda pendiente de que ELLA confirme
-         el baile (la verificación real se construirá más adelante) */
-      box.querySelectorAll('[data-link]').forEach(function(lb){
-        lb.addEventListener('click', function(){
-          var d = MY_DANCES[Number(lb.dataset.link)];
-          var row = lb.parentElement;
-          row.innerHTML =
-            '<span class="linkform">' +
-            '<input type="email" placeholder="correo de ' + d.partner.name + '">' +
-            '<button class="linkbtn">Enviar</button></span>';
-          row.querySelector('input').focus();
-          row.querySelector('.linkbtn').addEventListener('click', function(){
-            var val = row.querySelector('input').value.trim();
-            if(!val || val.indexOf('@') === -1) return;
-            d.partner.email = val;
-            d.partner.link = 'pending';
-            renderMine();
-          });
-        });
+        var r = myRatings[danceKey(d)];
+        var rateHtml = r
+          ? '<span class="drate rated">' + starsRow(r.stars) + '</span>'
+          : '<span class="drate">Toca para valorar a ' + cam.name + '</span>';
+        rows.push({ ts:parseMyDate(d.date), date:d.date,
+          html:'<button class="dance dance-card" data-i="' + i + '">' +
+            '<b>' + d.song + '</b>' +
+            '<span class="dinfo">' + ev.name + ' · te grabó ' + cam.name + ' · con ' + p.name + '</span>' +
+            rateHtml +
+            '<span class="st ' + st.cls + '">' + st.txt + '</span></button>' });
       });
     } else {
       MY_SESSIONS.forEach(function(s){
         var ev = EVENTS_BY_ID[s.eventId];
+        var hay = norm([ev.name, ev.venue, s.date].join(' '));
+        if(q && hay.indexOf(q) === -1) return;
         var done = s.sent >= s.couples;
-        var el = document.createElement('div');
-        el.className = 'dance';
-        el.innerHTML =
-          '<b>' + ev.name + '</b>' +
-          '<span class="dmeta">' + ev.venue + ' · ' + s.date + '</span>' +
-          '<span class="dinfo">Grabaste a ' + s.couples + ' parejas</span>' +
-          '<span class="st ' + (done ? 'ok' : 'mid') + '">' +
-            (done ? 'Todo enviado · ' + s.sent + '/' + s.couples
-                  : 'Enviados ' + s.sent + '/' + s.couples + ' · WeTransfer') + '</span>';
-        box.appendChild(el);
+        rows.push({ ts:parseMyDate(s.date), date:s.date,
+          html:'<div class="dance">' +
+            '<b>' + ev.name + '</b>' +
+            '<span class="dinfo">' + ev.venue + ' · grabaste a ' + s.couples + ' parejas</span>' +
+            '<span class="st ' + (done ? 'ok' : 'mid') + '">' +
+              (done ? 'Todo enviado · ' + s.sent + '/' + s.couples
+                    : 'Enviados ' + s.sent + '/' + s.couples + ' · WeTransfer') + '</span></div>' });
+      });
+    }
+    rows.sort(function(a, b){ return b.ts - a.ts; });   // más reciente primero
+    if(!rows.length){
+      box.innerHTML = '<p class="cal-empty">' + (mineQuery ? 'Sin resultados para «' + mineQuery + '».' : 'Todavía no hay nada por aquí.') + '</p>';
+      return;
+    }
+    var lastDate = null, h = '';
+    rows.forEach(function(r){
+      if(r.date !== lastDate){ h += '<div class="date-head">' + r.date + '</div>'; lastDate = r.date; }
+      h += r.html;
+    });
+    box.innerHTML = h;
+    if(dancer){
+      box.querySelectorAll('.dance-card').forEach(function(c){
+        c.addEventListener('click', function(){ openDance(Number(c.dataset.i)); });
       });
     }
   }
+  $('#mineSearch').addEventListener('input', function(){ mineQuery = this.value; renderMine(); });
   $('#mineBack').addEventListener('click', function(){ goView('viewHub','ac-red'); });
   $('#mineHome').addEventListener('click', goHome);
+
+  /* ── detalle de un baile: info + vincular pareja + valorar a la cámara ──── */
+  var currentDance = null, dnStars = 0;
+  function openDance(i){
+    var d = MY_DANCES[i]; if(!d) return;
+    currentDance = d;
+    var r = myRatings[danceKey(d)];
+    dnStars = r ? r.stars : 0;
+    renderDance();
+    goView('viewDance','ac-lime');
+  }
+  function renderDance(){
+    var d = currentDance; if(!d) return;
+    var ev = EVENTS_BY_ID[d.eventId], cam = CAMS_BY_ID[d.camId], p = d.partner;
+    var st = DANCE_STATUS[d.status];
+    $('#dnSong').textContent = d.song;
+    $('#dnMeta').textContent = ev.name + ' · ' + d.date;
+    var r = myRatings[danceKey(d)];
+    var linkHtml;
+    if(p.link === 'ok')           linkHtml = '<span class="lk ok">Pareja vinculada ✓ (' + p.name + ')</span>';
+    else if(p.link === 'pending') linkHtml = '<span class="lk pend">Esperando confirmación de ' + p.name + '</span>';
+    else                          linkHtml = '<button class="linkbtn" id="dnLink">Vincular pareja (' + p.name + ')</button>';
+    $('#dnBody').innerHTML =
+      '<div class="dn-info">' +
+        '<span class="dinfo">Te grabó <b>' + cam.name + '</b></span>' +
+        '<span class="dinfo">Bailaste con <b>' + p.name + '</b></span>' +
+        '<span class="st ' + st.cls + '">' + st.txt + '</span>' +
+        '<span class="linkrow">' + linkHtml + '</span>' +
+      '</div>' +
+      '<div class="rate-box">' +
+        '<div class="pm-h">Valora a ' + cam.name + '</div>' +
+        '<div class="star-pick" id="dnStarPick">' + starsRow(dnStars) + '</div>' +
+        '<textarea id="dnText" class="rate-text" placeholder="Cuéntale qué tal (opcional)">' + (r && r.text ? r.text : '') + '</textarea>' +
+        '<button class="multi-continue" id="dnSave">' + (r ? 'Actualizar valoración' : 'Guardar valoración') + '</button>' +
+      '</div>';
+    /* estrellas clicables */
+    $('#dnStarPick').querySelectorAll('.star').forEach(function(s, idx){
+      s.addEventListener('click', function(){ dnStars = idx + 1; $('#dnStarPick').innerHTML = starsRow(dnStars); bindDnStars(); });
+    });
+    var lk = $('#dnLink');
+    if(lk) lk.addEventListener('click', function(){
+      var row = lk.parentElement;
+      row.innerHTML = '<span class="linkform"><input type="email" placeholder="correo de ' + p.name + '"><button class="linkbtn">Enviar</button></span>';
+      row.querySelector('input').focus();
+      row.querySelector('.linkbtn').addEventListener('click', function(){
+        var val = row.querySelector('input').value.trim();
+        if(!val || val.indexOf('@') === -1) return;
+        p.email = val; p.link = 'pending'; renderDance();
+      });
+    });
+    $('#dnSave').addEventListener('click', function(){
+      if(!dnStars) return;
+      myRatings[danceKey(d)] = { stars:dnStars, text:($('#dnText').value || '').trim() };
+      save('cilap-myratings', myRatings);
+      renderMine();
+      goView('viewMine','ac-lime');
+    });
+  }
+  function bindDnStars(){
+    $('#dnStarPick').querySelectorAll('.star').forEach(function(s, idx){
+      s.addEventListener('click', function(){ dnStars = idx + 1; $('#dnStarPick').innerHTML = starsRow(dnStars); bindDnStars(); });
+    });
+  }
+  $('#dnBack').addEventListener('click', function(){ renderMine(); goView('viewMine','ac-lime'); });
+  $('#dnHome').addEventListener('click', goHome);
+
+  /* ── Mis eventos: eventos marcados (asistir / interés en grabar / con cámara) ── */
+  function resolveEv(id){ return EVENTS_BY_ID[id] || EVENTS_BY_ID[(id||'').split('@')[0]] || null; }
+  function renderMyEvents(){
+    /* reúne por evento base las intenciones marcadas */
+    var byEv = {};   // baseId -> {ev, ts, attend, wish, cams:[]}
+    function bucket(id){
+      var ev = resolveEv(id); if(!ev) return null;
+      var ts = id.indexOf('@') !== -1 ? Number(id.split('@')[1]) : (ev.startsAt || parseMyDate('1 ene 2100'));
+      var k = ev.id;
+      if(!byEv[k]) byEv[k] = { ev:ev, ts:ts, attend:false, wish:false, cams:[] };
+      else if(ts < byEv[k].ts) byEv[k].ts = ts;
+      return byEv[k];
+    }
+    Object.keys(attend).forEach(function(id){ if(attend[id]){ var b = bucket(id); if(b) b.attend = true; } });
+    Object.keys(wishrec).forEach(function(id){ if(wishrec[id]){ var b = bucket(id); if(b) b.wish = true; } });
+    Object.keys(interest).forEach(function(key){
+      if(!interest[key]) return;
+      var us = key.lastIndexOf('_'); if(us === -1) return;
+      var evId = key.slice(0, us), camId = key.slice(us + 1);
+      var b = bucket(evId); var cam = CAMS_BY_ID[camId];
+      if(b && cam && b.cams.indexOf(cam.name) === -1) b.cams.push(cam.name);
+    });
+    var list = Object.keys(byEv).map(function(k){ return byEv[k]; });
+    list.sort(function(a, b){ return a.ts - b.ts; });   // próximos primero
+    var box = $('#myEvList');
+    $('#myEvEmpty').style.display = list.length ? 'none' : 'flex';
+    box.innerHTML = list.map(function(b){
+      var ev = b.ev;
+      var chips = '';
+      if(b.attend) chips += '<span class="me-chip attend">Voy a asistir</span>';
+      if(b.wish)   chips += '<span class="me-chip wish">Interesado en grabar</span>';
+      b.cams.forEach(function(n){ chips += '<span class="me-chip cam">Grabar con ' + n + '</span>'; });
+      var when = (ev.recurrence === 'oneoff') ? fmtDate(ev.startsAt) : 'Sala semanal';
+      return '<button class="dance dance-card" data-ev="' + ev.id + '">' +
+        '<b>' + ev.name + '</b>' +
+        '<span class="dinfo">' + when + ' · ' + ev.venue + ' · ' + (CITY_LABELS[ev.city] || ev.city) + '</span>' +
+        '<span class="me-chips">' + chips + '</span></button>';
+    }).join('');
+    box.querySelectorAll('.dance-card').forEach(function(c){
+      c.addEventListener('click', function(){ openEvent(EVENTS_BY_ID[c.dataset.ev]); });
+    });
+  }
+  $('#meBack').addEventListener('click', function(){ goView('viewHub','ac-red'); });
+  $('#meHome').addEventListener('click', goHome);
 
   /* ── restaurar la posición tras recargar (botón ⟳ o refresco) ──────────
      guardamos un snapshot de navegación al salir de la página y, al cargar,
@@ -1757,8 +1879,9 @@
       var v = s.view;
       if(v === 'view1' || v === 'viewHub' || v === 'viewWhere'){ goView('viewHub','ac-red'); return; }
       if(v === 'viewCams'){ renderCamDir(); goView('viewCams','ac-amber'); return; }
-      if(v === 'viewMine'){ renderMine(); goView('viewMine','ac-lime'); return; }
-      if(v === 'viewSettings'){ $('#hubSettings').click(); return; }
+      if(v === 'viewMine' || v === 'viewDance'){ renderMine(); goView('viewMine','ac-lime'); return; }
+      if(v === 'viewMyEvents'){ renderMyEvents(); goView('viewMyEvents','ac-red'); return; }
+      if(v === 'viewSettings'){ openSettings(); return; }
       if(v === 'viewProfile' && s.profileId && CAMS_BY_ID[s.profileId]){ openProfile(CAMS_BY_ID[s.profileId]); return; }
       if((v === 'view3' || v === 'viewEvCams') && s.eventId && EVENTS_BY_ID[s.eventId]){
         openEvent(EVENTS_BY_ID[s.eventId]);
