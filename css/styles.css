@@ -1315,7 +1315,8 @@ body{
 .map-madrid-lbl{fill:var(--text);font-size:4px;text-anchor:middle;font-family:var(--display);letter-spacing:.12em}
 .map-mk{cursor:pointer}
 .mk-halo{transform-box:fill-box;transform-origin:center;animation:mkpulse 1.6s ease-out infinite}
-@keyframes mkpulse{0%{transform:scale(.7);stroke-opacity:.9}100%{transform:scale(2.4);stroke-opacity:0}}
+.mk-halo{stroke-width:.6}
+@keyframes mkpulse{0%{transform:scale(.7);stroke-opacity:.9}100%{transform:scale(2);stroke-opacity:0}}
 /* popup de evento sobre el mapa */
 .map-pop{position:absolute;left:10px;right:10px;bottom:10px;
   background:var(--surface);border:1px solid var(--line);border-radius:14px;
