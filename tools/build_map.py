@@ -82,20 +82,35 @@ def dp(pts, tol):
     left = dp(pts[:imax+1], tol); right = dp(pts[imax:], tol)
     return left[:-1] + right
 
-def to_path(ring, tol):
+# ── suavizado Chaikin (anillo cerrado): sin él, el trazo DP queda anguloso,
+#    con picos de mitra tipo "rayo" que cantan al ampliar ──
+def chaikin(pts, iters):
+    ring = pts[:-1]  # trabajar abierto, cerrar al final
+    for _ in range(iters):
+        out = []
+        n = len(ring)
+        for i in range(n):
+            px, py = ring[i]; qx, qy = ring[(i + 1) % n]
+            out.append((0.75 * px + 0.25 * qx, 0.75 * py + 0.25 * qy))
+            out.append((0.25 * px + 0.75 * qx, 0.25 * py + 0.75 * qy))
+        ring = out
+    return ring + [ring[0]]
+
+def to_path(ring, tol, smooth=2):
     pts = [proj(lon, lat) for lon, lat in ring]
     if pts[0] != pts[-1]: pts.append(pts[0])
     pts = dp(pts, tol)
+    if smooth: pts = chaikin(pts, smooth)
     d = 'M' + ' '.join('%.1f,%.1f' % (x, y) for x, y in pts[:-1]) + 'Z'
     return d, len(pts)
 
 import sys
 sys.setrecursionlimit(100000)
 
-mad_d, n_mad = to_path(mad, 0.28)
+mad_d, n_mad = to_path(mad, 0.45, smooth=2)
 neigh = {}
 for name in ['Segovia', 'Guadalajara', 'Cuenca', 'Toledo', 'Ávila']:
-    neigh[name], n = to_path(provs[name], 0.5)
+    neigh[name], n = to_path(provs[name], 0.7, smooth=1)
     print(name, n, 'pts')
 print('Madrid', n_mad, 'pts')
 
@@ -113,10 +128,10 @@ for kk, (lon, lat) in cities.items():
     cxy[kk] = [round(max(7, min(93, x)), 1), round(max(7, min(93, y)), 1)]
 
 js = []
-js.append('/* GENERADO (scratchpad/build_map.py) a partir de georef-spain-provincia')
-js.append('   (opendatasoft, datos IGN). Contornos REALES simplificados (Douglas-Peucker)')
-js.append('   y proyectados (equirrectangular centrada en Madrid) al viewBox 0..100.')
-js.append('   No editar a mano: regenerar con el script si cambia la proyección. */')
+js.append('/* GENERADO (tools/build_map.py) a partir de georef-spain-provincia')
+js.append('   (opendatasoft, datos IGN). Contornos REALES simplificados (Douglas-Peucker +')
+js.append('   suavizado Chaikin) y proyectados (equirrectangular centrada en Madrid) al')
+js.append('   viewBox 0..100. No editar a mano: regenerar con el script. */')
 js.append('window.MAP_GEO = {')
 js.append('  madrid: "%s",' % mad_d)
 js.append('  provs: {')
@@ -124,7 +139,10 @@ for name, d in neigh.items():
     key = name.replace('Á', 'A').lower()
     js.append('    %s: "%s",' % (key, d))
 js.append('  },')
-js.append('  cities: %s' % json.dumps(cxy))
+js.append('  cities: %s,' % json.dumps(cxy))
+# parámetros de proyección: x = 50 + (lon-lon0)*coslat*k ; y = 50 - (lat-lat0)*k
+# (permiten proyectar en runtime coordenadas reales de cualquier local/evento)
+js.append('  proj: {lon0:%.6f, lat0:%.6f, coslat:%.6f, k:%.4f}' % (lon0, lat0, coslat, k))
 js.append('};')
 open(OUT, 'w', encoding='utf-8').write('\n'.join(js) + '\n')
 print('written', OUT)
