@@ -497,7 +497,13 @@
     </div>
     <div class="map-wrap" id="mapWrap">
       <div class="map-stage" id="mapStage"></div>
-      <div class="map-pop" id="mapPop" hidden></div>
+    </div>
+    <!-- info del evento seleccionado DEBAJO del mapa; ‹ › saltan entre puntos
+         (útil cuando varios marcadores caen juntos y no se pueden clicar) -->
+    <div class="map-info" id="mapInfo" hidden>
+      <button class="cal-nav" id="mapSelPrev" title="Evento anterior">‹</button>
+      <div class="mi-body" id="mapInfoBody"></div>
+      <button class="cal-nav" id="mapSelNext" title="Evento siguiente">›</button>
     </div>
     <p class="cal-empty" id="mapEmpty" style="display:none">No hay eventos próximos para mostrar en el mapa.</p>
   </section>

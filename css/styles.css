@@ -60,6 +60,9 @@ body{
   transition:background-color .35s, color .35s;
 }
 .app.ac-blue {--accent:#3da9ff;--accent-glow:rgba(61,169,255,.30)}
+/* marcadores del mapa de eventos: cálidos sobre mapa azul; el seleccionado rojo */
+.app{--mk-sala:#ffd60a;--mk-congreso:#ff6fae;--mk-ext:#20d6c0;--mk-sel:#ff3b30}
+.app.light{--mk-sala:#a98200;--mk-congreso:#e34e86;--mk-ext:#0b9c8b}
 .app.ac-amber{--accent:#ffd60a;--accent-glow:rgba(255,214,10,.30)}
 .app.ac-lime {--accent:#c6ff00;--accent-glow:rgba(198,255,0,.30)}
 .app.ac-violet{--accent:#c46bff;--accent-glow:rgba(196,107,255,.30)}
@@ -1314,23 +1317,23 @@ body{
 .map-bg{fill:var(--surface);opacity:.35}
 .map-neigh path{fill:var(--surface);fill-opacity:.55;stroke:var(--line);stroke-width:.45;stroke-linejoin:round}
 .map-prov text{fill:var(--muted);font-size:3.1px;font-family:var(--mono);letter-spacing:.04em}
-.map-madrid{fill:var(--accent-glow,rgba(255,59,48,.12));stroke:var(--accent);stroke-width:1;stroke-linejoin:round;stroke-linecap:round}
+.map-madrid{fill:rgba(61,169,255,.13);stroke:#3da9ff;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}
 .map-madrid-lbl{fill:var(--text);font-size:4px;text-anchor:middle;font-family:var(--display);letter-spacing:.12em}
 .map-mk{cursor:pointer}
 .mk-halo{transform-box:fill-box;transform-origin:center;animation:mkpulse 1.6s ease-out infinite}
 .mk-halo{stroke-width:.6}
 @keyframes mkpulse{0%{transform:scale(.7);stroke-opacity:.9}100%{transform:scale(2);stroke-opacity:0}}
-/* popup de evento sobre el mapa */
-.map-pop{position:absolute;left:10px;right:10px;bottom:10px;
-  background:var(--surface);border:1px solid var(--line);border-radius:14px;
-  padding:14px 16px;display:flex;flex-direction:column;gap:5px;
-  box-shadow:0 10px 34px rgba(0,0,0,.45)}
-.map-pop[hidden]{display:none}
-.mp-close{position:absolute;top:8px;right:10px;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;line-height:1}
+/* tarjeta del evento seleccionado, DEBAJO del mapa; ‹ › saltan entre puntos */
+.map-info{display:flex;align-items:center;gap:10px;margin-top:14px}
+.map-info[hidden]{display:none}
+.mi-body{flex:1;min-width:0;background:var(--surface);border:1px solid var(--line);
+  border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:5px}
+.mi-top{display:flex;align-items:center;justify-content:space-between}
+.mi-count{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--muted)}
+.mi-name{font-family:var(--opt-font);font-weight:700;font-size:16px;color:var(--text)}
+.mi-meta{font-size:12px;color:var(--muted)}
+.mi-enter{margin-top:8px}
 .mp-type{align-self:flex-start;font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;border:1px solid;border-radius:999px;padding:2px 9px}
-.mp-name{font-family:var(--opt-font);font-weight:700;font-size:17px}
-.mp-meta{font-size:12.5px;color:var(--muted)}
-.mp-enter{margin-top:8px}
 .evt-name{
   flex:1;min-width:0;
   font-family:var(--opt-font);font-weight:600;

@@ -789,7 +789,9 @@
   });
 
   /* ── MAPA DE EVENTOS (un día concreto, navegable día a día) ───────────── */
-  var MAP_TYPE_COLOR = { sala:'#c46bff', congreso:'#3da9ff', exterior:'#ffd60a' };
+  /* colores de marcador vía CSS vars (--mk-*): cálidos sobre el mapa azul y
+     con override en tema claro (los tonos claros se lavan sobre crema) */
+  var MAP_TYPE_COLOR = { sala:'var(--mk-sala)', congreso:'var(--mk-congreso)', exterior:'var(--mk-ext)' };
   var MAP_TYPE_LABEL = { sala:'Sala de baile', congreso:'Congreso', exterior:'Al exterior' };
   /* contornos REALES (IGN vía georef-spain-provincia) proyectados al viewBox
      0..100: los genera scratchpad/build_map.py en js/map-geo.js (window.MAP_GEO).
@@ -797,7 +799,7 @@
      marco si caen fuera, p. ej. Sevilla/Barcelona). */
   var MAP_GEO = window.MAP_GEO || { madrid:'', provs:{}, cities:{} };
   var MAP_CITY_XY = MAP_GEO.cities || {};
-  var mapDays = [], mapDayIdx = 0;
+  var mapDays = [], mapDayIdx = 0, mapSel = 0;
   var MAP_PROVINCES_SVG =
     '<defs><clipPath id="mapClip"><rect x="3" y="3" width="94" height="94" rx="11"/></clipPath></defs>' +
     '<g clip-path="url(#mapClip)">' +
@@ -853,62 +855,78 @@
     return [ base[0] + Math.cos(ang) * r * 0.75, base[1] + Math.sin(ang) * r ];
   }
   function mapTypeGlyph(type, color){
-    if(type === 'congreso') return '<path d="M0,-1.5 L1.3,1.2 L-1.3,1.2 Z" fill="' + color + '"/>';
-    if(type === 'exterior') return '<path d="M0,-1.6 L0.5,-0.5 L1.6,0 L0.5,0.5 L0,1.6 L-0.5,0.5 L-1.6,0 L-0.5,-0.5 Z" fill="' + color + '"/>';
-    return '<circle r="1.3" fill="' + color + '"/>';
+    if(type === 'congreso') return '<path d="M0,-1.5 L1.3,1.2 L-1.3,1.2 Z" style="fill:' + color + '"/>';
+    if(type === 'exterior') return '<path d="M0,-1.6 L0.5,-0.5 L1.6,0 L0.5,0.5 L0,1.6 L-0.5,0.5 L-1.6,0 L-0.5,-0.5 Z" style="fill:' + color + '"/>';
+    return '<circle r="1.3" style="fill:' + color + '"/>';
   }
   function openMap(){
     mapDays = mapBuildDays();
+    mapSel = 0;
     /* abrir en HOY (o el primer día futuro): un congreso ya empezado agrupa en
        su fecha de inicio, que puede quedar atrás */
     var t0 = new Date(); t0.setHours(0,0,0,0);
     mapDayIdx = 0;
     for(var i = 0; i < mapDays.length; i++){ if(mapDays[i].ts >= t0.getTime()){ mapDayIdx = i; break; } }
     renderMap();
-    goView('viewMap','ac-red');
+    goView('viewMap','ac-blue');
   }
   function renderMap(){
-    var stage = $('#mapStage'), empty = $('#mapEmpty'), pop = $('#mapPop');
-    pop.hidden = true;
+    var stage = $('#mapStage'), empty = $('#mapEmpty'), info = $('#mapInfo');
     if(!mapDays.length){
       stage.innerHTML = ''; $('#mapDayLbl').textContent = '—'; empty.style.display = 'block';
+      info.hidden = true;
       $('#mapPrev').disabled = true; $('#mapNext').disabled = true; return;
     }
     empty.style.display = 'none';
     mapDayIdx = Math.max(0, Math.min(mapDayIdx, mapDays.length - 1));
     var day = mapDays[mapDayIdx];
+    mapSel = Math.max(0, Math.min(mapSel, day.events.length - 1));
     $('#mapDayLbl').textContent = day.label;
     $('#mapPrev').disabled = mapDayIdx <= 0;
     $('#mapNext').disabled = mapDayIdx >= mapDays.length - 1;
-    var markers = day.events.map(function(ev, i){
-      var p = mapMarkerXY(ev, i), col = MAP_TYPE_COLOR[ev.type] || '#888';
-      return '<g class="map-mk" data-ev="' + i + '" transform="translate(' + p[0].toFixed(1) + ',' + p[1].toFixed(1) + ')">' +
-        '<circle class="mk-halo" r="1.3" fill="none" stroke="' + col + '"/>' +
+    /* el seleccionado se pinta en rojo, mayor y EL ÚLTIMO (encima del resto) */
+    var order = day.events.map(function(_, i){ return i; });
+    order.push(order.splice(mapSel, 1)[0]);
+    var markers = order.map(function(i){
+      var ev = day.events[i], sel = i === mapSel;
+      var p = mapMarkerXY(ev, i), col = sel ? 'var(--mk-sel)' : (MAP_TYPE_COLOR[ev.type] || 'var(--muted)');
+      return '<g class="map-mk' + (sel ? ' sel' : '') + '" data-ev="' + i + '" transform="translate(' + p[0].toFixed(1) + ',' + p[1].toFixed(1) + ')' + (sel ? ' scale(1.55)' : '') + '">' +
+        '<circle class="mk-halo" r="1.3" fill="none" style="stroke:' + col + '"/>' +
         mapTypeGlyph(ev.type, col) + '</g>';
     }).join('');
     stage.innerHTML = '<svg viewBox="0 0 100 100" class="map-svg" preserveAspectRatio="xMidYMid meet">' + MAP_PROVINCES_SVG + markers + '</svg>';
     stage.querySelectorAll('.map-mk').forEach(function(g){
-      g.addEventListener('click', function(){ mapShowPop(day.events[Number(g.dataset.ev)]); });
+      g.addEventListener('click', function(){ mapSel = Number(g.dataset.ev); renderMap(); });
     });
+    renderMapInfo(day);
   }
-  function mapShowPop(ev){
-    var pop = $('#mapPop'), col = MAP_TYPE_COLOR[ev.type] || '#888';
+  /* tarjeta bajo el mapa con el evento seleccionado; ‹ › ciclan entre puntos */
+  function renderMapInfo(day){
+    var ev = day.events[mapSel], col = MAP_TYPE_COLOR[ev.type] || 'var(--muted)';
     var multi = (ev.endsAt - ev.startsAt) > 86400000 * 1.1;
     var when = multi ? (fmtDate(ev.startsAt) + ' – ' + fmtDate(ev.endsAt)) : evHours(ev);
-    pop.innerHTML =
-      '<button class="mp-close" id="mpClose" title="Cerrar">✕</button>' +
-      '<span class="mp-type" style="color:' + col + ';border-color:' + col + '">' + (MAP_TYPE_LABEL[ev.type] || ev.type) + '</span>' +
-      '<b class="mp-name">' + ev.name + '</b>' +
-      '<span class="mp-meta">' + when + ' · ' + ev.venue + ' · ' + (CITY_LABELS[ev.city] || ev.city) + '</span>' +
-      '<span class="mp-meta">CAM ×' + camCountOf(ev) + '</span>' +
-      '<button class="cta mp-enter" id="mpEnter">Entrar al evento</button>';
-    pop.hidden = false;
-    $('#mpClose').addEventListener('click', function(){ pop.hidden = true; });
-    $('#mpEnter').addEventListener('click', function(){ openEvent(ev); });
+    $('#mapInfoBody').innerHTML =
+      '<div class="mi-top"><span class="mp-type" style="color:' + col + ';border-color:' + col + '">' + (MAP_TYPE_LABEL[ev.type] || ev.type) + '</span>' +
+      '<span class="mi-count">' + (mapSel + 1) + ' / ' + day.events.length + '</span></div>' +
+      '<b class="mi-name">' + ev.name + '</b>' +
+      '<span class="mi-meta">' + when + ' · ' + ev.venue + ' · ' + (CITY_LABELS[ev.city] || ev.city) + ' · CAM ×' + camCountOf(ev) + '</span>' +
+      '<button class="cta mi-enter" id="miEnter">Entrar al evento</button>';
+    $('#mapInfo').hidden = false;
+    var single = day.events.length < 2;
+    $('#mapSelPrev').disabled = single;
+    $('#mapSelNext').disabled = single;
+    $('#miEnter').addEventListener('click', function(){ openEvent(ev); });
+  }
+  function mapSelStep(dir){
+    var day = mapDays[mapDayIdx]; if(!day || day.events.length < 2) return;
+    mapSel = (mapSel + dir + day.events.length) % day.events.length;
+    renderMap();
   }
   $('#mapBtn').addEventListener('click', openMap);
-  $('#mapPrev').addEventListener('click', function(){ if(mapDayIdx > 0){ mapDayIdx--; renderMap(); } });
-  $('#mapNext').addEventListener('click', function(){ if(mapDayIdx < mapDays.length - 1){ mapDayIdx++; renderMap(); } });
+  $('#mapPrev').addEventListener('click', function(){ if(mapDayIdx > 0){ mapDayIdx--; mapSel = 0; renderMap(); } });
+  $('#mapNext').addEventListener('click', function(){ if(mapDayIdx < mapDays.length - 1){ mapDayIdx++; mapSel = 0; renderMap(); } });
+  $('#mapSelPrev').addEventListener('click', function(){ mapSelStep(-1); });
+  $('#mapSelNext').addEventListener('click', function(){ mapSelStep(1); });
   $('#mapBack').addEventListener('click', histBack);
   $('#mapHome').addEventListener('click', goHome);
 
@@ -2083,7 +2101,7 @@
       if(v === 'viewMyEvents'){ renderMyEvents(); goView('viewMyEvents','ac-red'); return; }
       if(v === 'viewSettings'){ openSettings(); return; }
       if(v === 'viewDance' && s.dance){ currentDance = s.dance; renderDance(); goView('viewDance','ac-lime'); return; }
-      if(v === 'viewMap'){ mapDays = mapBuildDays(); mapDayIdx = s.mapDayIdx || 0; renderMap(); goView('viewMap','ac-red'); return; }
+      if(v === 'viewMap'){ mapDays = mapBuildDays(); mapDayIdx = s.mapDayIdx || 0; mapSel = 0; renderMap(); goView('viewMap','ac-blue'); return; }
       if(v === 'viewProfile' && s.profile){ openProfile(s.profile); return; }
       if(v === 'view3' && s.event){ openEvent(s.event); return; }
       if(v === 'viewEvCams' && s.event){ openEvent(s.event); renderEventCams(); goView('viewEvCams','ac-red'); return; }
