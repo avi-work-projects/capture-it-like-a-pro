@@ -791,36 +791,29 @@
   /* ── MAPA DE EVENTOS (un día concreto, navegable día a día) ───────────── */
   var MAP_TYPE_COLOR = { sala:'#c46bff', congreso:'#3da9ff', exterior:'#ffd60a' };
   var MAP_TYPE_LABEL = { sala:'Sala de baile', congreso:'Congreso', exterior:'Al exterior' };
-  /* posiciones (viewBox 0..100) DENTRO del contorno de Madrid (aprox. por zona):
-     centro, norte (sierra), sur (Aranjuez), este (corredor del Henares)… */
-  var MAP_CITY_XY = { mad:[50,52], tol:[40,82], gua:[78,40], seg:[52,12], avila:[12,52], cuenca:[88,72], sev:[42,93], bcn:[93,8], waw:[95,5], kra:[92,9] };
+  /* contornos REALES (IGN vía georef-spain-provincia) proyectados al viewBox
+     0..100: los genera scratchpad/build_map.py en js/map-geo.js (window.MAP_GEO).
+     MAP_GEO.cities = lon/lat reales de cada ciudad ya proyectadas (recortadas al
+     marco si caen fuera, p. ej. Sevilla/Barcelona). */
+  var MAP_GEO = window.MAP_GEO || { madrid:'', provs:{}, cities:{} };
+  var MAP_CITY_XY = MAP_GEO.cities || {};
   var mapDays = [], mapDayIdx = 0;
-  /* CONTORNO REAL (aprox.) de la Comunidad de Madrid: vértices = frontera real
-     proyectada (lon/lat→viewBox). Rasgos: punta N (Somosierra), saliente E hacia
-     Estremera, punta S (Aranjuez), esquina O (Cenicientos) y sierra al NO. */
-  var MAD = '60,15 67,28 66,41 73,53 83,61 83,71 74,78 59,86 49,77 39,71 29,65 19,66 21,57 26,47 38,38 47,28 56,22';
   var MAP_PROVINCES_SVG =
     '<defs><clipPath id="mapClip"><rect x="3" y="3" width="94" height="94" rx="11"/></clipPath></defs>' +
     '<g clip-path="url(#mapClip)">' +
       '<rect class="map-bg" x="3" y="3" width="94" height="94"/>' +
-      '<g class="map-border">' +
-        '<line x1="38" y1="38" x2="5" y2="6"/>' +      /* Segovia | Ávila (NO) */
-        '<line x1="60" y1="15" x2="62" y2="2"/>' +     /* Segovia (N) */
-        '<line x1="67" y1="28" x2="98" y2="10"/>' +    /* Segovia | Guadalajara (NE) */
-        '<line x1="83" y1="61" x2="99" y2="58"/>' +    /* Guadalajara | Cuenca (E) */
-        '<line x1="78" y1="76" x2="84" y2="99"/>' +    /* Cuenca | Toledo (SE) */
-        '<line x1="49" y1="77" x2="40" y2="99"/>' +    /* Toledo (S) */
-        '<line x1="19" y1="66" x2="2" y2="72"/>' +     /* Ávila (O) */
+      '<g class="map-neigh">' +
+        Object.keys(MAP_GEO.provs).map(function(k){ return '<path d="' + MAP_GEO.provs[k] + '"/>'; }).join('') +
       '</g>' +
       '<g class="map-prov">' +
-        '<text x="50" y="9" text-anchor="middle">Segovia</text>' +
-        '<text x="97" y="20" text-anchor="end">Guadalajara</text>' +
-        '<text x="97" y="91" text-anchor="end">Cuenca</text>' +
-        '<text x="40" y="96" text-anchor="middle">Toledo</text>' +
-        '<text x="3" y="42" text-anchor="start">Ávila</text>' +
+        '<text x="24" y="10" text-anchor="middle">Segovia</text>' +
+        '<text x="96" y="16" text-anchor="end">Guadalajara</text>' +
+        '<text x="96" y="72" text-anchor="end">Cuenca</text>' +
+        '<text x="38" y="95" text-anchor="middle">Toledo</text>' +
+        '<text x="4" y="52" text-anchor="start">Ávila</text>' +
       '</g>' +
-      '<polygon class="map-madrid" points="' + MAD + '"/>' +
-      '<text class="map-madrid-lbl" x="51" y="33">MADRID</text>' +
+      '<path class="map-madrid" d="' + MAP_GEO.madrid + '"/>' +
+      '<text class="map-madrid-lbl" x="44" y="42">MADRID</text>' +
     '</g>' +
     '<rect class="map-region" x="3" y="3" width="94" height="94" rx="11"/>';
 
@@ -840,8 +833,14 @@
     list.sort(function(a, b){ return a.startsAt - b.startsAt; });
     var days = [], byKey = {};
     list.forEach(function(ev){
-      var d = new Date(ev.startsAt), key = d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
-      if(!byKey[key]){ byKey[key] = { label:dateHeaderLabel(ev.startsAt), events:[] }; days.push(byKey[key]); }
+      /* un directo que empezó ayer (madrugada) se agrupa bajo HOY: está pasando ahora */
+      var ts = eventStatus(ev) === 'directo' ? Date.now() : ev.startsAt;
+      var d = new Date(ts), key = d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+      if(!byKey[key]){
+        var d0 = new Date(d); d0.setHours(0,0,0,0);
+        byKey[key] = { ts:d0.getTime(), label:dateHeaderLabel(ts), events:[] };
+        days.push(byKey[key]);
+      }
       byKey[key].events.push(ev);
     });
     return days;
@@ -860,7 +859,11 @@
   }
   function openMap(){
     mapDays = mapBuildDays();
+    /* abrir en HOY (o el primer día futuro): un congreso ya empezado agrupa en
+       su fecha de inicio, que puede quedar atrás */
+    var t0 = new Date(); t0.setHours(0,0,0,0);
     mapDayIdx = 0;
+    for(var i = 0; i < mapDays.length; i++){ if(mapDays[i].ts >= t0.getTime()){ mapDayIdx = i; break; } }
     renderMap();
     goView('viewMap','ac-red');
   }
@@ -1497,7 +1500,7 @@
     var dancer = state.role && state.role.value === 'dancer';
     $('#hubSub').textContent = dancer ? 'Entraste como bailarín.' : 'Entraste como camarógrafo.';
     $('#hubMineName').textContent = dancer ? 'Mis bailes' : 'Mis sesiones';
-    $('#hubMineSub').textContent = dancer ? 'Quién te grabó y qué' : 'Lo que has grabado';
+    $('#hubMineSub').textContent = dancer ? 'Quién te grabó' : 'Lo que has grabado';
     refreshRefUI();
   }
   /* refleja la config de país/ciudad: botón "Eventos en mi ciudad"

@@ -664,7 +664,7 @@ body{
 .hub-pair{display:flex;gap:14px;flex:none}
 .hub-mine-row{display:flex;gap:14px;flex:none}
 .hub-pair .card,.hub-mine-row #hubCams{
-  flex:1;min-width:0;height:var(--hub-sm);
+  flex:1;min-width:0;height:auto;min-height:var(--hub-sm);
   display:grid;
   grid-template-columns:auto 1fr;
   grid-template-rows:auto auto;
@@ -674,7 +674,7 @@ body{
 }
 /* engranaje: botón cuadrado, solo icono centrado, sin enmarques de esquina */
 .hub-mine-row .gear{
-  flex:none;width:var(--hub-sm);height:var(--hub-sm);
+  flex:none;width:var(--hub-sm);height:auto;min-height:var(--hub-sm);align-self:stretch;
   display:flex;align-items:center;justify-content:center;
   padding:12px;position:relative;
 }
@@ -690,8 +690,8 @@ body{
 .gear-badge[hidden]{display:none}
 .hub-pair .card .icn-hub,.hub-mine-row #hubCams .icn-hub{grid-row:1 / span 2;align-self:center;width:28px;height:28px}
 .hub .card.big .icn-hub,.hub-top #hubEvent .icn-hub{grid-row:1 / span 2;align-self:center;width:30px;height:30px}
-.hub-pair .card .name,.hub-mine-row #hubCams .name{font-size:19px}
-.hub-pair .card .sub,.hub-mine-row #hubCams .sub{font-size:12px}
+.hub-pair .card .name,.hub-mine-row #hubCams .name{font-size:17px;line-height:1.15}
+.hub-pair .card .sub,.hub-mine-row #hubCams .sub{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* cada acción del hub tiene su acento: el color de la sección que abre */
 #hubProx{--hac:#3da9ff;--hglow:rgba(61,169,255,.30)}     /* azul = próximos eventos */
 #whereCity{--hac:#3da9ff;--hglow:rgba(61,169,255,.30)}   /* azul = país/ciudad */
@@ -762,7 +762,10 @@ body{
 .set-place .lbl{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
 .set-place .lbl b{font-family:var(--opt-font);font-size:17px;font-weight:700}
 .set-place .lbl small{font-size:12px;color:var(--muted)}
-.set-place .hub-go{flex:none;color:var(--muted);font-size:18px}
+/* dentro de la fila el círculo-flecha va en el flujo flex; sin position:static
+   se ancla a la vista (no hay ancestro relativo) y asoma suelto entre las
+   tarjetas de privacidad */
+.set-place .hub-go{flex:none;position:static;transform:none;color:var(--muted);font-size:18px;border-color:var(--line)}
 /* picker de "lugar" (Configuración o Camarógrafos): solo País + Ciudad */
 #view2.ref-mode #panel .slot[data-key="type"],
 #view2.ref-mode #subPanel{display:none}
@@ -1309,7 +1312,7 @@ body{
 .map-svg{width:100%;height:100%;display:block}
 .map-region{fill:none;stroke:var(--line);stroke-width:.7}
 .map-bg{fill:var(--surface);opacity:.35}
-.map-border line{stroke:var(--line);stroke-width:.5;opacity:.7}
+.map-neigh path{fill:var(--surface);fill-opacity:.55;stroke:var(--line);stroke-width:.45}
 .map-prov text{fill:var(--muted);font-size:3.1px;font-family:var(--mono);letter-spacing:.04em}
 .map-madrid{fill:var(--accent-glow,rgba(255,59,48,.12));stroke:var(--accent);stroke-width:1.2}
 .map-madrid-lbl{fill:var(--text);font-size:4px;text-anchor:middle;font-family:var(--display);letter-spacing:.12em}
