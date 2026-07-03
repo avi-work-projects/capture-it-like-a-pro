@@ -884,6 +884,26 @@ body{
 .cal-bar.cg.e .cgr{border-top-right-radius:4px;border-bottom-right-radius:4px}
 /* CONGRESO en el anual: celda teñida (banda azul al correr días seguidos) */
 .cal-mini-d.cg{background:rgba(61,169,255,.26);border-radius:3px}
+/* rejilla del MES: chips con contador por tipo (violeta salas · ámbar sociales) */
+.cal-chips{display:flex;flex-wrap:wrap;gap:2px;padding:1px 2px}
+.cal-chip{
+  border:1px solid;border-radius:6px;cursor:pointer;
+  font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.02em;
+  padding:1px 4px;line-height:1.4;background:transparent;
+}
+.cal-chip.cs{color:#c46bff;border-color:rgba(196,107,255,.55);background:rgba(196,107,255,.12)}
+.cal-chip.ce{color:#ffd60a;border-color:rgba(255,214,10,.55);background:rgba(255,214,10,.10)}
+.app.light .cal-chip.cs{color:#8a3fd0}
+.app.light .cal-chip.ce{color:#8a6d00}
+/* agenda: resumen compacto de salas del día */
+.salasum{
+  width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;
+  background:rgba(196,107,255,.08);border:1px solid rgba(196,107,255,.4);border-radius:9px;
+  color:#c46bff;font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;
+  padding:9px 12px;margin:2px 0 10px;cursor:pointer;text-transform:uppercase;
+}
+.salasum span{color:var(--muted);text-transform:none;letter-spacing:0}
+.app.light .salasum{color:#8a3fd0}
 /* engranaje del hub sobre el botón atrás, con acento visible */
 .hub-gear{color:#c46bff}
 .hub-gear .icn{color:#c46bff}
@@ -964,6 +984,18 @@ body{
 .cf-mine-n{flex:1;min-width:0;font-size:13.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cf-mine-t{flex:none;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .cf-mine-x{flex:none;background:none;border:none;color:#ff3b30;font-size:13px;cursor:pointer;padding:2px 4px}
+/* mapas de las salas dentro del wizard */
+.cf-maplist{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.cf-mapadd{display:flex;gap:8px}
+.cf-mapadd .cf-in{flex:1;min-width:0}
+.cf-addmap{
+  flex:none;background:var(--accent);color:#0a0a0a;border:1px solid var(--accent);border-radius:10px;
+  font-family:var(--opt-font);font-weight:600;font-size:11px;letter-spacing:.05em;text-transform:uppercase;
+  padding:0 16px;cursor:pointer;
+}
+.cf-addmap:disabled{opacity:.35;cursor:default}
+.cf-reload{background:none;border:1px solid var(--line);border-radius:6px;color:var(--accent);cursor:pointer;font-size:11px;padding:1px 7px}
+.lv-hint a{color:var(--accent)}
 /* cada acción del hub tiene su acento: el color de la sección que abre */
 #hubProx{--hac:#3da9ff;--hglow:rgba(61,169,255,.30)}     /* azul = próximos eventos */
 #whereCity{--hac:#3da9ff;--hglow:rgba(61,169,255,.30)}   /* azul = país/ciudad */
@@ -1602,6 +1634,9 @@ body{
 .map-dist{fill:none;stroke:#3da9ff;stroke-width:.18;stroke-opacity:.45;stroke-linejoin:round}
 /* vista centro: mosaico de barrios de la M-30, relleno + borde por barrio */
 .map-center{fill:rgba(61,169,255,.13);stroke:#3da9ff;stroke-width:.3;stroke-opacity:.75;stroke-linejoin:round}
+/* hito "Sol" para orientarse (ciudad y centro) */
+.map-sol circle{fill:var(--text);opacity:.9}
+.map-sol text{fill:var(--text);font-size:3.2px;text-anchor:middle;font-family:var(--mono);letter-spacing:.08em}
 .map-madrid-lbl{fill:var(--text);font-size:4px;text-anchor:middle;font-family:var(--display);letter-spacing:.12em}
 .map-mk{cursor:pointer}
 .mk-halo{transform-box:fill-box;transform-origin:center;animation:mkpulse 1.6s ease-out infinite}

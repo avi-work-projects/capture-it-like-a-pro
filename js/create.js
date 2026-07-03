@@ -19,6 +19,13 @@ var TYPE_TITLE = { sala:'Nueva sala de baile', congreso:'Nuevo congreso', exteri
 
 var app = null;      // navegación inyectada (wire)
 var type = 'sala';
+/* mapas de salas por evento: máximos por tipo; interior permitido en todos
+   MENOS en los sociales al exterior (solo mapas de exterior) */
+var MAP_MAX = { sala:3, congreso:6, exterior:2 };
+var selMaps = [];    // [{lib:'int'|'ext', id, name}] del evento en edición
+function libMaps(lib){
+  try{ return JSON.parse(localStorage.getItem(lib === 'int' ? 'cip_mapas_v1' : 'cip_mapas_ext_v1')) || []; }catch(e){ return []; }
+}
 
 var $ = function(s){ return document.querySelector(s); };
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]; }); }
@@ -49,6 +56,7 @@ function renderMineList(){
 /* ── formulario ──────────────────────────────────────────────────────────── */
 function open(t){
   type = t;
+  selMaps = [];
   $('#cfTitle').textContent = TYPE_TITLE[type] || 'Nuevo evento';
   $('#cfSub').textContent = type === 'sala' ? 'Se repetirá cada semana los días que marques.'
     : type === 'congreso' ? 'Varios días; configura el pase de día y de noche de cada jornada.'
@@ -110,9 +118,53 @@ function formHtml(){
       '</div>';
   }
 
-  return common + byType +
+  /* mapas de las salas: interior+exterior salvo en sociales (solo exterior) */
+  var allowInt = type !== 'exterior';
+  var mapsSec =
+    '<label class="cf-l">Mapas de las salas <span class="cf-opt">(opcional — hasta ' + MAP_MAX[type] + (allowInt ? ', de interior o exterior' : ', SOLO de exterior') + ')</span></label>' +
+    '<div id="cfMapList" class="cf-maplist"></div>' +
+    '<div class="cf-mapadd">' +
+      '<select class="cf-in" id="cfMapSel"></select>' +
+      '<button type="button" class="cf-addmap" id="cfMapAdd">Añadir</button>' +
+    '</div>' +
+    '<p class="lv-hint">¿No está en la lista? Créalo en el editor y vuelve: ' +
+      (allowInt ? '<a href="mapa-editor/" target="_blank" rel="noopener">editor interior ↗</a> · ' : '') +
+      '<a href="mapa-editor/?mode=exterior" target="_blank" rel="noopener">editor exterior ↗</a> ' +
+      '<button type="button" class="cf-reload" id="cfMapReload" title="Recargar la biblioteca">↻</button></p>';
+
+  return common + byType + mapsSec +
     '<p class="cf-err" id="cfErr" hidden></p>' +
     '<button class="cta" id="cfSave">Crear evento</button>';
+}
+
+/* ── selección de mapas del evento ── */
+function refreshMapSel(){
+  var sel = $('#cfMapSel'); if(!sel) return;
+  var allowInt = type !== 'exterior';
+  var used = {};
+  selMaps.forEach(function(m){ used[m.lib + ':' + m.id] = true; });
+  function group(lbl, lib){
+    var maps = libMaps(lib).filter(function(m){ return !used[lib + ':' + m.id]; });
+    if(!maps.length) return '';
+    return '<optgroup label="' + lbl + '">' + maps.map(function(m){
+      return '<option value="' + lib + ':' + esc(m.id) + '">' + esc(m.name || 'Sin nombre') + '</option>';
+    }).join('') + '</optgroup>';
+  }
+  var h = (allowInt ? group('Interior', 'int') : '') + group('Exterior', 'ext');
+  sel.innerHTML = h || '<option value="">— no hay mapas en tu biblioteca —</option>';
+  sel.disabled = !h;
+  $('#cfMapAdd').disabled = !h || selMaps.length >= MAP_MAX[type];
+}
+function renderMapList(){
+  var box = $('#cfMapList'); if(!box) return;
+  box.innerHTML = selMaps.map(function(m, i){
+    return '<div class="cf-mine"><span class="cf-mine-n">' + esc(m.name) + '</span>' +
+      '<span class="cf-mine-t">' + (m.lib === 'int' ? 'interior' : 'exterior') + '</span>' +
+      '<button class="cf-mine-x" data-i="' + i + '" title="Quitar">✕</button></div>';
+  }).join('') || '<p class="lv-hint">Sin mapas todavía — elige uno de tu biblioteca.</p>';
+  box.querySelectorAll('[data-i]').forEach(function(b){
+    b.addEventListener('click', function(){ selMaps.splice(+b.dataset.i, 1); renderMapList(); refreshMapSel(); });
+  });
 }
 
 function bindForm(){
@@ -123,6 +175,20 @@ function bindForm(){
     ['cfD1','cfD2'].forEach(function(id){ $('#' + id).addEventListener('change', renderPassDays); });
   }
   $('#cfSave').addEventListener('click', submit);
+  /* mapas de salas: añadir desde la biblioteca / recargarla tras crear uno */
+  renderMapList();
+  refreshMapSel();
+  $('#cfMapAdd').addEventListener('click', function(){
+    var v = $('#cfMapSel').value; if(!v) return;
+    if(selMaps.length >= MAP_MAX[type]) return;
+    var lib = v.split(':')[0], id = v.slice(v.indexOf(':') + 1);
+    var m = libMaps(lib).filter(function(x){ return x.id === id; })[0];
+    if(!m) return;
+    selMaps.push({ lib: lib, id: id, name: m.name || 'Sin nombre' });
+    renderMapList();
+    refreshMapSel();
+  });
+  $('#cfMapReload').addEventListener('click', function(){ refreshMapSel(); });
 }
 
 /* filas por día del congreso: checkbox Día / Noche (patrón típico premarcado) */
@@ -189,6 +255,7 @@ function submit(){
 
   var ev = { id: 'u_' + Date.now(), name: name, country: CITY_COUNTRY[city] || 'es', city: city, venue: venue, camIds: [] };
   if(coords) ev.coords = coords;
+  if(selMaps.length) ev.maps = selMaps.slice(0, MAP_MAX[type]);   // mapas de las salas
 
   if(type === 'sala'){
     var dows = [].map.call(document.querySelectorAll('.cf-dow.on'), function(b){ return +b.dataset.d; });

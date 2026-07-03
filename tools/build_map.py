@@ -145,10 +145,22 @@ def dist_km(a, b):
     kx = 111.32 * math.cos(math.radians((a[1] + b[1]) / 2))
     return math.hypot((a[0] - b[0]) * kx, (a[1] - b[1]) * 111.32)
 
+def in_centro(c):
+    """centro acotado (3,4 km) + UNA corona extra al NORTE y algo al OESTE
+    (pedido del usuario: la fila de barrios de arriba y uno más a la izquierda)"""
+    kx = 111.32 * math.cos(math.radians((c[1] + SOL[1]) / 2))
+    dx = (c[0] - SOL[0]) * kx
+    dy = (c[1] - SOL[1]) * 111.32
+    d = math.hypot(dx, dy)
+    if d <= RADIO_KM: return True
+    if dy > 0 and d <= RADIO_KM + 1.6: return True          # corona norte
+    if dx < 0 and abs(dy) < 2.6 and d <= RADIO_KM + 1.3: return True  # oeste
+    return False
+
 centro_rings = []
 for f in bar['features']:
     r = biggest(f['geometry'])
-    if dist_km(centroid(r), SOL) <= RADIO_KM:
+    if in_centro(centroid(r)):
         centro_rings.append(r)
 all_pts = [p for r in centro_rings for p in r]
 CENTER = make_proj(all_pts)

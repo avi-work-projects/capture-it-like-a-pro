@@ -41,7 +41,13 @@
   }
 
   /* ───────────────────────── VISTA AÑO (12 meses con puntos) ───────────── */
-  function renderYear(container, year, events, cb){
+  /* salas semanales que caen en ese día de la semana */
+  function salasOnDay(weekly, d){
+    var dow = d.getDay();
+    return (weekly || []).filter(function(w){ return (w.weekdays || [w.weekday]).indexOf(dow) !== -1; });
+  }
+
+  function renderYear(container, year, events, weekly, cb){
     var today = new Date(); today.setHours(0,0,0,0);
     var h = '<div class="cal-yearnav">' +
       '<button class="cal-nav" data-act="prevY">‹</button>' +
@@ -61,16 +67,19 @@
         var evs = events.filter(function(ev){ return coversDay(ev, year, m, d); });
         var isToday = today.getFullYear()===year && today.getMonth()===m && today.getDate()===d;
         /* CONGRESO en el anual: la celda se tiñe (banda azul al correr varios
-           días seguidos) en vez de un punto más — se distingue de un vistazo */
+           días seguidos). Las SALAS DE BAILE (semanales) también se representan:
+           punto violeta si ese día abre alguna del filtro. */
         var dots = '', hasCg = false;
-        if(evs.length){
+        var nSalas = salasOnDay(weekly, new Date(year, m, d)).length;
+        if(evs.length || nSalas){
           var types = {};
           evs.forEach(function(ev){ if(ev.type === 'congreso') hasCg = true; else types[ev.type] = true; });
+          if(nSalas) types.sala = true;
           Object.keys(types).slice(0,3).forEach(function(t){
             dots += '<i style="background:' + (TYPE_COLOR[t]||'#888') + '"></i>';
           });
         }
-        h += '<span class="cal-mini-d' + (evs.length?' has':'') + (hasCg?' cg':'') + (isToday?' today':'') + '">' +
+        h += '<span class="cal-mini-d' + ((evs.length||nSalas)?' has':'') + (hasCg?' cg':'') + (isToday?' today':'') + '">' +
              '<b>' + d + '</b><span class="cal-mini-dots">' + dots + '</span></span>';
       }
       h += '</div></button>';
@@ -86,7 +95,7 @@
   }
 
   /* ───────────────────────── VISTA MES (calendario / agenda) ───────────── */
-  function renderMonth(container, year, month, events, sub, nav, cb){
+  function renderMonth(container, year, month, events, weekly, sub, nav, cb){
     var today = new Date(); today.setHours(0,0,0,0);
     nav = nav || { canPrev:true, canNext:true };
     /* fila superior: año (vuelve a la rejilla anual) — los eventos pasados se
@@ -113,12 +122,12 @@
        (año, ‹mes›, sub-pestañas) queda fijo arriba. Mes SIN eventos: ni
        rejilla ni agenda — solo el aviso (el swipe sigue moviendo de mes). */
     h += '<div class="scroll-body">';
-    if(!mEvs.length){
+    if(!mEvs.length && !(weekly || []).length){
       h += '<p class="cal-empty" style="margin-top:22px">Sin eventos este mes para los filtros seleccionados.</p>';
     } else if(sub === 'agenda'){
-      h += renderAgenda(year, month, mEvs);
+      h += renderAgenda(year, month, mEvs, weekly);
     } else {
-      h += renderGrid(year, month, mEvs, today);
+      h += renderGrid(year, month, mEvs, weekly, today);
     }
     h += '</div>';
     container.innerHTML = h;
@@ -131,14 +140,23 @@
       t.addEventListener('click', function(){ cb.onSub(t.dataset.sub); });
     });
     container.querySelectorAll('[data-ev]').forEach(function(el){
-      el.addEventListener('click', function(){ cb.onEvent(el.dataset.ev); });
+      el.addEventListener('click', function(ev2){ ev2.stopPropagation(); cb.onEvent(el.dataset.ev); });
+    });
+    /* chips/resúmenes de salas → pestaña Horarios */
+    container.querySelectorAll('[data-salas]').forEach(function(el){
+      el.addEventListener('click', function(ev2){ ev2.stopPropagation(); if(cb.onSalas) cb.onSalas(); });
+    });
+    /* chip de varios sociales el mismo día → a la Agenda del mes */
+    container.querySelectorAll('[data-goagenda]').forEach(function(el){
+      el.addEventListener('click', function(ev2){ ev2.stopPropagation(); cb.onSub('agenda'); });
     });
   }
 
-  function renderGrid(year, month, mEvs, today){
-    /* todos los eventos (puntuales incluidos) se pintan como barras con texto:
-       los de un día ocupan una sola columna */
-    var allEv = mEvs;
+  function renderGrid(year, month, mEvs, weekly, today){
+    /* REPRESENTACIÓN (ronda 6): los congresos van como CINTA multi-día (la que
+       gustó); lo de UN día ya no son barras sosas → cada celda lleva CHIPS con
+       contador por tipo: violeta ×N salas de baile, ámbar ×N sociales */
+    var allEv = mEvs.filter(function(ev){ return ev.type === 'congreso' || isMultiDay(ev); });
     var first = new Date(year, month, 1), last = new Date(year, month+1, 0);
     var h = '<div class="cal-grid"><div class="cal-grid-h">';
     DOW_H.forEach(function(d){ h += '<span>' + d + '</span>'; });
@@ -184,8 +202,19 @@
           if(di === 6 || D === L)  edge += ' r';   // última columna o último día del mes
           if(D + 7 > L)            edge += ' b';   // no hay día del mes justo debajo
         }
+        var chips = '';
+        if(inM){
+          var nS = salasOnDay(weekly, d).length;
+          var singles = mEvs.filter(function(ev){
+            return ev.type !== 'congreso' && !isMultiDay(ev) && coversDay(ev, d.getFullYear(), d.getMonth(), d.getDate());
+          });
+          if(nS) chips += '<button class="cal-chip cs" data-salas title="Salas de baile — ver horarios">×' + nS + '</button>';
+          if(singles.length === 1) chips += '<button class="cal-chip ce" data-ev="' + singles[0].id + '" title="' + esc(singles[0].name) + '">★</button>';
+          else if(singles.length > 1) chips += '<button class="cal-chip ce" data-goagenda title="Sociales del día">★×' + singles.length + '</button>';
+        }
         h += '<div class="cal-day' + (inM?'':' out') + (isT?' today':'') + (wknd?' wknd':'') + edge + '">' +
              '<span class="cal-dn">' + (inM?d.getDate():'') + '</span>' +
+             '<span class="cal-chips">' + chips + '</span>' +
              '</div>';
       }
       // barras superpuestas
@@ -214,7 +243,7 @@
     return h;
   }
 
-  function renderAgenda(year, month, mEvs){
+  function renderAgenda(year, month, mEvs, weekly){
     /* los CONGRESOS se despliegan en sus PASES por día (día/noche), cada uno
        bajo su fecha — la entrada única multi-día ocultaba la estructura real */
     var expanded = [];
@@ -232,19 +261,33 @@
       } else expanded.push(ev);
     });
     var list = expanded.sort(function(a,b){ return a.startsAt - b.startsAt; });
-    if(!list.length) return '<p class="cal-empty">Sin eventos este mes para los filtros seleccionados.</p>';
-    var h = '<div class="evts" style="margin-top:14px">';
-    var lastKey = null;
+    var hasSalas = (weekly || []).length > 0;
+    if(!list.length && !hasSalas) return '<p class="cal-empty">Sin eventos este mes para los filtros seleccionados.</p>';
+    /* agrupado por día del mes: los puntuales/pases + un RESUMEN compacto de
+       las salas de baile que abren ese día ("×5 · ver horarios") */
+    var byDay = {};
     list.forEach(function(ev){
-      var d = new Date(ev.startsAt), key = d.getDate();
-      if(key !== lastKey){ h += '<div class="date-head">' + dateHeaderLabel(ev.startsAt) + '</div>'; lastKey = key; }
-      var when = isMultiDay(ev) ? (fmtDate(ev.startsAt) + ' – ' + fmtDate(ev.endsAt)) : evHours(ev);
-      if(ev.passLabel) when += ' · ' + ev.passLabel;
-      var col = TYPE_COLOR[ev.type] || '#888';
-      h += '<button class="evt t-' + ev.type + '" data-ev="' + ev.id + '" style="border-left-color:' + col + '">' +
-           '<div class="evt-head"><span class="evt-name">' + esc(ev.name) + '</span></div>' +
-           '<span class="evt-meta">' + when + ' · ' + ev.venue + ' · ' + (CITY_LABELS[ev.city]||ev.city) + '</span></button>';
+      var d = new Date(ev.startsAt).getDate();
+      (byDay[d] = byDay[d] || []).push(ev);
     });
+    var lastDay = new Date(year, month + 1, 0).getDate();
+    var h = '<div class="evts" style="margin-top:14px">';
+    for(var day = 1; day <= lastDay; day++){
+      var items = byDay[day] || [];
+      var nS = hasSalas ? salasOnDay(weekly, new Date(year, month, day)).length : 0;
+      if(!items.length && !nS) continue;
+      var ts0 = new Date(year, month, day).getTime();
+      h += '<div class="date-head">' + dateHeaderLabel(ts0) + '</div>';
+      items.forEach(function(ev){
+        var when = isMultiDay(ev) ? (fmtDate(ev.startsAt) + ' – ' + fmtDate(ev.endsAt)) : evHours(ev);
+        if(ev.passLabel) when += ' · ' + ev.passLabel;
+        var col = TYPE_COLOR[ev.type] || '#888';
+        h += '<button class="evt t-' + ev.type + '" data-ev="' + ev.id + '" style="border-left-color:' + col + '">' +
+             '<div class="evt-head"><span class="evt-name">' + esc(ev.name) + '</span></div>' +
+             '<span class="evt-meta">' + when + ' · ' + ev.venue + ' · ' + (CITY_LABELS[ev.city]||ev.city) + '</span></button>';
+      });
+      if(nS) h += '<button class="salasum" data-salas>Salas de baile ×' + nS + ' <span>ver horarios ›</span></button>';
+    }
     h += '</div>';
     return h;
   }

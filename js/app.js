@@ -921,6 +921,13 @@
       '</g>' +
       '<rect class="map-region" x="3" y="3" width="94" height="94" rx="11"/>';
   }
+  /* hito "Sol" (Puerta del Sol) para orientarse en ciudad y centro */
+  function solMark(proj){
+    if(!proj) return '';
+    var x = 50 + (-3.7038 - proj.lon0) * proj.coslat * proj.k;
+    var y = 50 - (40.4168 - proj.lat0) * proj.k;
+    return '<g class="map-sol" transform="translate(' + x.toFixed(1) + ',' + y.toFixed(1) + ')"><circle r="0.9"/><text y="-2">Sol</text></g>';
+  }
   var MAP_SCENE = {
     region: mapFrame(
       '<g class="map-neigh">' +
@@ -939,10 +946,12 @@
        (128 polígonos en UN solo path) que hace reconocible la trama de Madrid */
     city: mapFrame(
       '<path class="map-madrid" d="' + MAP_GEO.city.d + '"/>' +
-      '<path class="map-dist" d="' + (MAP_GEO.city.dist || '') + '"/>'),
+      '<path class="map-dist" d="' + (MAP_GEO.city.dist || '') + '"/>' +
+      solMark(MAP_GEO.city.proj)),
     /* vista centro: solo los barrios dentro de la M-30 (y periferia inmediata),
        como mosaico relleno — la vista ciudad entera mete demasiado barrio */
-    center: mapFrame('<path class="map-center" d="' + (MAP_GEO.center ? MAP_GEO.center.d : '') + '"/>')
+    center: mapFrame('<path class="map-center" d="' + (MAP_GEO.center ? MAP_GEO.center.d : '') + '"/>' +
+      solMark(MAP_GEO.center && MAP_GEO.center.proj))
   };
 
   function mapBuildDays(){
@@ -1141,23 +1150,13 @@
      "Ver eventos pasados" se eliminó a petición del usuario) */
   var evMode = 'prox', calYear = (new Date()).getFullYear(), calMonth = null, calSub = 'cal', calPast = true;
   function ymVal(y, m){ return y * 12 + m; }
-  /* límites de navegación de meses: por defecto del mes actual hacia delante
-     (hasta el último evento); con "Ver eventos pasados" se abre hacia atrás
-     hasta el primer mes con evento */
-  function calLimits(){
-    var now = new Date(), cur = ymVal(now.getFullYear(), now.getMonth());
-    var minV = cur, maxV = cur;
-    eventsByFilter('oneoff', true).forEach(function(e){
-      var d = new Date(e.startsAt), v = ymVal(d.getFullYear(), d.getMonth());
-      if(v < minV) minV = v; if(v > maxV) maxV = v;
-    });
-    return { lower: calPast ? minV : cur, upper: Math.max(maxV, cur), cur: cur, evMin: minV };
-  }
+  /* NAVEGACIÓN LIBRE (norma única del usuario): el swipe y las flechas
+     funcionan SIEMPRE entre meses — sin topes; el único caso especial es
+     "cero eventos para los filtros", donde ni siquiera hay vista de mes */
   function goCalMonth(delta){
-    var lim = calLimits(), v = ymVal(calYear, calMonth) + delta;
-    if(v < lim.lower || v > lim.upper) return;
+    var v = ymVal(calYear, calMonth) + delta;
     pushHist();                          // cambio de mes: ← vuelve al mes anterior
-    calYear = Math.floor(v / 12); calMonth = v % 12; renderCalMode();
+    calYear = Math.floor(v / 12); calMonth = ((v % 12) + 12) % 12; renderCalMode();
     /* entrada suave del mes nuevo: SOLO opacidad (un transform rompería los
        sticky internos de la agenda — gotcha conocido) */
     var body = $('#modeCal .scroll-body');
@@ -1194,26 +1193,27 @@
   function renderCalMode(){
     var c = $('#modeCal');
     var evs = eventsByFilter('oneoff', true);
+    var weekly = eventsByFilter('weekly', false);   // las salas TAMBIÉN se representan
     /* sin NINGÚN evento para los filtros: nada de meses ni rejillas — solo el
        aviso (el swipe de pestañas sigue funcionando sobre #view2) */
-    if(!evs.length){
+    if(!evs.length && !weekly.length){
       c.innerHTML = '<div class="scroll-body"><p class="cal-empty" style="margin-top:26px">Sin eventos para los filtros seleccionados.</p></div>';
       scheduleRelayout();
       return;
     }
     if(calMonth == null){
-      Calendar.renderYear(c, calYear, evs, {
+      Calendar.renderYear(c, calYear, evs, weekly, {
         onYear:  function(y){ pushHist(); calYear = y; renderCalMode(); },
         onMonth: function(m){ pushHist(); calMonth = m; calSub = 'agenda'; renderCalMode(); }   // al abrir un mes → Agenda primero
       });
     } else {
-      var lim = calLimits(), v = ymVal(calYear, calMonth);
-      var nav = { canPrev: v > lim.lower, canNext: v < lim.upper };
-      Calendar.renderMonth(c, calYear, calMonth, evs, calSub, nav, {
+      /* navegación LIBRE: flechas siempre activas (norma única del usuario) */
+      Calendar.renderMonth(c, calYear, calMonth, evs, weekly, calSub, { canPrev:true, canNext:true }, {
         onBack:  function(){ pushHist(); calMonth = null; renderCalMode(); },
         onSub:   function(s){ if(s!==calSub) pushHist(); calSub = s; renderCalMode(); },
         onStep:  function(d){ goCalMonth(d); },
-        onEvent: calEvent
+        onEvent: calEvent,
+        onSalas: function(){ setEvMode('horarios'); }   // el chip de salas lleva a Horarios
       });
     }
     scheduleRelayout();   // fija año, nav de mes y sub-pestañas
@@ -1241,7 +1241,7 @@
     $('#modeCal').hidden      = mode !== 'cal';
     $('#modeHorarios').hidden = mode !== 'horarios';
     if(mode === 'prox')          renderResults();
-    else if(mode === 'cal')    { if(calMonth == null){ var nd = new Date(); calMonth = nd.getMonth(); calYear = nd.getFullYear(); } renderCalMode(); }   // abre en el mes en curso
+    else if(mode === 'cal')    { calMonth = null; calYear = (new Date()).getFullYear(); renderCalMode(); }   // SIEMPRE abre en el ANUAL
     else                       { horSala = null; renderHorariosMode(); }
     /* en calendario/horarios comprimimos los criterios para que el contenido
        (p.ej. el mes entero) quepa arriba. Cambiar de pestaña NUNCA despliega
