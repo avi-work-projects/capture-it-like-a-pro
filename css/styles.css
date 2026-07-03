@@ -1327,6 +1327,8 @@ body{
 .map-neigh path{fill:var(--surface);fill-opacity:.55;stroke:var(--line);stroke-width:.45;stroke-linejoin:round}
 .map-prov text{fill:var(--muted);font-size:3.1px;font-family:var(--mono);letter-spacing:.04em}
 .map-madrid{fill:rgba(61,169,255,.13);stroke:#3da9ff;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}
+/* malla de barrios (vista ciudad): delimitación suave, solo trazo fino */
+.map-dist{fill:none;stroke:#3da9ff;stroke-width:.18;stroke-opacity:.45;stroke-linejoin:round}
 .map-madrid-lbl{fill:var(--text);font-size:4px;text-anchor:middle;font-family:var(--display);letter-spacing:.12em}
 .map-mk{cursor:pointer}
 .mk-halo{transform-box:fill-box;transform-origin:center;animation:mkpulse 1.6s ease-out infinite}

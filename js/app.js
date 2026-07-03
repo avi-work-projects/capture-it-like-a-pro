@@ -829,8 +829,11 @@
       '</g>' +
       '<path class="map-madrid" d="' + MAP_GEO.madrid + '"/>' +
       '<text class="map-madrid-lbl" x="44" y="42">MADRID</text>'),
-    /* vista ciudad "a pelo": solo el contorno real del municipio */
-    city: mapFrame('<path class="map-madrid" d="' + MAP_GEO.city.d + '"/>')
+    /* vista ciudad: contorno real del municipio + malla sutil de barrios
+       (128 polígonos en UN solo path) que hace reconocible la trama de Madrid */
+    city: mapFrame(
+      '<path class="map-madrid" d="' + MAP_GEO.city.d + '"/>' +
+      '<path class="map-dist" d="' + (MAP_GEO.city.dist || '') + '"/>')
   };
 
   function mapBuildDays(){

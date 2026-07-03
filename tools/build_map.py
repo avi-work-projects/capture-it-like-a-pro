@@ -19,9 +19,12 @@ def fetch(dataset, where, path):
 SRC    = os.path.join(HERE, 'provs.geojson')   # 5 provincias (sin tilde en el where)
 SRC_AV = os.path.join(HERE, 'avila.geojson')   # Ávila por código (la tilde rompe el where)
 SRC_MUN= os.path.join(HERE, 'mun_madrid.geojson')
+SRC_BAR= os.path.join(HERE, 'barrios_madrid.geojson')  # 128 barrios (click_that_hood)
 fetch('georef-spain-provincia', "prov_name in ('Madrid','Toledo','Guadalajara','Cuenca','Segovia')", SRC)
 fetch('georef-spain-provincia', "prov_code='05'", SRC_AV)
 fetch('georef-spain-municipio', "mun_code='28079'", SRC_MUN)
+if not os.path.exists(SRC_BAR):
+    urllib.request.urlretrieve('https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/madrid.geojson', SRC_BAR)
 
 gj = json.load(open(SRC, encoding='utf-8'))
 gj['features'] += json.load(open(SRC_AV, encoding='utf-8'))['features']
@@ -119,6 +122,17 @@ for name in ['Segovia', 'Guadalajara', 'Cuenca', 'Toledo', 'Ávila']:
     print(name, n, 'pts')
 mun_d, n = to_path(CITY, mun_ring, 0.4, smooth=2); print('Municipio (city)', n, 'pts')
 
+# ── barrios (textura interna de la vista ciudad): todos en UN solo path ──
+bar = json.load(open(SRC_BAR, encoding='utf-8'))
+bar_parts, bar_pts = [], 0
+for f in bar['features']:
+    for ring in rings(f['geometry']):
+        d, np_ = to_path(CITY, ring, 0.25, smooth=1)
+        if np_ >= 4:              # descartar restos degenerados
+            bar_parts.append(d); bar_pts += np_
+bar_d = ' '.join(bar_parts)
+print('Barrios (city)', len(bar_parts), 'poligonos,', bar_pts, 'pts')
+
 # ── centros de ciudad (lon, lat CRUDOS): la app los proyecta en runtime con la
 #    proyección de la escena activa (fallback para eventos sin coords propias) ──
 cities = {
@@ -146,7 +160,7 @@ for name, d in neigh.items():
     js.append('    %s: "%s",' % (key, d))
 js.append('  },')
 js.append('  proj: %s,' % js_proj(REG))
-js.append('  city: { d: "%s", proj: %s },' % (mun_d, js_proj(CITY)))
+js.append('  city: { d: "%s", dist: "%s", proj: %s },' % (mun_d, bar_d, js_proj(CITY)))
 js.append('  cities: %s' % json.dumps(cities))
 js.append('};')
 open(OUT, 'w', encoding='utf-8').write('\n'.join(js) + '\n')
