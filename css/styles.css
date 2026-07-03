@@ -804,12 +804,33 @@ body{
 .lv-status{font-family:var(--mono);font-size:10px;letter-spacing:.03em;color:var(--muted);margin-top:10px}
 .lv-log{font-family:var(--mono);font-size:9.5px;line-height:1.5;color:var(--muted);opacity:.7;margin-top:6px;max-height:62px;overflow:hidden}
 #liveBody{padding-bottom:26px}
-/* fase 1 del bailarín: elegir camarógrafo */
+/* fase 1 del bailarín: elegir camarógrafo (fila pulsable entera) */
 .lv-camrow{
-  display:flex;align-items:center;gap:12px;
+  display:flex;align-items:center;gap:12px;width:100%;
   background:var(--bg);border:1px solid var(--line);border-radius:10px;
   padding:10px 12px;margin-bottom:7px;
+  font:inherit;color:inherit;text-align:left;cursor:pointer;
+  transition:border-color .15s;
 }
+.lv-camrow:active{border-color:var(--accent)}
+.lv-cam-q{
+  flex:none;display:flex;flex-direction:column;align-items:center;line-height:1.1;
+  font-family:var(--mono);color:var(--muted);
+}
+.lv-cam-q b{font-size:16px;color:var(--text)}
+.lv-cam-q span{font-size:7.5px;letter-spacing:.08em;text-transform:uppercase}
+.lv-cam-q.free b{color:#30d158}
+.app.light .lv-cam-q.free b{color:#1d7d3c}
+.lv-cam-go{flex:none;color:var(--muted);font-size:17px}
+/* ficha del cam: volver + cabecera */
+.lv-backrow{
+  background:none;border:none;color:var(--accent);cursor:pointer;
+  font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  padding:0 0 10px;text-align:left;
+}
+.lv-camhead{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.lv-camhead b{font-family:var(--opt-font);font-size:19px;color:var(--text)}
+.lv-camhead > span{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .lv-cam-i{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .lv-cam-i b{font-size:14.5px;color:var(--text)}
 .lv-cam-s{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
@@ -1629,8 +1650,12 @@ body{
 }
 .cta::before{content:'';width:9px;height:9px;border-radius:50%;background:#0a0a0a;animation:blink 1.4s infinite}
 .cta:hover,.cta:active{transform:scale(1.02);box-shadow:0 0 24px var(--accent-glow)}
-.cta.leave{background:transparent;color:var(--text)}
-.cta.leave::before{background:var(--accent)}
+/* acciones de "salirme/quitarme": BIEN visibles en rojo (no un fantasma) —
+   lo pidió el usuario para "Salir de la cola" del modo en directo */
+.cta.leave{background:transparent;color:#ff5a4d;border-color:#ff5a4d;box-shadow:0 0 14px rgba(255,59,48,.15)}
+.cta.leave::before{background:#ff5a4d}
+.app.light .cta.leave{color:#d63a2f;border-color:#d63a2f}
+.app.light .cta.leave::before{background:#d63a2f}
 .cta[hidden]{display:none}
 
 /* ── pantalla de evento: info breve + intenciones + revelar cámaras ── */

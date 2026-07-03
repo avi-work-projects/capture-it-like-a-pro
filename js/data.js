@@ -86,7 +86,8 @@
      liveCams = check-in ya hecho (demo). */
   var EVENTS = [
   /* === SALAS REALES de Madrid (sbkapp.es), semanales === */
-  { id:'s_thehost', name:"The Host", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[2, 3, 4, 5], timeLabel:"23:30–04:00", venue:"C. de Ferraz, 38", coords:[-3.71731,40.42631], camIds:["juan", "ana"], liveCams:["juan"] },
+  /* The Host lleva 5 cámaras (demo del modo EN DIRECTO: colas de 0/0/2/3/4) */
+  { id:'s_thehost', name:"The Host", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[2, 3, 4, 5], timeLabel:"23:30–04:00", venue:"C. de Ferraz, 38", coords:[-3.71731,40.42631], camIds:["juan", "ana", "carlos", "lucia", "david"], liveCams:["juan"] },
   { id:'s_salacalips', name:"Sala Calipso", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[5, 6], timeLabel:"22:00–04:00", venue:"C. de Uruguay, 5", coords:[-3.67582,40.45529], camIds:[] },
   { id:'s_salsebasti', name:"Salsebastián", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[5, 6], timeLabel:"22:00–04:00", venue:"Av. Fuente Nueva, 5, Nave 16B", coords:[-3.61069,40.54729], camIds:[] },
   { id:'s_azucar', name:"Azúcar", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[5, 6], timeLabel:"23:00–05:00", venue:"C. de Atocha, 107", coords:[-3.69517,40.41057], camIds:["lucia"] },

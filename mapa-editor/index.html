@@ -394,6 +394,8 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
    editar la estructura desde "Estoy dentro" (bug reportado 2 veces) */
 .app.live-view #canvas svg,.app.live-view #canvas .el,
 .app.live-view #canvas .pfl,.app.live-view #canvas .pglow{pointer-events:none !important}
+/* los camarógrafos sembrados van locked: el candadito sobra en el mapa live */
+.app.live .lock-badge{display:none !important}
 
 /* padding inferior generoso: la última línea (hint) no debe besar el borde/recortarse */
 .tab-body{position:relative;z-index:2;padding:8px 18px calc(16px + env(safe-area-inset-bottom));min-height:120px}
@@ -1116,7 +1118,12 @@ function syncSeq(){
     ...state.elements.map(e => e.id));
 }
 function saveDraft(){
-  localStorage.setItem(DRAFT_KEY, JSON.stringify(state));
+  /* en modo LIVE no persistimos los marcadores de camarógrafos sembrados por
+     la app (ids ≥9000): son de 'cilap-live-cams' y se re-inyectan al cargar */
+  const snap = LIVE
+    ? Object.assign({}, state, { elements: state.elements.filter(e => e.id < 9000) })
+    : state;
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(snap));
   if(!histLock) pushHist();
 }
 
@@ -2305,10 +2312,18 @@ if(LIVE){
   if(LIVE === 'cam'){
     currentTab = 'camaras';   // solo la cámara responde (reglas sec-camaras)
     if(!state.elements.some(e => e.type === 'camarografo')){
-      state.elements.push({ id: idSeq++, type:'camarografo', x:50, y:45, w:26, h:26, rot:0 });
+      state.elements.push({ id: idSeq++, type:'camarografo', x:50, y:45, w:26, h:26, rot:0, text:'Tú' });
       saveDraft();
     }
   }
+  /* camarógrafos del evento situados en el mapa (los siembra la app en
+     'cilap-live-cams'): marcadores BLOQUEADOS con su nombre, ids ≥9000 —
+     saveDraft los descarta para no duplicarlos en cada carga */
+  try{
+    (JSON.parse(localStorage.getItem('cilap-live-cams')) || []).forEach((c, i) => {
+      state.elements.push({ id: 9000 + i, type:'camarografo', x:c.x, y:c.y, w:24, h:24, rot:0, text:c.name, locked:true });
+    });
+  }catch(err){}
 }
 $('#map-name').value = state.name || '';
 /* título y pestaña inicial según el modo */
