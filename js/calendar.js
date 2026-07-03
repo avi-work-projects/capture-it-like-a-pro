@@ -60,15 +60,17 @@
       for(var d=1; d<=last.getDate(); d++){
         var evs = events.filter(function(ev){ return coversDay(ev, year, m, d); });
         var isToday = today.getFullYear()===year && today.getMonth()===m && today.getDate()===d;
-        var dots = '';
+        /* CONGRESO en el anual: la celda se tiñe (banda azul al correr varios
+           días seguidos) en vez de un punto más — se distingue de un vistazo */
+        var dots = '', hasCg = false;
         if(evs.length){
           var types = {};
-          evs.forEach(function(ev){ types[ev.type] = true; });
+          evs.forEach(function(ev){ if(ev.type === 'congreso') hasCg = true; else types[ev.type] = true; });
           Object.keys(types).slice(0,3).forEach(function(t){
             dots += '<i style="background:' + (TYPE_COLOR[t]||'#888') + '"></i>';
           });
         }
-        h += '<span class="cal-mini-d' + (evs.length?' has':'') + (isToday?' today':'') + '">' +
+        h += '<span class="cal-mini-d' + (evs.length?' has':'') + (hasCg?' cg':'') + (isToday?' today':'') + '">' +
              '<b>' + d + '</b><span class="cal-mini-dots">' + dots + '</span></span>';
       }
       h += '</div></button>';
@@ -86,11 +88,11 @@
   /* ───────────────────────── VISTA MES (calendario / agenda) ───────────── */
   function renderMonth(container, year, month, events, sub, nav, cb){
     var today = new Date(); today.setHours(0,0,0,0);
-    nav = nav || { canPrev:true, canNext:true, past:false };
-    /* fila superior: año (vuelve a la rejilla anual) + switch "Ver eventos pasados" */
+    nav = nav || { canPrev:true, canNext:true };
+    /* fila superior: año (vuelve a la rejilla anual) — los eventos pasados se
+       ven SIEMPRE (el switch se eliminó a petición del usuario) */
     var h = '<div class="cal-monthtop">' +
       '<button class="cal-nav" data-act="back">‹ ' + year + '</button>' +
-      '<button class="cal-pastsw' + (nav.past?' on':'') + '" data-act="past"><span class="sw-track"><span class="sw-knob"></span></span>Ver eventos pasados</button>' +
       '</div>';
     h += '<div class="cal-monthnav">' +
       '<button class="cal-nav" data-act="prevM"' + (nav.canPrev?'':' disabled') + '>‹</button>' +
@@ -108,9 +110,12 @@
     });
 
     /* contenido (rejilla/agenda) en .scroll-body → solo él rebota; el chrome
-       (año+switch, ‹mes›, sub-pestañas) queda fijo arriba. */
+       (año, ‹mes›, sub-pestañas) queda fijo arriba. Mes SIN eventos: ni
+       rejilla ni agenda — solo el aviso (el swipe sigue moviendo de mes). */
     h += '<div class="scroll-body">';
-    if(sub === 'agenda'){
+    if(!mEvs.length){
+      h += '<p class="cal-empty" style="margin-top:22px">Sin eventos este mes para los filtros seleccionados.</p>';
+    } else if(sub === 'agenda'){
       h += renderAgenda(year, month, mEvs);
     } else {
       h += renderGrid(year, month, mEvs, today);
@@ -119,7 +124,6 @@
     container.innerHTML = h;
 
     container.querySelector('[data-act="back"]').addEventListener('click', cb.onBack);
-    container.querySelector('[data-act="past"]').addEventListener('click', cb.onTogglePast);
     var pv = container.querySelector('[data-act="prevM"]'), nx = container.querySelector('[data-act="nextM"]');
     if(nav.canPrev) pv.addEventListener('click', function(){ cb.onStep(-1); });
     if(nav.canNext) nx.addEventListener('click', function(){ cb.onStep(1); });
@@ -190,27 +194,52 @@
         var col = TYPE_COLOR[b.ev.type] || '#888';
         var rounded = (coversDay(b.ev, wk[b.cs].getFullYear(),wk[b.cs].getMonth(),wk[b.cs].getDate()) && b.ev.startsAt >= wStart);
         var roundedE = (b.ev.endsAt <= wEnd);
-        h += '<button class="cal-bar' + (rounded?' s':'') + (roundedE?' e':'') + '" data-ev="' + b.ev.id + '" ' +
-             'style="left:' + leftPct.toFixed(2) + '%;width:' + wPct.toFixed(2) + '%;top:calc(var(--cal-dn-h) + ' + b.row + '*var(--cal-bar-h));' +
-             'background:' + col + '22;border-color:' + col + ';color:' + col + '">' +
-             '<span>' + esc(b.ev.name) + '</span></button>';
+        if(b.ev.type === 'congreso'){
+          /* CONGRESO: cinta fina + nombre UNA sola vez (en su primer tramo) —
+             la barra gorda repitiendo el nombre cada semana quedaba fatal */
+          h += '<button class="cal-bar cg' + (rounded?' s':'') + (roundedE?' e':'') + '" data-ev="' + b.ev.id + '" ' +
+               'style="left:' + leftPct.toFixed(2) + '%;width:' + wPct.toFixed(2) + '%;top:calc(var(--cal-dn-h) + ' + b.row + '*var(--cal-bar-h));--cgc:' + col + '">' +
+               (rounded ? '<span class="cgn">' + esc(b.ev.name) + '</span>' : '<span class="cgn"></span>') +
+               '<i class="cgr"></i></button>';
+        } else {
+          h += '<button class="cal-bar' + (rounded?' s':'') + (roundedE?' e':'') + '" data-ev="' + b.ev.id + '" ' +
+               'style="left:' + leftPct.toFixed(2) + '%;width:' + wPct.toFixed(2) + '%;top:calc(var(--cal-dn-h) + ' + b.row + '*var(--cal-bar-h));' +
+               'background:' + col + '22;border-color:' + col + ';color:' + col + '">' +
+               '<span>' + esc(b.ev.name) + '</span></button>';
+        }
       });
       h += '</div>';
     }
     h += '</div>';
-    if(!mEvs.length) h += '<p class="cal-empty">No hay eventos puntuales este mes.</p>';
     return h;
   }
 
   function renderAgenda(year, month, mEvs){
-    var list = mEvs.slice().sort(function(a,b){ return a.startsAt - b.startsAt; });
-    if(!list.length) return '<p class="cal-empty">No hay eventos puntuales este mes.</p>';
+    /* los CONGRESOS se despliegan en sus PASES por día (día/noche), cada uno
+       bajo su fecha — la entrada única multi-día ocultaba la estructura real */
+    var expanded = [];
+    mEvs.forEach(function(ev){
+      if(ev.type === 'congreso' && ev.passes && typeof congressOccs === 'function'){
+        congressOccs(ev).forEach(function(o){
+          var d = new Date(o.startsAt);
+          if(d.getFullYear() !== year || d.getMonth() !== month) return;
+          expanded.push(Object.assign({}, ev, {
+            id: ev.id + '@' + o.startsAt + '#' + o.passType,
+            startsAt: o.startsAt, endsAt: o.endsAt,
+            passLabel: o.passType === 'day' ? 'Pase de día' : 'Pase de noche'
+          }));
+        });
+      } else expanded.push(ev);
+    });
+    var list = expanded.sort(function(a,b){ return a.startsAt - b.startsAt; });
+    if(!list.length) return '<p class="cal-empty">Sin eventos este mes para los filtros seleccionados.</p>';
     var h = '<div class="evts" style="margin-top:14px">';
     var lastKey = null;
     list.forEach(function(ev){
       var d = new Date(ev.startsAt), key = d.getDate();
       if(key !== lastKey){ h += '<div class="date-head">' + dateHeaderLabel(ev.startsAt) + '</div>'; lastKey = key; }
       var when = isMultiDay(ev) ? (fmtDate(ev.startsAt) + ' – ' + fmtDate(ev.endsAt)) : evHours(ev);
+      if(ev.passLabel) when += ' · ' + ev.passLabel;
       var col = TYPE_COLOR[ev.type] || '#888';
       h += '<button class="evt t-' + ev.type + '" data-ev="' + ev.id + '" style="border-left-color:' + col + '">' +
            '<div class="evt-head"><span class="evt-name">' + esc(ev.name) + '</span></div>' +

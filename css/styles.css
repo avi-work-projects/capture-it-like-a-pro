@@ -697,8 +697,8 @@ body{
 .card.create .crt{display:flex;flex-direction:column;gap:2px;text-align:left}
 .card.create .name{font-size:17px}
 .card.create .sub{font-size:11.5px}
-/* engranaje en la cabecera del hub (a la derecha del título) */
-.hub-gear{position:relative;margin-left:auto;align-self:flex-start}
+/* engranaje en la cabecera del hub (columna izquierda, sobre el ←) */
+.hub-gear{position:relative}
 /* punto de aviso (config sin rellenar) en la esquina sup. dcha. */
 .gear-badge{
   position:absolute;top:-4px;right:-4px;
@@ -758,7 +758,7 @@ body{
 .lv-mine-pos b{color:var(--accent)}
 /* mapa embebido (editor en modo live) */
 .lv-map-wrap{height:330px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
-#lvMap{display:block;width:100%;height:100%;border:0}
+#lvMap{display:block;width:100%;height:100%;border:0;opacity:1;transition:opacity .22s ease}
 .lv-hint{font-size:11px;color:var(--muted);margin:8px 0 0}
 .done-hint{color:#30d158}
 .app.light .done-hint{color:#1d7d3c}
@@ -866,6 +866,27 @@ body{
 .lv-demand span{font-size:10.5px;color:var(--muted);line-height:1.3}
 /* el CTA de seguir del perfil no debe besar el borde/OSD inferior */
 #profFollowBtn{margin-bottom:30px}
+/* entrada suave del mes (SOLO opacidad: transform rompe stickies internos) */
+.cal-fade{animation:calFade .22s ease}
+@keyframes calFade{from{opacity:.25}to{opacity:1}}
+/* CONGRESO en la rejilla del mes: cinta fina + nombre una sola vez */
+.cal-bar.cg{
+  background:none;border:none;padding:0 2px;
+  display:flex;flex-direction:column;justify-content:flex-end;gap:1px;
+}
+.cal-bar.cg .cgn{
+  display:block;font-family:var(--mono);font-size:8px;letter-spacing:.03em;
+  color:var(--cgc);text-align:left;line-height:1.15;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.cal-bar.cg .cgr{display:block;height:6px;border-radius:0;background:var(--cgc);opacity:.85}
+.cal-bar.cg.s .cgr{border-top-left-radius:4px;border-bottom-left-radius:4px}
+.cal-bar.cg.e .cgr{border-top-right-radius:4px;border-bottom-right-radius:4px}
+/* CONGRESO en el anual: celda teñida (banda azul al correr días seguidos) */
+.cal-mini-d.cg{background:rgba(61,169,255,.26);border-radius:3px}
+/* engranaje del hub sobre el botón atrás, con acento visible */
+.hub-gear{color:#c46bff}
+.hub-gear .icn{color:#c46bff}
 .lv-cam-i{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .lv-cam-i b{font-size:14.5px;color:var(--text)}
 .lv-cam-s{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}

@@ -15,7 +15,7 @@
   var CITY_LABELS = { all:'Todas', mad:'Madrid', sev:'Sevilla', bcn:'Barcelona',
                       waw:'Varsovia', kra:'Cracovia' };
   var TYPE_LABELS = { sala:'Salas de baile', congreso:'Congresos', exterior:'Sociales al exterior' };
-  var SUB_LABELS  = { all:'Todos', terraza:'Terraza', playa:'Playa', parque:'Parque' };
+  var SUB_LABELS  = { all:'Todos', terraza:'Terraza', playa:'Playa', parque:'Parque', piscina:'Piscina' };
   /* provincias (nivel entre País y Ciudad): claves p+código INE (España) o
      slug (Polonia). Cada ciudad pertenece a una; ev.prov se deriva de su city. */
   var PROV_LABELS = { all:'Todas', p28:'Madrid', p41:'Sevilla', p08:'Barcelona',
@@ -97,6 +97,17 @@
   { id:'s_catslatind', name:"Cats Latin Dance", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[0], timeLabel:"20:00–02:00", venue:"C. de Julián Romea, 4", coords:[-3.71343,40.44278], camIds:[] },
   { id:'s_kumarah540', name:"Kumarah 5.40", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[4, 0], timeLabel:"22:00–03:00", venue:"C. Sofía, 3", coords:[-3.89313,40.49977], camIds:[] },
   { id:'s_salajowke', name:"Sala Jowke", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[0], timeLabel:"20:00–02:00", venue:"Av. San Martín de Valdeiglesias, 22", coords:[-3.82743,40.35819], camIds:[] },
+  /* === CONGRESOS DEMO (para probar pases/bloqueos/sociales) === */
+  /* completo: pase de día Y de noche los 3 días */
+  { id:'c_demo_full', name:"Bachata Sunrise Weekend", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-07-10', dateEnd:'2026-07-12', venue:"Hotel Riu Plaza España", coords:[-3.71207,40.42395], camIds:["juan","marta"],
+    passes:[ { date:'2026-07-10', day:{start:'11:00',end:'20:00'}, night:{start:'22:00',end:'04:00'} },
+             { date:'2026-07-11', day:{start:'11:00',end:'20:00'}, night:{start:'22:00',end:'04:00'} },
+             { date:'2026-07-12', day:{start:'11:00',end:'20:00'}, night:{start:'22:00',end:'04:00'} } ] },
+  /* con bloqueos: viernes SOLO noche · sábado completo · domingo BLOQUEADO */
+  { id:'c_demo_block', name:"Madrid Bachata Camp", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-07-17', dateEnd:'2026-07-19', venue:"Palacio Vistalegre", coords:[-3.73238,40.38380], camIds:["carlos"],
+    passes:[ { date:'2026-07-17', day:null, night:{start:'22:00',end:'05:00'} },
+             { date:'2026-07-18', day:{start:'12:00',end:'20:00'}, night:{start:'23:00',end:'05:00'} },
+             { date:'2026-07-19', day:null, night:null } ] },
   /* === CONGRESOS REALES (lasalsadelbaile.com), fechas concretas === */
   /* pasados (para "Ver eventos pasados" del calendario) */
   { id:'c_valbaila', name:"Valencia Baila 2026 · Spring", country:'es', city:'sev', type:'congreso', recurrence:'oneoff', dateStart:'2026-04-24', dateEnd:'2026-04-26', venue:"Sevilla", camIds:["lucia"] },
@@ -110,7 +121,9 @@
   { id:'c_emotion', name:"E-Motion Sevilla Bachata Congress", country:'es', city:'sev', type:'congreso', recurrence:'oneoff', dateStart:'2026-11-27', dateEnd:'2026-11-29', venue:"Sevilla", camIds:["marta"] },
   /* === EXTERIOR (al aire libre), fechas concretas === */
   { id:'e_sunset', name:"Bachata Sunset Madrid", country:'es', city:'mad', type:'exterior', sub:'terraza', recurrence:'oneoff', dateStart:'2026-06-20', dateEnd:'2026-06-20', venue:"Terraza Plaza España", coords:[-3.71088,40.42345], camIds:["carlos"] },
-  { id:'e_beach', name:"Bachata Beach Party", country:'es', city:'bcn', type:'exterior', sub:'playa', recurrence:'oneoff', dateStart:'2026-07-11', dateEnd:'2026-07-11', venue:"Playa Bogatell", camIds:["lucia", "david"] }
+  { id:'e_beach', name:"Bachata Beach Party", country:'es', city:'bcn', type:'exterior', sub:'playa', recurrence:'oneoff', dateStart:'2026-07-11', dateEnd:'2026-07-11', venue:"Playa Bogatell", camIds:["lucia", "david"] },
+  /* social tipo POOL PARTY (demo), en pleno finde del Madrid Bachata Camp */
+  { id:'e_pool', name:"Pool Party Bachata", country:'es', city:'mad', type:'exterior', sub:'piscina', recurrence:'oneoff', dateStart:'2026-07-18', dateEnd:'2026-07-18', timeLabel:'12:00–19:00', venue:"Piscina Hotel Emperador", coords:[-3.70687,40.42120], camIds:["ana"] }
   ];
   /* eventos creados por el usuario (wizard "Crear evento") — se funden con los
      demo al cargar; llevan mine:true para poder gestionarlos/borrarlos */

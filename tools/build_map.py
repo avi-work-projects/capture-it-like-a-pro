@@ -137,7 +137,7 @@ print('Barrios (city)', len(bar_parts), 'poligonos,', bar_pts, 'pts')
 #    Aproximación: centroide del barrio a ≤ RADIO km de la Puerta del Sol
 #    (la M-30 queda a ~3.5-5.5 km del centro según el tramo). ──
 SOL = (-3.7038, 40.4168)
-RADIO_KM = 5.5
+RADIO_KM = 3.4   # acotado al CENTRO de verdad (almendra central; antes 5.5)
 def centroid(ring):
     n = len(ring) - 1 if ring[0] == ring[-1] else len(ring)
     return (sum(p[0] for p in ring[:n]) / n, sum(p[1] for p in ring[:n]) / n)

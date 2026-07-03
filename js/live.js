@@ -165,7 +165,8 @@ function wire(glue){ app = glue; }
 function open(event, r){
   ev = event;
   role = r || (app && app.getRole && app.getRole()) || 'dancer';
-  selCam = st().cam;          // si ya estás en una cola, entra por su ficha
+  selCam = null;              // SIEMPRE se entra por la lista (sin saltarse pasos);
+                              // si estás en una cola lo canta el banner y la fila "TÚ"
   if(role === 'cam'){
     /* mapa propio del cámara: se siembra UNA vez y no lo pisan las vistas */
     try{
@@ -293,6 +294,10 @@ function renderCamPick(head){
 function gotoSala(i){
   salaIdx = (i + SALAS.length) % SALAS.length;
   var f = $('#lvMap'); if(!f) return;
+  /* fundido: la recarga del iframe daba un flash de "precarga" que restaba
+     suavidad — se atenúa y reaparece cuando el mapa nuevo está listo */
+  f.style.opacity = '0';
+  f.onload = function(){ f.style.opacity = '1'; };
   f.src = stageMap(salaIdx);
   $('#lvSalaName').innerHTML = esc(SALAS[salaIdx].name) + ' <small>' + (salaIdx + 1) + '/' + SALAS.length + '</small>';
 }

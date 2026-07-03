@@ -72,8 +72,8 @@ function formHtml(){
     '<select class="cf-in" id="cfCity">' + cityOptions() + '</select>' +
     '<label class="cf-l">Local / dirección</label>' +
     '<input class="cf-in" id="cfVenue" maxlength="60" placeholder="p. ej. C. de Atocha, 107">' +
-    '<label class="cf-l">Coordenadas <span class="cf-opt">(opcional — «lat, lon» de Google Maps; sitúa el punto EXACTO en el mapa)</span></label>' +
-    '<input class="cf-in" id="cfCoords" placeholder="40.4168, -3.7038">';
+    '<label class="cf-l">Ubicación exacta <span class="cf-opt">(opcional — pega el ENLACE de Google Maps del sitio, o «lat, lon»)</span></label>' +
+    '<input class="cf-in" id="cfCoords" placeholder="https://www.google.com/maps/place/…  ·  40.4168, -3.7038">';
 
   var byType = '';
   if(type === 'sala'){
@@ -148,12 +148,31 @@ function renderPassDays(){
   box.innerHTML = h;
 }
 
+/* extrae [lon,lat] de un enlace de Google Maps o de un "lat, lon" pegado.
+   Un enlace LARGO de Maps lleva las coordenadas dentro; se prueba en orden:
+   1) !3dLAT!4dLON  → la CHINCHETA exacta del sitio (lo más preciso)
+   2) q= / ll= / query=LAT,LON
+   3) @LAT,LON      → el centro del ENCUADRE (menos preciso, vale igual)
+   4) "LAT, LON" a pelo.
+   Los enlaces CORTOS (maps.app.goo.gl) no llevan coordenadas → se avisa. */
 function parseCoords(v){
-  var m = (v || '').trim().match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
-  if(!m) return null;
-  var lat = +m[1], lon = +m[2];
-  if(Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
-  return [lon, lat];   // el modelo guarda [lon, lat]
+  v = (v || '').trim();
+  if(!v) return null;
+  if(/(?:maps\.app\.goo\.gl|goo\.gl\/maps)/i.test(v)) return { short:true };
+  function ok(lat, lon){
+    lat = +lat; lon = +lon;
+    if(isNaN(lat) || isNaN(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+    return [lon, lat];   // el modelo guarda [lon, lat]
+  }
+  var m = v.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/);
+  if(m) return ok(m[1], m[2]);
+  m = v.match(/[?&](?:q|ll|query|destination)=(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+  if(m) return ok(m[1], m[2]);
+  m = v.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
+  if(m) return ok(m[1], m[2]);
+  m = v.match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+  if(m) return ok(m[1], m[2]);
+  return null;
 }
 function err(t){ var e = $('#cfErr'); e.textContent = t; e.hidden = false; }
 
@@ -165,7 +184,8 @@ function submit(){
   if(!name) return err('Ponle un nombre al evento.');
   var coordsV = ($('#cfCoords').value || '').trim();
   var coords = coordsV ? parseCoords(coordsV) : null;
-  if(coordsV && !coords) return err('Coordenadas no válidas: usa «lat, lon» (p. ej. 40.4168, -3.7038).');
+  if(coords && coords.short) return err('Ese enlace corto (maps.app.goo.gl) no lleva las coordenadas dentro. Abre el enlace, y copia la URL COMPLETA de la barra del navegador — o mantén pulsado el punto en Maps y copia el «lat, lon».');
+  if(coordsV && !coords) return err('No he podido sacar las coordenadas de ahí. Pega el enlace largo de Google Maps o un «lat, lon» (p. ej. 40.4168, -3.7038).');
 
   var ev = { id: 'u_' + Date.now(), name: name, country: CITY_COUNTRY[city] || 'es', city: city, venue: venue, camIds: [] };
   if(coords) ev.coords = coords;

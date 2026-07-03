@@ -1046,7 +1046,16 @@
     }
     empty.style.display = 'none';
     mapDayIdx = Math.max(0, Math.min(mapDayIdx, mapDays.length - 1));
-    var day = mapDays[mapDayIdx];
+    var day = mapVisibleDay();
+    if(!day.events.length){
+      stage.innerHTML = '<svg viewBox="0 0 100 100" class="map-svg" preserveAspectRatio="xMidYMid meet">' + MAP_SCENE[mapScope] + '</svg>';
+      $('#mapDayLbl').textContent = day.label;
+      $('#mapPrev').disabled = mapDayIdx <= 0;
+      $('#mapNext').disabled = mapDayIdx >= mapDays.length - 1;
+      info.hidden = true;
+      return;
+    }
+    info.hidden = false;
     mapSel = Math.max(0, Math.min(mapSel, day.events.length - 1));
     $('#mapDayLbl').textContent = day.label;
     $('#mapPrev').disabled = mapDayIdx <= 0;
@@ -1084,8 +1093,21 @@
     $('#mapSelNext').disabled = single;
     $('#miEnter').addEventListener('click', function(){ openEvent(ev); });
   }
+  /* día visible según el alcance: en CENTRO solo los eventos cuyo punto cae
+     dentro del encuadre (lo muy lejano ni aparece ni se puede seleccionar) */
+  function mapVisibleDay(){
+    var dayFull = mapDays[mapDayIdx];
+    if(!dayFull) return { ts:0, label:'—', events:[] };
+    if(mapScope !== 'center') return dayFull;
+    return { ts: dayFull.ts, label: dayFull.label, events: dayFull.events.filter(function(ev2){
+      var ll2 = ev2.coords || MAP_GEO.cities[ev2.city];
+      if(!ll2) return false;
+      var q2 = mapProject(ll2);
+      return q2[0] >= 2 && q2[0] <= 98 && q2[1] >= 2 && q2[1] <= 98;
+    }) };
+  }
   function mapSelStep(dir){
-    var day = mapDays[mapDayIdx]; if(!day || day.events.length < 2) return;
+    var day = mapVisibleDay(); if(day.events.length < 2) return;
     mapSel = (mapSel + dir + day.events.length) % day.events.length;
     renderMap();
   }
@@ -1115,7 +1137,9 @@
   $('#mapHome').addEventListener('click', goHome);
 
   /* ── modos del resultado: Próximos · Calendario · Horarios salas ──────── */
-  var evMode = 'prox', calYear = (new Date()).getFullYear(), calMonth = null, calSub = 'cal', calPast = false;
+  /* calPast SIEMPRE true: los eventos pasados se ven por defecto (el switch
+     "Ver eventos pasados" se eliminó a petición del usuario) */
+  var evMode = 'prox', calYear = (new Date()).getFullYear(), calMonth = null, calSub = 'cal', calPast = true;
   function ymVal(y, m){ return y * 12 + m; }
   /* límites de navegación de meses: por defecto del mes actual hacia delante
      (hasta el último evento); con "Ver eventos pasados" se abre hacia atrás
@@ -1134,6 +1158,10 @@
     if(v < lim.lower || v > lim.upper) return;
     pushHist();                          // cambio de mes: ← vuelve al mes anterior
     calYear = Math.floor(v / 12); calMonth = v % 12; renderCalMode();
+    /* entrada suave del mes nuevo: SOLO opacidad (un transform rompería los
+       sticky internos de la agenda — gotcha conocido) */
+    var body = $('#modeCal .scroll-body');
+    if(body){ body.classList.remove('cal-fade'); void body.offsetWidth; body.classList.add('cal-fade'); }
   }
   function eventsByFilter(rec, withSub){
     return EVENTS.filter(function(ev){
@@ -1146,33 +1174,49 @@
       return true;
     });
   }
-  function calEvent(id){ openEvent(EVENTS_BY_ID[id]); }
+  function calEvent(id){
+    var base = EVENTS_BY_ID[(id || '').split('@')[0]];
+    if(!base) return;
+    if(id.indexOf('@') === -1){ openEvent(base); return; }
+    /* id de PASE (base@ts#day|night) desde la agenda → abrir esa instancia */
+    var ts = parseInt(id.split('@')[1], 10);
+    var pt = id.split('#')[1];
+    var occ = (typeof congressOccs === 'function' ? congressOccs(base) : []).filter(function(o){
+      return o.startsAt === ts && (!pt || o.passType === pt);
+    })[0];
+    if(!occ){ openEvent(base); return; }
+    var inst = Object.assign({}, base, {
+      id: id, startsAt: occ.startsAt, endsAt: occ.endsAt, recurrence:'oneoff',
+      passType: occ.passType, passLabel: PASS_LABEL[occ.passType]
+    });
+    openEvent(inst);
+  }
   function renderCalMode(){
     var c = $('#modeCal');
+    var evs = eventsByFilter('oneoff', true);
+    /* sin NINGÚN evento para los filtros: nada de meses ni rejillas — solo el
+       aviso (el swipe de pestañas sigue funcionando sobre #view2) */
+    if(!evs.length){
+      c.innerHTML = '<div class="scroll-body"><p class="cal-empty" style="margin-top:26px">Sin eventos para los filtros seleccionados.</p></div>';
+      scheduleRelayout();
+      return;
+    }
     if(calMonth == null){
-      Calendar.renderYear(c, calYear, eventsByFilter('oneoff', true), {
+      Calendar.renderYear(c, calYear, evs, {
         onYear:  function(y){ pushHist(); calYear = y; renderCalMode(); },
         onMonth: function(m){ pushHist(); calMonth = m; calSub = 'agenda'; renderCalMode(); }   // al abrir un mes → Agenda primero
       });
     } else {
       var lim = calLimits(), v = ymVal(calYear, calMonth);
-      var nav = { canPrev: v > lim.lower, canNext: v < lim.upper, past: calPast };
-      Calendar.renderMonth(c, calYear, calMonth, eventsByFilter('oneoff', true), calSub, nav, {
+      var nav = { canPrev: v > lim.lower, canNext: v < lim.upper };
+      Calendar.renderMonth(c, calYear, calMonth, evs, calSub, nav, {
         onBack:  function(){ pushHist(); calMonth = null; renderCalMode(); },
         onSub:   function(s){ if(s!==calSub) pushHist(); calSub = s; renderCalMode(); },
         onStep:  function(d){ goCalMonth(d); },
-        onEvent: calEvent,
-        onTogglePast: function(){
-          calPast = !calPast;
-          if(!calPast){   // al apagar, si estabas en un mes pasado, vuelve al actual
-            var l = calLimits();
-            if(ymVal(calYear, calMonth) < l.lower){ var n = new Date(); calYear = n.getFullYear(); calMonth = n.getMonth(); }
-          }
-          renderCalMode();
-        }
+        onEvent: calEvent
       });
     }
-    scheduleRelayout();   // fija año+switch, nav de mes y sub-pestañas
+    scheduleRelayout();   // fija año, nav de mes y sub-pestañas
   }
   var horSala = null, horSub = 'horario';   // sala seleccionada + pestaña (horario/proximos)
   function renderHorariosMode(){
@@ -1462,7 +1506,7 @@
     /* el gesto escucha en TODO #view2 (no solo en #result) para que el swipe de
        mes funcione aunque el contenido del mes/agenda sea corto o esté vacío
        (debajo de "No hay eventos…" el área ya no es #result, pero sí #view2) */
-    var r = $('#view2'), sx = 0, sy = 0, ORDER = ['prox','cal','horarios'];
+    var r = $('#view2'), sx = 0, sy = 0, ORDER = ['prox','horarios','cal'];
     r.addEventListener('touchstart', function(e){ sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive:true });
     r.addEventListener('touchend', function(e){
       if(!$('#result').classList.contains('open')) return;   // solo sobre los resultados
