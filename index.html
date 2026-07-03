@@ -570,6 +570,21 @@
     <p class="cal-empty" id="mapEmpty" style="display:none">No hay eventos próximos para mostrar en el mapa.</p>
   </section>
 
+  <!-- ════════════════ EN DIRECTO · "ESTOY DENTRO" (módulo js/live.js) ════════════════ -->
+  <section class="view hidden" id="viewLive">
+    <div class="v2-head">
+      <div class="nav-btns">
+        <button class="nav-back" id="liveHome" title="Inicio"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10.5V20h12v-9.5"/></svg></button>
+        <button class="nav-back" id="liveBack" title="Volver">←</button>
+      </div>
+      <div>
+        <h2 class="v2-title" id="liveTitle">Estoy dentro</h2>
+        <p class="v2-sub" id="liveSub">—</p>
+      </div>
+    </div>
+    <div id="liveBody"></div>
+  </section>
+
   <!-- ════════════════ VISTA 3 · DETALLE DEL EVENTO ════════════════ -->
   <section class="view hidden" id="view3">
     <div class="v2-head">
@@ -584,6 +599,11 @@
     </div>
     <div class="ev-tags" id="evTags"></div>
     <p class="ev-brief" id="evBrief"></p>
+
+    <!-- evento EN DIRECTO ahora mismo → modo "Estoy dentro" (módulo js/live.js) -->
+    <button class="cta live-enter" id="liveEnterBtn" hidden>
+      <span class="lv-dot"></span><b>Estoy dentro</b>
+    </button>
 
     <!-- intenciones del bailarín (no comprometen a nada, revelan expectativas) -->
     <div class="ev-intents" id="evIntents" hidden>
@@ -640,6 +660,8 @@
   '<script src="js/data.js'+v+'"><\/script>'+
   '<script src="js/map-geo.js'+v+'"><\/script>'+
   '<script src="js/calendar.js'+v+'"><\/script>'+
+  '<script src="js/detector.js'+v+'"><\/script>'+
+  '<script src="js/live.js'+v+'"><\/script>'+
   '<script src="js/app.js'+v+'"><\/script>');})();</script>
 
 <!--

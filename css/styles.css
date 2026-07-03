@@ -722,6 +722,87 @@ body{
 /* acentos lima/ámbar del hub, oscurecidos en claro (norma general) */
 .app.light #hubMine{--hac:#7da300;--hglow:rgba(125,163,0,.30)}
 .app.light #hubCams{--hac:#a98200;--hglow:rgba(169,130,0,.30)}
+
+/* ── modo EN DIRECTO ("Estoy dentro", módulo js/live.js) ─────────────────── */
+.lv-dot{
+  display:inline-block;width:9px;height:9px;border-radius:50%;flex:none;
+  background:#ff3b30;box-shadow:0 0 8px rgba(255,59,48,.8);
+  animation:lvPulse 1.4s ease-in-out infinite;
+}
+@keyframes lvPulse{0%,100%{opacity:1}50%{opacity:.35}}
+.live-enter{margin-top:14px}
+.live-enter .lv-dot{background:#0a0a0a;box-shadow:none}
+.lv-now{
+  display:flex;align-items:center;gap:8px;margin:2px 0 12px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:#ff3b30;
+}
+.lv-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:14px}
+.lv-card-h{
+  display:flex;justify-content:space-between;align-items:center;
+  font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:10px;
+}
+.lv-count{color:var(--accent)}
+/* cola */
+.lv-q{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--bg);border:1px solid transparent;border-radius:8px;padding:7px 10px;margin-bottom:4px}
+.lv-q-n{font-size:13.5px;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lv-q-s{flex:none;font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lv-q.done{opacity:.4}
+.lv-q.nowd{border-color:var(--accent)}
+.lv-q.nowd .lv-q-s{color:var(--accent)}
+.lv-q.me{border-color:#20d6c0}
+.app.light .lv-q.me{border-color:#0b9c8b}
+.lv-mine-pos{font-size:13px;color:var(--text);margin:10px 0 0}
+.lv-mine-pos b{color:var(--accent)}
+/* mapa embebido (editor en modo live) */
+.lv-map-wrap{height:330px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+#lvMap{display:block;width:100%;height:100%;border:0}
+.lv-hint{font-size:11px;color:var(--muted);margin:8px 0 0}
+.done-hint{color:#30d158}
+.app.light .done-hint{color:#1d7d3c}
+/* tarjeta grande de aviso (Prepárate / Tu turno) */
+.lv-prep{
+  display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;
+  border:1px solid var(--line);border-radius:12px;padding:16px 12px;margin-bottom:12px;
+  transition:background-color .3s, border-color .3s;
+}
+.lv-prep b{font-family:var(--display);font-size:20px;letter-spacing:.04em;color:var(--text)}
+.lv-cd{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--text)}
+.lv-msg{font-size:11.5px;color:var(--muted)}
+.lv-prep.waiting{border-color:rgba(61,169,255,.55)}
+.lv-prep.waiting .lv-cd{color:#3da9ff}
+.lv-prep.alert{border-color:#ffd60a;background:rgba(255,214,10,.10)}
+.lv-prep.alert b,.lv-prep.alert .lv-cd{color:#ffd60a}
+.app.light .lv-prep.alert b,.app.light .lv-prep.alert .lv-cd{color:#8a6d00}
+.lv-prep.go{border-color:#30d158;background:rgba(48,209,88,.12);animation:lvGo .55s ease-in-out 3}
+.lv-prep.go b,.lv-prep.go .lv-cd{color:#30d158}
+.app.light .lv-prep.go b,.app.light .lv-prep.go .lv-cd{color:#1d7d3c}
+@keyframes lvGo{50%{transform:scale(1.02)}}
+.lv-prep.paused{border-color:#ff9f0a}
+.lv-prep.paused b{color:#ff9f0a}
+.app.light .lv-prep.paused b{color:#a35f00}
+/* canción en curso */
+.lv-np{display:flex;flex-direction:column;gap:2px;margin-bottom:12px}
+.lv-np[hidden]{display:none}
+.lv-np b{font-size:15px;color:var(--text)}
+.lv-np > span{font-size:11.5px;color:var(--muted)}
+.lv-bar{height:5px;border-radius:4px;background:var(--line);overflow:hidden;margin:5px 0 2px}
+.lv-bar-fill{height:100%;width:0;background:var(--accent);transition:width .4s linear}
+.lv-np-time{font-family:var(--mono);font-size:10px;color:var(--muted)}
+/* detector: token + acciones + estado */
+.lv-token input{
+  width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;
+  color:var(--text);font-family:var(--mono);font-size:12px;padding:10px 12px;outline:none;
+  margin-bottom:10px;
+}
+.lv-token input:focus{border-color:var(--accent)}
+.lv-det-actions{display:flex;gap:10px}
+.lv-det-actions .cta{margin-top:0;flex:1}
+.cta.ghost{background:none;color:var(--muted);border-color:var(--line)}
+.lv-status{font-family:var(--mono);font-size:10px;letter-spacing:.03em;color:var(--muted);margin-top:10px}
+.lv-log{font-family:var(--mono);font-size:9.5px;line-height:1.5;color:var(--muted);opacity:.7;margin-top:6px;max-height:62px;overflow:hidden}
+#liveBody{padding-bottom:26px}
 /* cada acción del hub tiene su acento: el color de la sección que abre */
 #hubProx{--hac:#3da9ff;--hglow:rgba(61,169,255,.30)}     /* azul = próximos eventos */
 #whereCity{--hac:#3da9ff;--hglow:rgba(61,169,255,.30)}   /* azul = país/ciudad */

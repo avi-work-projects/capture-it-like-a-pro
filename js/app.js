@@ -428,7 +428,7 @@
   $('#homeBtnEC').addEventListener('click', goHome);
 
   /* ── transición genérica entre vistas ─────────────────────────────── */
-  var VIEW_IDS = ['view1','viewHub','viewWhere','viewCreate','view2','viewSettings','viewCams','viewProfile','viewMine','viewMyEvents','viewDance','viewMap','view3','viewEvCams'];
+  var VIEW_IDS = ['view1','viewHub','viewWhere','viewCreate','view2','viewSettings','viewCams','viewProfile','viewMine','viewMyEvents','viewDance','viewMap','view3','viewEvCams','viewLive'];
   function goView(toId, accent){
     var to = $('#'+toId);
     if(accent) setAccent(accent);
@@ -441,6 +441,8 @@
       if(v !== to && !v.classList.contains('hidden')) froms.push(v);
     });
     if(!froms.length) return;
+    /* al salir del modo en directo, apagar micro/timers del módulo Live */
+    if(window.Live && froms.some(function(f){ return f.id === 'viewLive'; })) Live.close();
     pushHist();                       // apila el momento que dejamos (← vuelve aquí)
     froms.forEach(function(f){ f.classList.remove('in'); f.classList.add('out'); });
     setTimeout(function(){
@@ -1478,6 +1480,10 @@
     var ev = currentEvent;
     var st = eventStatus(ev);
     var soyCam = state.role && state.role.value === 'cam';
+    /* evento EN DIRECTO → botón al modo "Estoy dentro" (módulo js/live.js) */
+    var leb = $('#liveEnterBtn');
+    leb.hidden = st !== 'directo';
+    leb.querySelector('b').textContent = soyCam ? 'Panel en directo' : 'Estoy dentro';
     $('#evName').textContent = ev.name; updateRoleIcons();   // textContent borra el icono de rol → re-añadir
     $('#evMeta').textContent = fmtDate(ev.startsAt) + ' · ' + evHours(ev) + ' · ' + ev.venue;
     $('#evTags').innerHTML =
@@ -1621,6 +1627,19 @@
   }
 
   $('#backToEvents').addEventListener('click', histBack);
+
+  /* ── modo EN DIRECTO (módulo js/live.js): cableado de navegación ── */
+  if(window.Live){
+    Live.wire({
+      goView: goView, histBack: histBack, goHome: goHome,
+      getRole: function(){ return state.role ? state.role.value : 'dancer'; }
+    });
+    $('#liveEnterBtn').addEventListener('click', function(){
+      if(currentEvent) Live.open(currentEvent, state.role ? state.role.value : 'dancer');
+    });
+    $('#liveBack').addEventListener('click', histBack);
+    $('#liveHome').addEventListener('click', goHome);
+  }
 
   $('#joinBtn').addEventListener('click', function(){
     if(!currentEvent) return;
@@ -2269,6 +2288,7 @@
       if(v === 'viewMap'){ mapDays = mapBuildDays(); mapDayIdx = s.mapDayIdx || 0; mapSel = 0; mapScope = s.mapScope || 'region'; renderMap(); goView('viewMap','ac-blue'); return; }
       if(v === 'viewProfile' && s.profile){ openProfile(s.profile); return; }
       if(v === 'view3' && s.event){ openEvent(s.event); return; }
+      if(v === 'viewLive' && s.event){ if(window.Live) Live.open(s.event, state.role ? state.role.value : 'dancer'); else openEvent(s.event); return; }
       if(v === 'viewEvCams' && s.event){ openEvent(s.event); renderEventCams(); goView('viewEvCams','ac-red'); return; }
       /* vista 2 (filtros / resultados) */
       goView('view2');
@@ -2320,7 +2340,7 @@
       if(v === 'viewMyEvents'){ renderMyEvents(); goView('viewMyEvents','ac-red'); return; }
       if(v === 'viewSettings'){ openSettings(); return; }
       if(v === 'viewProfile' && s.profileId && CAMS_BY_ID[s.profileId]){ openProfile(CAMS_BY_ID[s.profileId]); return; }
-      if((v === 'view3' || v === 'viewEvCams') && s.eventId && EVENTS_BY_ID[s.eventId]){
+      if((v === 'view3' || v === 'viewEvCams' || v === 'viewLive') && s.eventId && EVENTS_BY_ID[s.eventId]){
         openEvent(EVENTS_BY_ID[s.eventId]);
         if(v === 'viewEvCams'){ renderEventCams(); goView('viewEvCams','ac-red'); }
         return;

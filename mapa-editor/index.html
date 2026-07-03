@@ -386,6 +386,12 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 
 /* ───────────── CUERPO DE LA SECCIÓN ACTIVA ───────────── */
 /* min-height fija (≥ la sección más alta) → el lienzo no cambia entre pestañas */
+/* ── modo EN DIRECTO embebido (iframe de la app): solo el lienzo ── */
+.app.live header,.app.live .name-row,.app.live .tabs,.app.live .below{display:none}
+.app.live .canvas-wrap{padding:10px 12px 12px}
+/* solo-ver: nada responde al puntero (ni piezas ni elementos) */
+.app.live-view #canvas svg,.app.live-view #canvas .el{pointer-events:none !important}
+
 /* padding inferior generoso: la última línea (hint) no debe besar el borde/recortarse */
 .tab-body{position:relative;z-index:2;padding:8px 18px calc(16px + env(safe-area-inset-bottom));min-height:120px}
 .tab-pane{display:flex;flex-direction:column;gap:6px}
@@ -829,7 +835,12 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 
 /* modo: interior (por defecto) o exterior (?mode=exterior) — reaprovecha TODO el editor */
 const EXT = new URLSearchParams(location.search).get('mode') === 'exterior';
-const DRAFT_KEY = EXT ? 'cip_mapa_ext_v1' : 'cip_mapa_editor_v1';
+/* modo EN DIRECTO (embebido en iframe desde la app, vista "Estoy dentro"):
+   ?live=view → SOLO VER el mapa del evento (nada editable)
+   ?live=cam  → el camarógrafo arrastra SU marcador (pestaña Cámaras, sin chrome)
+   En ambos, el mapa vive en localStorage 'cilap-live-map' (lo siembra la app). */
+const LIVE = new URLSearchParams(location.search).get('live');
+const DRAFT_KEY = LIVE ? 'cilap-live-map' : (EXT ? 'cip_mapa_ext_v1' : 'cip_mapa_editor_v1');
 const LIB_KEY   = EXT ? 'cip_mapas_ext_v1' : 'cip_mapas_v1';
 
 /* paths unitarios reutilizables (0..1) */
@@ -2194,6 +2205,16 @@ $('#btn-reload').addEventListener('click', () => {
 
 /* ───────── arranque ───────── */
 loadDraft();
+if(LIVE){
+  app.classList.add('live', 'live-' + LIVE);
+  if(LIVE === 'cam'){
+    currentTab = 'camaras';   // solo la cámara responde (reglas sec-camaras)
+    if(!state.elements.some(e => e.type === 'camarografo')){
+      state.elements.push({ id: idSeq++, type:'camarografo', x:50, y:45, w:26, h:26, rot:0 });
+      saveDraft();
+    }
+  }
+}
 $('#map-name').value = state.name || '';
 /* título y pestaña inicial según el modo */
 document.querySelector('header h1').textContent = EXT ? 'Mapa exterior' : 'Editor de mapa';
