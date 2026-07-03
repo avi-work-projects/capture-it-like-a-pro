@@ -482,7 +482,7 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 }
 .el-more.open{display:flex;align-items:flex-end}
 .el-more .em-sheet{
-  width:100%;max-height:62%;overflow-y:auto;
+  width:100%;overflow-y:auto;   /* la altura la fija openMore(): panel de edición → borde inferior */
   background:var(--bg);border-top:1px solid var(--accent);
   border-radius:18px 18px 0 0;
   padding:12px 16px calc(16px + env(safe-area-inset-bottom));
@@ -977,7 +977,7 @@ const TYPES = {
     icon:'<svg viewBox="0 0 24 24"><path fill="#8b9a52" stroke="none" d="M12 2.8 3.4 8.6h17.2z"/><path fill="#d9cba8" stroke="none" d="M5 8.6h14V21H5z"/><path fill="#3c4c60" stroke="none" d="M7 10.8h3v2.6H7zM14 10.8h3v2.6h-3zM7 15.4h3v2.6H7z"/><path fill="#5e4630" stroke="none" d="M13.6 15.4h3.6V21h-3.6z"/></svg>' },
   puente:    { label:'Puente',         color:'var(--c-puente)',    editable:true, w:70, h:30,
     icon:'<svg viewBox="0 0 24 24"><path fill="#454c55" stroke="none" d="M2 6.6h20V8H2z"/><path fill="#9aa2ab" stroke="none" d="M2 8h20v3H2z"/><path fill="#6d757f" stroke="none" d="M2 11h3.4v8H2zM10.3 11h3.4v8h-3.4zM18.6 11H22v8h-3.4z"/></svg>' },
-  farola:    { label:'Farola',         color:'var(--c-farola)',    editable:true, w:16, h:36,
+  farola:    { label:'Farola',         color:'var(--c-farola)',    silhouette:true, w:16, h:36,
     icon:'<svg viewBox="0 0 24 24"><path fill="#ffd60a" stroke="none" d="M12 2.2a3.1 3.1 0 0 1 3.1 3.1 3.1 3.1 0 0 1-6.2 0A3.1 3.1 0 0 1 12 2.2z"/><path fill="#2b3036" stroke="none" d="M10.1 5.9h3.8v1.4h-3.8z"/><path fill="#3c4148" stroke="none" d="M11.2 7.3h1.6V20h-1.6z"/><path fill="#3c4148" stroke="none" d="M8.6 20h6.8v1.7H8.6z"/></svg>' },
   metro:     { label:'Metro',          color:'var(--c-metro)',     editable:true, w:24, h:26,
     icon:'<svg viewBox="0 0 24 24"><path fill="#e33e2f" stroke="none" d="M12 2 22 12 12 22 2 12z"/><path fill="#ffffff" stroke="none" d="M7.2 15.4V8.6l4.8 4.4 4.8-4.4v6.8h-2.1v-2.7L12 15.1l-2.7-2.4v2.7z"/></svg>' },
@@ -1929,9 +1929,9 @@ function buildPalItem(type, opts){
 /* exterior: la pestaña Elementos se parte en 2 secciones (SILUETAS / ELEMENTOS),
    cada una con 3 ejemplos + un botón «+» que abre un submenú con TODO el tipo.
    El submenú se queda ABIERTO al colocar (se cierra solo con ✕). */
-const EXT_SIL = ['arbol','arbusto','banco','pino','palmera'];           // todas las siluetas
+const EXT_SIL = ['arbol','arbusto','banco','pino','palmera','farola'];  // todas las siluetas
 const EXT_PIN = ['edificio','edificio2','edificio3','casa1','casa2','casa3',
-                 'puente','farola','fuente','monumento','iglesia','comida','metro'];  // todos los principales
+                 'puente','fuente','monumento','iglesia','comida','metro'];  // todos los principales
 const EXT_SIL_EX = ['arbol','arbusto','banco'];                         // 3 ejemplos fila 1
 const EXT_PIN_EX = ['edificio','casa1','fuente'];                       // 3 ejemplos fila 2
 function buildAddMore(cat){
@@ -1947,6 +1947,12 @@ function openMore(cat){
   $('#el-more-title').textContent = cat === 'sil' ? 'Más siluetas' : 'Más elementos';
   const grid = $('#el-more-grid'); grid.innerHTML = '';
   list.forEach(t => grid.appendChild(buildPalItem(t)));
+  /* la hoja ocupa desde los botones de edición hasta el borde inferior de la
+     pantalla (altura EXACTA, no máxima); su interior scrollea */
+  const sheet = $('#el-more .em-sheet');
+  const appR = app.getBoundingClientRect();
+  const epR = $('#edit-panel').getBoundingClientRect();
+  sheet.style.height = Math.max(200, appR.bottom - epR.top) + 'px';
   $('#el-more').classList.add('open');
 }
 if(EXT){

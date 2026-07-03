@@ -580,7 +580,9 @@
   })();
 
   /* ── vista 1: elegir rol ──────────────────────────────────────────── */
-  document.querySelectorAll('#view1 .card').forEach(function(card){
+  /* OJO: solo las tarjetas de ROL ([data-role]) — en view1 también vive ahora
+     la tarjeta "Crear evento", que no debe disparar la elección de rol */
+  document.querySelectorAll('#view1 .card[data-role]').forEach(function(card){
     card.addEventListener('click', function(){
       var role = card.dataset.role;
       state.role = { value:role, label:ROLE_META[role] };
@@ -1685,7 +1687,10 @@
     if(ref.cities.length) return ref.cities.map(function(c){ return CITY_LABELS[c]; }).join(', ');
     return 'Tu país y ciudad de referencia';
   }
-  $('#hubBack').addEventListener('click', histBack);
+  /* el hub es la raíz de navegación: su ← SIEMPRE vuelve a la Home (rol),
+     no al historial (que tras una restauración puede estar vacío y dejarte
+     en el propio hub) */
+  $('#hubBack').addEventListener('click', function(){ goView('view1','ac-red'); });
   /* "Próximos eventos" → pregunta ¿Dónde? (En mi ciudad / En otro lugar) */
   $('#hubProx').addEventListener('click', function(){ goView('viewWhere','ac-red'); });
   $('#whereBack').addEventListener('click', histBack);
@@ -2276,7 +2281,7 @@
           if(evMode && evMode !== 'prox'){ setEvMode(evMode); if(evMode === 'horarios' && horSala) renderHorariosMode(); }
         }
       }
-    } catch(e){ goView('viewHub','ac-red'); }
+    } catch(e){ console.error('applyNav: snapshot irrecuperable, voy al hub', e); goView('viewHub','ac-red'); }
     finally { histLock = false; }
   }
   function histBack(){
