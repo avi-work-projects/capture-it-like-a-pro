@@ -16,6 +16,11 @@
                       waw:'Varsovia', kra:'Cracovia' };
   var TYPE_LABELS = { sala:'Salas de baile', congreso:'Congresos', exterior:'Al exterior' };
   var SUB_LABELS  = { all:'Todos', terraza:'Terraza', playa:'Playa', parque:'Parque' };
+  /* provincias (nivel entre País y Ciudad): claves p+código INE (España) o
+     slug (Polonia). Cada ciudad pertenece a una; ev.prov se deriva de su city. */
+  var PROV_LABELS = { all:'Todas', p28:'Madrid', p41:'Sevilla', p08:'Barcelona',
+                      pmz:'Mazovia', pmp:'Małopolska' };
+  var CITY_PROV = { mad:'p28', sev:'p41', bcn:'p08', waw:'pmz', kra:'pmp' };
 
   /* rating = media de notas ENTERAS 0-6 de los bailarines;
      price = tasa por vídeo declarada por el camarógrafo (mín 4 € · máx 20 €);
@@ -107,7 +112,7 @@
   { id:'e_beach', name:"Bachata Beach Party", country:'es', city:'bcn', type:'exterior', sub:'playa', recurrence:'oneoff', dateStart:'2026-07-11', dateEnd:'2026-07-11', venue:"Playa Bogatell", camIds:["lucia", "david"] }
   ];
   var EVENTS_BY_ID = {};
-  EVENTS.forEach(function(e){ EVENTS_BY_ID[e.id] = e; });
+  EVENTS.forEach(function(e){ EVENTS_BY_ID[e.id] = e; e.prov = CITY_PROV[e.city]; });
 
   /* Horarios (calculados):
      - SEMANALES → próxima ocurrencia (día de weekdays + hora de timeLabel).

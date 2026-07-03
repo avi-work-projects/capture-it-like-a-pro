@@ -4,7 +4,7 @@
   var $ = function(s){ return document.querySelector(s); };
   var app = $('.app');
 
-  var state = { role:null, country:null, city:null, type:null, subtype:null };
+  var state = { role:null, country:null, prov:null, city:null, type:null, subtype:null };
   var ROLE_META = { cam:'Camarógrafo', dancer:'Bailarín' };
   /* iconos de rol: se muestran junto a los títulos de nivel 1 (en vez del slot
      "Rol" del histórico). dancer = figura bailando; cam = videocámara. */
@@ -28,7 +28,7 @@
       ico.title = state.role ? state.role.label : '';
     });
   }
-  var ORDER = ['role','country','city','type','subtype'];   // orden lógico de los pasos
+  var ORDER = ['role','country','prov','city','type','subtype'];   // orden lógico de los pasos
   var resultTimer = null;
 
   /* ── persistencia ligera en localStorage ──────────────────────────── */
@@ -68,7 +68,7 @@
 
   /* ── acento por pantalla ──────────────────────────────────────────── */
   var ACCENT_CLASSES = ['ac-red','ac-blue','ac-amber','ac-lime','ac-violet'];
-  var ACCENTS = { view1:'ac-red', stepA:'ac-blue', stepB:'ac-amber',
+  var ACCENTS = { view1:'ac-red', stepA:'ac-blue', stepP:'ac-blue', stepB:'ac-amber',
                   stepC:'ac-lime', stepD:'ac-violet', result:'ac-red' };
   function setAccent(cls){
     ACCENT_CLASSES.forEach(function(c){ app.classList.remove(c); });
@@ -115,7 +115,13 @@
   // preset: valor (o array) a dejar marcado al abrir (modo edición)
   function openStep(id, preset){
     var el = $('#'+id);
-    if(id === 'stepB' && state.country) filterOpts('stepB', state.country.value);
+    if(id === 'stepP' && state.country) filterOpts('stepP', state.country.value);
+    /* ciudades: por provincia si hay una concreta (fuera del picker de lugar,
+       que no usa provincia); si no, por país */
+    if(id === 'stepB' && state.country){
+      var byProv = !refMode && state.prov && state.prov.value !== 'all';
+      filterOpts('stepB', byProv ? state.prov.value : state.country.value);
+    }
     if(id === 'stepD' && state.type)    filterOpts('stepD', state.type.value);
     var pa = Array.isArray(preset) ? preset : (preset != null ? [preset] : []);
     el.querySelectorAll('.opt').forEach(function(o){
@@ -135,7 +141,7 @@
     }, 750);
   }
   function closeStep(id){ $('#'+id).classList.remove('open','settled'); }
-  var ALL_STEPS = ['stepA','stepB','stepC','stepD','result'];
+  var ALL_STEPS = ['stepA','stepP','stepB','stepC','stepD','result'];
   function closeAll(){
     ALL_STEPS.forEach(closeStep);
     if(resultTimer){ clearTimeout(resultTimer); resultTimer=null; }
@@ -143,7 +149,8 @@
     if(setCritCollapsed) setCritCollapsed(false);     // al editar, criterios visibles
   }
   function closeFrom(key){
-    var map = { country:['stepA','stepB','stepC','stepD','result'],
+    var map = { country:['stepA','stepP','stepB','stepC','stepD','result'],
+                prov:['stepP','stepB','stepC','stepD','result'],
                 city:['stepB','stepC','stepD','result'],
                 type:['stepC','stepD','result'],
                 subtype:['stepD','result'] };
@@ -161,6 +168,15 @@
       return;
     }
     if(!state.country){ openStep('stepA'); }
+    else if(!state.prov){
+      /* auto-salto: si el país (o países) elegido solo tiene UNA provincia con
+         eventos, se fija sola y no molesta con el paso */
+      var ps = provsWithEvents(state.country.value);
+      if(ps.length <= 1){
+        state.prov = { value: ps[0] || 'all', label: PROV_LABELS[ps[0]] || 'Todas', auto:true };
+        renderPanel(); advance();
+      } else openStep('stepP');
+    }
     else if(!state.city){ openStep('stepB'); }
     else if(!state.type){ openStep('stepC'); }
     else if(state.type.value === 'exterior' && !state.subtype){ openStep('stepD'); }
@@ -174,6 +190,13 @@
       openStep('result');
       resultTimer = setTimeout(function(){ r.classList.add('done'); scheduleRelayout(); }, 1400);
     }
+  }
+  /* provincias con eventos para los países dados (para el auto-salto del paso) */
+  function provsWithEvents(countries){
+    var arr = Array.isArray(countries) ? countries : [countries];
+    var set = {};
+    EVENTS.forEach(function(ev){ if(arr.indexOf(ev.country) !== -1 && ev.prov) set[ev.prov] = 1; });
+    return Object.keys(set);
   }
   /* rellena el filtro de fecha con los próximos 7 días si está vacío */
   var dateTouched = false;
@@ -194,8 +217,8 @@
     refTarget = target || 'settings';
     refStackMark = navStack.length;               // el historial del picker no contamina el global
     refMode = true;
-    savedSearch = { country:state.country, city:state.city, type:state.type, subtype:state.subtype };
-    state.country = null; state.city = null;      // empieza en País
+    savedSearch = { country:state.country, prov:state.prov, city:state.city, type:state.type, subtype:state.subtype };
+    state.country = null; state.prov = null; state.city = null;   // empieza en País (el picker no usa provincia)
     editing = null;
     var v2 = $('#view2');
     v2.classList.add('ref-mode');
@@ -241,7 +264,7 @@
     v2.querySelector('.v2-sub').textContent   = 'Filtra para ver los eventos disponibles.';
     updateRoleIcons();                            // textContent borró el icono → re-pónlo
     if(restore && savedSearch){
-      state.country = savedSearch.country; state.city = savedSearch.city;
+      state.country = savedSearch.country; state.prov = savedSearch.prov || null; state.city = savedSearch.city;
       state.type    = savedSearch.type;    state.subtype = savedSearch.subtype;
     }
     savedSearch = null;
@@ -253,7 +276,7 @@
   /* ── panel de selecciones (huecos predefinidos) ───────────────────── */
   function renderPanel(){
     var firstEmpty = null;
-    (refMode ? ['country','city'] : ['country','city','type']).forEach(function(key){
+    (refMode ? ['country','city'] : ['country','prov','city','type']).forEach(function(key){
       var slot = document.querySelector('#panel .slot[data-key="'+key+'"]');
       slot.classList.remove('now');
       if(state[key]){
@@ -282,7 +305,7 @@
     }
     if(firstEmpty) firstEmpty.classList.add('now');
     /* resumen para la barra de criterios comprimida */
-    var sum = (refMode ? ['country','city'] : ['country','city','type','subtype']).map(function(k){
+    var sum = (refMode ? ['country','city'] : ['country','prov','city','type','subtype']).map(function(k){
       return state[k] ? state[k].label : null;
     }).filter(Boolean).join(' · ');
     var ms = $('#panelMiniSum'); if(ms) ms.textContent = sum || 'Sin criterios';
@@ -296,6 +319,13 @@
          (si ya es "Todas", la ✕ ni se muestra — solo queda editar) */
       if(key === 'city' && state.city){
         state.city = { value:'all', label:'Todas' };
+        editing = null; closeAll(); renderPanel(); advance();
+        return;
+      }
+      /* provincia también tiene "Todas"; la ciudad se resetea (dependía de ella) */
+      if(key === 'prov' && state.prov){
+        state.prov = { value:'all', label:'Todas' };
+        state.city = state.city ? { value:'all', label:'Todas' } : null;
         editing = null; closeAll(); renderPanel(); advance();
         return;
       }
@@ -330,7 +360,7 @@
     // el hueco en edición es el "activo" aunque esté relleno
     document.querySelectorAll('#panel .slot.now').forEach(function(s){ s.classList.remove('now'); });
     document.querySelector('.slot[data-key="'+key+'"]').classList.add('now');
-    var map = { country:'stepA', city:'stepB', type:'stepC', subtype:'stepD' };
+    var map = { country:'stepA', prov:'stepP', city:'stepB', type:'stepC', subtype:'stepD' };
     /* sin preselección: al reabrir, las opciones salen limpias (con sus casillas
        de multiselección), no premarcadas como .selected */
     openStep(map[key]);
@@ -356,6 +386,7 @@
       closeFrom('country');
       goView('view1', 'ac-red');
     } else if(key === 'country'){ closeFrom('country'); openStep('stepA'); }
+    else if(key === 'prov'){      closeFrom('prov');    openStep('stepP'); }
     else if(key === 'city'){      closeFrom('city');    openStep('stepB'); }
     else if(key === 'type'){      closeFrom('type');    openStep('stepC'); }
     else if(key === 'subtype'){   closeFrom('subtype'); openStep('stepD'); }
@@ -386,7 +417,7 @@
   function goHome(){
     editing = null;
     if(refMode) exitRefMode(false);       // sal del modo lugar sin tocar la búsqueda guardada
-    ['country','city','type','subtype'].forEach(function(k){ state[k] = null; });
+    ['country','prov','city','type','subtype'].forEach(function(k){ state[k] = null; });
     closeAll();
     renderPanel();
     navStack.length = 0;                   // inicio = reinicio del historial
@@ -564,7 +595,8 @@
         var single = vals.length === 1;
         state[key] = { value: single ? vals[0] : vals, label: labels.join(', '), multi: !single };
         editing = null;
-        if(key === 'country') state.city = null;     // dependencias en cascada
+        if(key === 'country'){ state.prov = null; state.city = null; }  // dependencias en cascada
+        if(key === 'prov')    state.city = null;
         if(key === 'type')    state.subtype = null;
         stepEl.querySelectorAll('.opt').forEach(function(o){ o.classList.remove('multi-on'); });
         updateContinue(stepId);
@@ -614,9 +646,15 @@
   }
 
   bindStep('stepA','country', function(v, prev){
-    if(prev && prev !== v) state.city = null;     // país nuevo → ciudad a reelegir
+    if(prev && prev !== v){ state.prov = null; state.city = null; }  // país nuevo → prov/ciudad a reelegir
     renderPanel();
     advance();                                    // tipo y subtipo permanecen
+  });
+
+  bindStep('stepP','prov', function(v, prev){
+    if(prev && prev !== v) state.city = null;     // provincia nueva → ciudad a reelegir
+    renderPanel();
+    advance();
   });
 
   bindStep('stepB','city', function(){ advance(); });
@@ -674,6 +712,7 @@
     var winFrom = from || now, winTo = to || (now + 60 * 86400000);   // sin 'to': ventana de 60 días
     function passes(ev){
       if(!inFilter(state.country, ev.country)) return false;
+      if(!inFilter(state.prov, ev.prov)) return false;
       if(!inFilter(state.city, ev.city)) return false;
       if(!inFilter(state.type, ev.type)) return false;
       if(state.subtype && !inFilter(state.subtype, ev.sub)) return false;
@@ -804,9 +843,9 @@
      ciudad (fallback para eventos sin coords propias). */
   var MAP_GEO = window.MAP_GEO || { madrid:'', provs:{}, proj:null, city:{ d:'', proj:null }, cities:{} };
   var mapDays = [], mapDayIdx = 0, mapSel = 0, mapScope = 'region';
-  /* cobertura del mapa (por ahora, área de Madrid): si el filtro actual no
-     alcanza ninguna ciudad cubierta, el botón Mapa se deshabilita */
-  var MAP_COVERED_CITIES = { mad:1 };
+  /* cobertura del mapa POR PROVINCIA (por ahora, solo Madrid tiene geometría):
+     si el filtro actual no alcanza ninguna, el botón Mapa se deshabilita */
+  var MAP_COVERED_PROVS = { p28:1 };
   var MAP_SCOPE_SUB = { region:'Comunidad de Madrid', city:'Madrid · ciudad' };
   function mapFrame(inner){
     return '<defs><clipPath id="mapClip"><rect x="3" y="3" width="94" height="94" rx="11"/></clipPath></defs>' +
@@ -838,9 +877,9 @@
 
   function mapBuildDays(){
     var now = Date.now(), winFrom = now, winTo = now + 60 * 86400000;
-    /* solo ciudades con cobertura: un evento de Sevilla no debe salir clavado
+    /* solo provincias con cobertura: un evento de Sevilla no debe salir clavado
        al borde del mapa de Madrid */
-    function passes(ev){ return MAP_COVERED_CITIES[ev.city] && inFilter(state.country, ev.country) && inFilter(state.city, ev.city) && inFilter(state.type, ev.type) && (!state.subtype || inFilter(state.subtype, ev.sub)); }
+    function passes(ev){ return MAP_COVERED_PROVS[ev.prov] && inFilter(state.country, ev.country) && inFilter(state.prov, ev.prov) && inFilter(state.city, ev.city) && inFilter(state.type, ev.type) && (!state.subtype || inFilter(state.subtype, ev.sub)); }
     function instance(ev, s, e){ return Object.assign({}, ev, { id: ev.id + '@' + s, startsAt:s, endsAt:e, recurrence:'oneoff' }); }
     var list = [];
     EVENTS.forEach(function(ev){
@@ -885,11 +924,11 @@
     /* recorte al marco: lo de fuera del encuadre asoma pegado al borde */
     return [ Math.max(5, Math.min(95, q[0])), Math.max(5, Math.min(95, q[1])) ];
   }
-  /* ¿el filtro actual alcanza alguna ciudad con cobertura de mapa? */
+  /* ¿el filtro actual alcanza alguna provincia con cobertura de mapa? */
   function mapCoverage(){
     return EVENTS.some(function(ev){
-      return MAP_COVERED_CITIES[ev.city] && inFilter(state.country, ev.country) &&
-             inFilter(state.city, ev.city) && inFilter(state.type, ev.type);
+      return MAP_COVERED_PROVS[ev.prov] && inFilter(state.country, ev.country) &&
+             inFilter(state.prov, ev.prov) && inFilter(state.city, ev.city) && inFilter(state.type, ev.type);
     });
   }
   function mapTypeGlyph(type, color){
@@ -1003,6 +1042,7 @@
     return EVENTS.filter(function(ev){
       if(ev.recurrence !== rec) return false;
       if(!inFilter(state.country, ev.country)) return false;
+      if(!inFilter(state.prov, ev.prov)) return false;
       if(!inFilter(state.city, ev.city)) return false;
       if(!inFilter(state.type, ev.type)) return false;
       if(withSub && state.subtype && !inFilter(state.subtype, ev.sub)) return false;
@@ -1608,6 +1648,8 @@
       return { value: single ? vals[0] : vals.slice(), label: vals.map(lblFn).join(', '), multi: !single };
     }
     state.country = pack(countries, COUNTRY_LBL);
+    var provsRef = cities.map(function(c){ return CITY_PROV[c]; }).filter(function(k, i, a){ return k && a.indexOf(k) === i; });
+    state.prov = provsRef.length ? pack(provsRef, function(p){ return PROV_LABELS[p]; }) : { value:'all', label:'Todas' };
     state.city    = pack(cities, function(c){ return CITY_LABELS[c]; });
     state.type = { value:'all', label:'Todos' };   // ya filtrado por TODOS los tipos
     state.subtype = null;
@@ -1649,7 +1691,9 @@
   }
   $('#hubSettings').addEventListener('click', openSettings);
   /* "Indicar lugar habitual": abre el MISMO picker de pasos, solo País + Ciudad */
-  $('#setPlaceBtn').addEventListener('click', startRefPick);
+  /* OJO: envuelto — pasar startRefPick directo colaba el MouseEvent como
+     refTarget y el picker se comportaba como el de camarógrafos (multi) */
+  $('#setPlaceBtn').addEventListener('click', function(){ startRefPick('settings'); });
   $('#setPrivacy').addEventListener('click', function(e){
     var o = e.target.closest('.privacy-opt'); if(!o) return;
     setPrivate = (o.dataset.priv === 'private');
@@ -2118,13 +2162,13 @@
      guardamos un snapshot de navegación al salir de la página y, al cargar,
      intentamos dejar al usuario donde estaba (o lo más cerca posible). */
   /* ── snapshot/restore para el historial del botón ← (en memoria) ──────── */
-  var ALL_STEPS_H = ['stepA','stepB','stepC','stepD','result'];
+  var ALL_STEPS_H = ['stepA','stepP','stepB','stepC','stepD','result'];
   function currentViewId(){ return VIEW_IDS.filter(function(id){ return !$('#'+id).classList.contains('hidden'); })[0] || 'view1'; }
   function openStepNow(){ return ALL_STEPS_H.filter(function(id){ return $('#'+id).classList.contains('open'); })[0] || null; }
   function snapNav(){
     return {
       view: currentViewId(),
-      country: state.country, city: state.city, type: state.type, subtype: state.subtype,
+      country: state.country, prov: state.prov, city: state.city, type: state.type, subtype: state.subtype,
       evMode: evMode, horSala: horSala, horSub: horSub,
       calMonth: calMonth, calYear: calYear, calSub: calSub, calPast: calPast,
       step: openStepNow(), editing: editing, refMode: refMode,
@@ -2136,7 +2180,7 @@
     histLock = true;
     try{
       if(refMode) exitRefMode(false);            // si veníamos del picker de lugar, sal de ese modo
-      state.country = s.country; state.city = s.city; state.type = s.type; state.subtype = s.subtype;
+      state.country = s.country; state.prov = s.prov || null; state.city = s.city; state.type = s.type; state.subtype = s.subtype;
       evMode = s.evMode || 'prox'; horSala = s.horSala; horSub = s.horSub || 'horario';
       calMonth = s.calMonth; calYear = s.calYear; calSub = s.calSub || 'cal'; calPast = !!s.calPast;
       editing = null;
@@ -2177,7 +2221,7 @@
       var view = VIEW_IDS.filter(function(id){ return !$('#'+id).classList.contains('hidden'); })[0] || 'view1';
       sessionStorage.setItem('cilap-nav', JSON.stringify({
         role: state.role ? state.role.value : null,
-        country: state.country, city: state.city, type: state.type, subtype: state.subtype,
+        country: state.country, prov: state.prov, city: state.city, type: state.type, subtype: state.subtype,
         view: view, evMode: evMode,
         horSala: horSala, horSub: horSub,
         calMonth: calMonth, calYear: calYear, calSub: calSub, calPast: calPast,
@@ -2194,7 +2238,7 @@
     if(!s || !s.role) return;
     try{
       state.role = { value: s.role, label: ROLE_META[s.role] };
-      state.country = s.country; state.city = s.city; state.type = s.type; state.subtype = s.subtype;
+      state.country = s.country; state.prov = s.prov || null; state.city = s.city; state.type = s.type; state.subtype = s.subtype;
       renderPanel(); updateRoleIcons(); updateHub();
       var v = s.view;
       if(v === 'view1' || v === 'viewHub' || v === 'viewWhere'){ goView('viewHub','ac-red'); return; }

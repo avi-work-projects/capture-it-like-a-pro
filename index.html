@@ -201,6 +201,9 @@
       <div class="slot" data-key="country">
         <span class="sl">País</span><span class="sv">—</span>        <button class="sx" title="Quitar selección">✕</button>
       </div>
+      <div class="slot" data-key="prov">
+        <span class="sl">Provincia</span><span class="sv">—</span>        <button class="sx" title="Quitar selección">✕</button>
+      </div>
       <div class="slot" data-key="city">
         <span class="sl">Ciudad</span><span class="sv">—</span>        <button class="sx" title="Quitar selección">✕</button>
       </div>
@@ -238,15 +241,29 @@
     </section>
 
     <!-- PASO B · Ciudad (las opciones se filtran por país via data-show) -->
+    <!-- PASO P · Provincia (entre País y Ciudad; se auto-salta si solo hay una con eventos) -->
+    <section class="step" id="stepP">
+      <h3>¿Qué provincia?</h3>
+      <div class="opts">
+        <button class="opt" data-value="all" data-label="Todas" data-show="es,pl">Todas</button>
+        <button class="opt" data-value="p28" data-label="Madrid" data-show="es">Madrid</button>
+        <button class="opt" data-value="p41" data-label="Sevilla" data-show="es">Sevilla</button>
+        <button class="opt" data-value="p08" data-label="Barcelona" data-show="es">Barcelona</button>
+        <button class="opt" data-value="pmz" data-label="Mazovia" data-show="pl">Mazovia</button>
+        <button class="opt" data-value="pmp" data-label="Małopolska" data-show="pl">Małopolska</button>
+      </div>
+    </section>
+
+    <!-- las ciudades filtran por provincia (p*) o, sin provincia concreta, por país -->
     <section class="step" id="stepB">
       <h3>¿Qué ciudad?</h3>
       <div class="opts">
-        <button class="opt" data-value="all" data-label="Todas" data-show="es,pl">Todas</button>
-        <button class="opt" data-value="mad" data-label="Madrid" data-show="es">Madrid</button>
-        <button class="opt" data-value="sev" data-label="Sevilla" data-show="es">Sevilla</button>
-        <button class="opt" data-value="bcn" data-label="Barcelona" data-show="es">Barcelona</button>
-        <button class="opt" data-value="waw" data-label="Varsovia" data-show="pl">Varsovia</button>
-        <button class="opt" data-value="kra" data-label="Cracovia" data-show="pl">Cracovia</button>
+        <button class="opt" data-value="all" data-label="Todas" data-show="es,pl,p28,p41,p08,pmz,pmp">Todas</button>
+        <button class="opt" data-value="mad" data-label="Madrid" data-show="es,p28">Madrid</button>
+        <button class="opt" data-value="sev" data-label="Sevilla" data-show="es,p41">Sevilla</button>
+        <button class="opt" data-value="bcn" data-label="Barcelona" data-show="es,p08">Barcelona</button>
+        <button class="opt" data-value="waw" data-label="Varsovia" data-show="pl,pmz">Varsovia</button>
+        <button class="opt" data-value="kra" data-label="Cracovia" data-show="pl,pmp">Cracovia</button>
       </div>
     </section>
 
