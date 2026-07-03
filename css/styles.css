@@ -662,39 +662,61 @@ body{
   align-content:center;
   column-gap:16px;row-gap:4px;
 }
-/* zona inferior: [Mis bailes | Mis eventos] y debajo [Ver camarógrafos | engranaje] */
-.hub-row{display:flex;flex-direction:column;gap:14px;flex:none}
-.hub-pair{display:flex;gap:14px;flex:none}
-.hub-mine-row{display:flex;gap:14px;flex:none}
-.hub-pair .card,.hub-mine-row #hubCams{
-  flex:1;min-width:0;height:auto;min-height:var(--hub-sm);
-  display:grid;
-  grid-template-columns:auto 1fr;
-  grid-template-rows:auto auto;
-  align-content:center;
-  column-gap:14px;row-gap:2px;
-  padding:12px 18px;
+/* zona inferior: etiqueta "Mi actividad" + 3 tarjetas iguales + Crear evento */
+.hub-row{display:flex;flex-direction:column;gap:12px;flex:none}
+.hub-sec-lbl{
+  font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);margin:0 2px -4px;
 }
-/* engranaje: botón cuadrado, solo icono centrado, sin enmarques de esquina */
-.hub-mine-row .gear{
-  flex:none;width:var(--hub-sm);height:auto;min-height:var(--hub-sm);align-self:stretch;
-  display:flex;align-items:center;justify-content:center;
-  padding:12px;position:relative;
+.hub-triple{display:flex;gap:10px}
+.hub-triple .card.tri{
+  flex:1;min-width:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  padding:14px 6px 11px;
 }
-#hubSettings::before,#hubSettings::after{display:none}
-.hub-mine-row .gear .icn-hub{width:28px;height:28px}
+.hub-triple .card.tri .icn-hub{width:26px;height:26px}
+.hub-triple .card.tri .name{font-size:13px;line-height:1.1;text-align:center}
+.hub-triple .card.tri .cnt{
+  font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+/* botón Crear evento: tarjeta ancha con acento turquesa */
+.card.create{
+  display:flex;align-items:center;justify-content:center;gap:14px;
+  padding:15px 18px;
+  --hac:#20d6c0;--hglow:rgba(32,214,192,.30);
+  border-color:rgba(32,214,192,.45);
+}
+.card.create .icn-hub{width:28px;height:28px;flex:none}
+.card.create .crt{display:flex;flex-direction:column;gap:2px;text-align:left}
+.card.create .name{font-size:18px}
+.card.create .sub{font-size:11px}
+/* engranaje en la cabecera del hub (a la derecha del título) */
+.hub-gear{position:relative;margin-left:auto;align-self:flex-start}
 /* punto de aviso (config sin rellenar) en la esquina sup. dcha. */
 .gear-badge{
-  position:absolute;top:9px;right:9px;
+  position:absolute;top:-4px;right:-4px;
   width:11px;height:11px;border-radius:50%;
   background:#ff3b30;border:2px solid var(--bg);
   box-shadow:0 0 8px rgba(255,59,48,.7);
 }
 .gear-badge[hidden]{display:none}
-.hub-pair .card .icn-hub,.hub-mine-row #hubCams .icn-hub{grid-row:1 / span 2;align-self:center;width:28px;height:28px}
 .hub .card.big .icn-hub,.hub-top #hubEvent .icn-hub{grid-row:1 / span 2;align-self:center;width:30px;height:30px}
-.hub-pair .card .name,.hub-mine-row #hubCams .name{font-size:17px;line-height:1.15}
-.hub-pair .card .sub,.hub-mine-row #hubCams .sub{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* nota "muy pronto" del selector de tipo de Crear evento */
+.create-note{
+  font-family:var(--mono);font-size:10px;line-height:1.5;letter-spacing:.04em;
+  color:var(--muted);text-align:center;padding:4px 10px 0;
+}
+.create-note[hidden]{display:none}
+/* acentos del selector de tipo (mismos colores que los tipos de evento) */
+#viewCreate .ct-sala    {--hac:#c46bff;--hglow:rgba(196,107,255,.30)}
+#viewCreate .ct-congreso{--hac:#3da9ff;--hglow:rgba(61,169,255,.30)}
+#viewCreate .ct-exterior{--hac:#ffd60a;--hglow:rgba(255,214,10,.30)}
+.app.light #viewCreate .ct-exterior{--hac:#a98200}
+.app.light .card.create{--hac:#0b9c8b;border-color:rgba(11,156,139,.45)}
+/* acentos lima/ámbar del hub, oscurecidos en claro (norma general) */
+.app.light #hubMine{--hac:#7da300;--hglow:rgba(125,163,0,.30)}
+.app.light #hubCams{--hac:#a98200;--hglow:rgba(169,130,0,.30)}
 /* cada acción del hub tiene su acento: el color de la sección que abre */
 #hubProx{--hac:#3da9ff;--hglow:rgba(61,169,255,.30)}     /* azul = próximos eventos */
 #whereCity{--hac:#3da9ff;--hglow:rgba(61,169,255,.30)}   /* azul = país/ciudad */

@@ -428,10 +428,11 @@
   $('#homeBtnEC').addEventListener('click', goHome);
 
   /* ── transición genérica entre vistas ─────────────────────────────── */
-  var VIEW_IDS = ['view1','viewHub','viewWhere','view2','viewSettings','viewCams','viewProfile','viewMine','viewMyEvents','viewDance','viewMap','view3','viewEvCams'];
+  var VIEW_IDS = ['view1','viewHub','viewWhere','viewCreate','view2','viewSettings','viewCams','viewProfile','viewMine','viewMyEvents','viewDance','viewMap','view3','viewEvCams'];
   function goView(toId, accent){
     var to = $('#'+toId);
     if(accent) setAccent(accent);
+    if(toId === 'viewHub') updateHub();   // contadores vivos al volver al hub
     // oculta TODAS las vistas visibles que no sean el destino (las
     // transiciones solapadas podían dejar dos vistas a la vez)
     var froms = [];
@@ -1637,11 +1638,35 @@
   });
 
   /* ── hub: ¿qué buscas? ────────────────────────────────────────────── */
+  /* nº de eventos futuros con alguna intención marcada (para el contador del hub) */
+  function myEventsCount(){
+    var ids = {};
+    Object.keys(attend).forEach(function(id){ if(attend[id]) ids[id] = 1; });
+    Object.keys(wishrec).forEach(function(id){ if(wishrec[id]) ids[id] = 1; });
+    Object.keys(interest).forEach(function(k){
+      if(!interest[k]) return;
+      var us = k.lastIndexOf('_'); if(us !== -1) ids[k.slice(0, us)] = 1;
+    });
+    var hoy = new Date(); hoy.setHours(0,0,0,0);
+    return Object.keys(ids).filter(function(id){
+      var ev = resolveEv(id); return ev && intentTs(id, ev) >= hoy.getTime();
+    }).length;
+  }
   function updateHub(){
     var dancer = state.role && state.role.value === 'dancer';
     $('#hubSub').textContent = dancer ? 'Entraste como bailarín.' : 'Entraste como camarógrafo.';
     $('#hubMineName').textContent = dancer ? 'Mis bailes' : 'Mis sesiones';
-    $('#hubMineSub').textContent = dancer ? 'Quién te grabó' : 'Lo que has grabado';
+    /* contadores vivos bajo cada tarjeta */
+    if(dancer){
+      var pend = MY_DANCES.filter(function(d){ return !myRatings[danceKey(d)]; }).length;
+      $('#hubMineCnt').textContent = pend ? (pend + ' por valorar') : (MY_DANCES.length + ' bailes');
+    } else {
+      $('#hubMineCnt').textContent = MY_SESSIONS.length + ' sesiones';
+    }
+    var me = myEventsCount();
+    $('#hubMyEvCnt').textContent = me ? (me + ' marcado' + (me === 1 ? '' : 's')) : 'ninguno aún';
+    var nf = Object.keys(follows).filter(function(k){ return follows[k]; }).length;
+    $('#hubCamsCnt').textContent = nf ? (nf + ' favorito' + (nf === 1 ? '' : 's')) : 'directorio';
     refreshRefUI();
   }
   /* refleja la config de país/ciudad: botón "Eventos en mi ciudad"
@@ -1725,6 +1750,14 @@
     goView('viewSettings','ac-violet');
   }
   $('#hubSettings').addEventListener('click', openSettings);
+  /* Crear evento: selector de tipo (el asistente completo llega con la fase de
+     pases de congreso; de momento cada tipo muestra la nota "muy pronto") */
+  $('#hubCreate').addEventListener('click', function(){ $('#createNote').hidden = true; goView('viewCreate','ac-red'); });
+  $('#createBack').addEventListener('click', histBack);
+  $('#createHome').addEventListener('click', goHome);
+  document.querySelectorAll('#viewCreate [data-ctype]').forEach(function(b){
+    b.addEventListener('click', function(){ $('#createNote').hidden = false; });
+  });
   /* "Indicar lugar habitual": abre el MISMO picker de pasos, solo País + Ciudad */
   /* OJO: envuelto — pasar startRefPick directo colaba el MouseEvent como
      refTarget y el picker se comportaba como el de camarógrafos (multi) */
@@ -2222,7 +2255,7 @@
       renderPanel(); updateRoleIcons();
       var v = s.view;
       if(v === 'view1'){ goView('view1','ac-red'); return; }
-      if(v === 'viewHub' || v === 'viewWhere'){ goView(v, 'ac-red'); return; }
+      if(v === 'viewHub' || v === 'viewWhere' || v === 'viewCreate'){ goView(v, 'ac-red'); return; }
       if(v === 'viewCams'){ renderCamDir(); goView('viewCams','ac-amber'); return; }
       if(v === 'viewMine'){ renderMine(); goView('viewMine','ac-lime'); return; }
       if(v === 'viewMyEvents'){ renderMyEvents(); goView('viewMyEvents','ac-red'); return; }
@@ -2276,7 +2309,7 @@
       state.country = s.country; state.prov = s.prov || null; state.city = s.city; state.type = s.type; state.subtype = s.subtype;
       renderPanel(); updateRoleIcons(); updateHub();
       var v = s.view;
-      if(v === 'view1' || v === 'viewHub' || v === 'viewWhere'){ goView('viewHub','ac-red'); return; }
+      if(v === 'view1' || v === 'viewHub' || v === 'viewWhere' || v === 'viewCreate'){ goView('viewHub','ac-red'); return; }
       if(v === 'viewCams'){ renderCamDir(); goView('viewCams','ac-amber'); return; }
       if(v === 'viewMine' || v === 'viewDance'){ renderMine(); goView('viewMine','ac-lime'); return; }
       if(v === 'viewMyEvents'){ renderMyEvents(); goView('viewMyEvents','ac-red'); return; }
