@@ -452,20 +452,45 @@
 
   /* ── rebote elástico en los bordes del scroll (efecto goma táctil):
      arrastrar más allá del límite estira con resistencia creciente;
-     mientras mantengas el dedo se queda; al soltar vuelve con muelle ── */
+     mientras mantengas el dedo se queda; al soltar vuelve con muelle.
+     ARRIBA (tirar hacia abajo): rebota la vista ENTERA (efecto página iOS).
+     ABAJO (tirar hacia arriba): SOLO el contenido — los hijos sticky (título
+     .v2-head, buscadores…) se quedan anclados y el contenido se esconde por
+     detrás (mismo espíritu que el .scroll-body de #view2). El chrome sticky
+     ya es opaco y va con z-index por encima de los hijos transformados. ── */
   function addRubberBand(el){
-    var startY = 0, pull = 0, tracking = false;
+    var startY = 0, pull = 0, tracking = false, mode = null, kids = null;
+    function bodyKids(){
+      /* hijos NO sticky = el contenido; se calcula al iniciar cada estirón
+         (tras cada render cambian). OJO: transformarlos rompería un sticky
+         INTERNO suyo (gotcha conocido) — las vistas con date-heads sticky
+         dentro del contenido son #view2, que no pasa por aquí. */
+      return [].filter.call(el.children, function(c){
+        return getComputedStyle(c).position !== 'sticky';
+      });
+    }
+    function setT(transition, transform){
+      if(mode === 'top'){
+        el.style.transition = transition; el.style.transform = transform;
+      } else if(kids){
+        kids.forEach(function(k){ k.style.transition = transition; k.style.transform = transform; });
+      }
+    }
     function release(){
       tracking = false;
-      if(!pull) return;
+      if(!pull){ mode = null; kids = null; return; }
       pull = 0;
-      el.style.transition = 'transform .42s cubic-bezier(.2,.8,.3,1.18)';  // con sobreimpulso
-      el.style.transform = '';
-      setTimeout(function(){ el.style.transition = ''; }, 440);
+      setT('transform .42s cubic-bezier(.2,.8,.3,1.18)', '');   // con sobreimpulso
+      var m = mode, ks = kids;
+      setTimeout(function(){
+        if(m === 'top'){ el.style.transition = ''; }
+        else if(ks){ ks.forEach(function(k){ k.style.transition = ''; }); }
+      }, 440);
+      mode = null; kids = null;
     }
     el.addEventListener('touchstart', function(e){
       tracking = true;
-      pull = 0;
+      pull = 0; mode = null; kids = null;
       startY = e.touches[0].clientY;
     }, { passive:true });
     el.addEventListener('touchmove', function(e){
@@ -474,16 +499,19 @@
       var atTop = el.scrollTop <= 0;
       var atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
       if((dy > 0 && atTop) || (dy < 0 && atBottom)){
+        var m = dy > 0 ? 'top' : 'bottom';
+        if(mode && mode !== m) setT('none', '');   // cambió de borde a mitad de gesto
+        mode = m;
+        if(m === 'bottom' && !kids) kids = bodyKids();
         pull = dy;
         // resistencia asintótica: nunca estira más de ~110px
         var damp = (dy < 0 ? -1 : 1) * 110 * (1 - 1 / (Math.abs(dy) / 300 + 1));
-        el.style.transition = 'none';
-        el.style.transform = 'translateY(' + damp.toFixed(1) + 'px)';
+        setT('none', 'translateY(' + damp.toFixed(1) + 'px)');
         e.preventDefault();               // sin scroll nativo mientras estiras
       } else if(pull){
         pull = 0;                         // volviste a zona de scroll normal
-        el.style.transition = 'none';
-        el.style.transform = '';
+        setT('none', '');
+        mode = null; kids = null;
       }
     }, { passive:false });
     el.addEventListener('touchend', release);
