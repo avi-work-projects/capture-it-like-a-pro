@@ -752,6 +752,18 @@
       return true;
     }
     function instance(ev, s, e){ return Object.assign({}, ev, { id: ev.id + '@' + s, startsAt:s, endsAt:e, recurrence:'oneoff' }); }
+    /* pases concretos de un congreso (día/noche por jornada) como instancias */
+    function passInstances(ev, fromTs, toTs){
+      return congressOccs(ev).filter(function(o){
+        return o.endsAt >= Date.now() && o.startsAt <= toTs && o.endsAt >= fromTs;
+      }).map(function(o){
+        var inst = instance(ev, o.startsAt, o.endsAt);
+        inst.id += '#' + o.passType;
+        inst.passType = o.passType;
+        inst.passLabel = PASS_LABEL[o.passType];
+        return inst;
+      });
+    }
     /* construye la lista EXPANDIENDO las salas semanales en sus ocurrencias
        dentro de la ventana (antes solo aparecía la próxima de cada sala, así que
        ampliar el rango no traía las repeticiones). */
@@ -766,6 +778,9 @@
           occFrom = Math.max(occFrom, t.getTime());
         }
         weeklyOccs(ev, occFrom, winTo).forEach(function(o){ list.push(instance(ev, o.start, o.end)); });
+      } else if(ev.type === 'congreso' && ev.passes){
+        /* un congreso de N días sale como sus PASES: cada día bajo su fecha */
+        passInstances(ev, winFrom, winTo).forEach(function(i){ list.push(i); });
       } else {
         if(eventStatus(ev) === 'terminado') return;   // el pasado no se busca
         list.push(ev);
@@ -828,6 +843,7 @@
     var foll = ev.camIds.filter(function(id){ return follows[id]; }).length;
     var multi = (ev.endsAt - ev.startsAt) > 86400000 * 1.1;   // ocupa varios días
     var when = multi ? (fmtDate(ev.startsAt) + ' – ' + fmtDate(ev.endsAt)) : evHours(ev);
+    if(ev.passLabel) when += ' · ' + ev.passLabel;            // congreso: pase de día/noche
     return '<div class="evt-head">' +
         '<span class="evt-name">' + ev.name + '</span>' +
         '<span class="evt-badges">' +
@@ -924,6 +940,16 @@
         var occFrom = winFrom;
         if(eventStatus(ev) === 'directo'){ list.push(ev); var t = new Date(); t.setHours(0,0,0,0); t.setDate(t.getDate()+1); occFrom = Math.max(occFrom, t.getTime()); }
         weeklyOccs(ev, occFrom, winTo).forEach(function(o){ list.push(instance(ev, o.start, o.end)); });
+      } else if(ev.type === 'congreso' && ev.passes){
+        /* en el mapa, cada pase del congreso cae en SU día */
+        congressOccs(ev).forEach(function(o){
+          if(o.endsAt < now || o.startsAt > winTo) return;
+          var inst = instance(ev, o.startsAt, o.endsAt);
+          inst.id += '#' + o.passType;
+          inst.passType = o.passType;
+          inst.passLabel = PASS_LABEL[o.passType];
+          list.push(inst);
+        });
       } else { if(eventStatus(ev) === 'terminado') return; list.push(ev); }
     });
     list.sort(function(a, b){ return a.startsAt - b.startsAt; });
@@ -1489,6 +1515,7 @@
     $('#evTags').innerHTML =
       (st === 'directo'   ? '<span class="tag2 hl">● En directo</span>' : '') +
       (st === 'terminado' ? '<span class="tag2">Terminado</span>' : '') +
+      (ev.passLabel ? '<span class="tag2 tt-congreso">' + ev.passLabel + '</span>' : '') +
       '<span class="tag2">' + CITY_LABELS[ev.city] + '</span>' +
       '<span class="tag2 tt-' + ev.type + '">' + TYPE_LABELS[ev.type] + '</span>' +
       (ev.sub ? '<span class="tag2 hl">' + SUB_LABELS[ev.sub] + '</span>' : '');
@@ -2195,7 +2222,7 @@
   /* fecha concreta de una intención: instancia (@ts) → su ts; semanal → próxima
      ocurrencia; puntual → su inicio */
   function intentTs(id, ev){
-    if(id.indexOf('@') !== -1) return Number(id.split('@')[1]);
+    if(id.indexOf('@') !== -1) return parseInt(id.split('@')[1], 10);   // parseInt: ignora el sufijo '#pase'
     if(ev.recurrence === 'weekly'){ var occ = weeklyOccs(ev, Date.now(), Date.now() + 60 * 86400000); return occ.length ? occ[0].start : Date.now(); }
     return ev.startsAt || Date.now();
   }

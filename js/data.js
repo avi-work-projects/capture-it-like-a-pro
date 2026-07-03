@@ -111,6 +111,12 @@
   { id:'e_sunset', name:"Bachata Sunset Madrid", country:'es', city:'mad', type:'exterior', sub:'terraza', recurrence:'oneoff', dateStart:'2026-06-20', dateEnd:'2026-06-20', venue:"Terraza Plaza España", coords:[-3.71088,40.42345], camIds:["carlos"] },
   { id:'e_beach', name:"Bachata Beach Party", country:'es', city:'bcn', type:'exterior', sub:'playa', recurrence:'oneoff', dateStart:'2026-07-11', dateEnd:'2026-07-11', venue:"Playa Bogatell", camIds:["lucia", "david"] }
   ];
+  /* eventos creados por el usuario (wizard "Crear evento") — se funden con los
+     demo al cargar; llevan mine:true para poder gestionarlos/borrarlos */
+  try{
+    (JSON.parse(localStorage.getItem('cilap-myevents')) || []).forEach(function(e){ e.mine = true; EVENTS.push(e); });
+  }catch(err){}
+
   var EVENTS_BY_ID = {};
   EVENTS.forEach(function(e){ EVENTS_BY_ID[e.id] = e; e.prov = CITY_PROV[e.city]; });
 
@@ -143,9 +149,48 @@
         e.endsAt   = new Date(+b[0], +b[1]-1, +b[2], 23, 59).getTime();
       }
     });
+    /* CONGRESOS: pases de DÍA/NOCHE por día (los administra quien crea el
+       evento). Si no traen `passes` explícito (los del wizard sí lo traen),
+       se sintetiza el patrón típico: 1er día solo NOCHE (fiesta de
+       bienvenida), días centrales DÍA+NOCHE, último día solo DÍA.
+       Horas por defecto: día 11:00–20:00 · noche 22:00–04:00. */
+    EVENTS.forEach(function(e){
+      if(e.type !== 'congreso' || !e.dateStart || e.passes) return;
+      var a = e.dateStart.split('-'), b = (e.dateEnd || e.dateStart).split('-');
+      var d0 = new Date(+a[0], +a[1]-1, +a[2]), d1 = new Date(+b[0], +b[1]-1, +b[2]);
+      var days = Math.round((d1 - d0) / 86400000) + 1;
+      e.passes = [];
+      for(var i = 0; i < days; i++){
+        var d = new Date(d0); d.setDate(d0.getDate() + i);
+        var iso = d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate());
+        e.passes.push({
+          date: iso,
+          day:   (i === 0 && days > 1)        ? null : { start:'11:00', end:'20:00' },
+          night: (i === days - 1 && days > 1) ? null : { start:'22:00', end:'04:00' }
+        });
+      }
+    });
     var live = EVENTS_BY_ID['s_thehost'];   // demo en directo
     if(live){ live.startsAt = now - 1 * H; live.endsAt = now + 3 * H; }
   })();
+  var PASS_LABEL = { day:'Pase de día', night:'Pase de noche' };
+  /* expande un congreso en sus pases concretos → [{startsAt, endsAt, passType}] */
+  function congressOccs(ev){
+    if(!ev.passes) return [];
+    var out = [];
+    ev.passes.forEach(function(p){
+      var d = p.date.split('-');
+      ['day','night'].forEach(function(k){
+        var t = p[k]; if(!t) return;
+        var s = t.start.split(':'), e = t.end.split(':');
+        var st = new Date(+d[0], +d[1]-1, +d[2], +s[0], +s[1]).getTime();
+        var en = new Date(+d[0], +d[1]-1, +d[2], +e[0], +e[1]).getTime();
+        if(en <= st) en += 86400000;   // el pase de noche cruza la medianoche
+        out.push({ startsAt: st, endsAt: en, passType: k });
+      });
+    });
+    return out;
+  }
   function pad2(n){ return (n < 10 ? '0' : '') + n; }
   function fmtTime(t){ var d = new Date(t); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
   var DOW = ['dom','lun','mar','mié','jue','vie','sáb'];
