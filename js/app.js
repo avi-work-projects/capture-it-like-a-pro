@@ -429,24 +429,42 @@
 
   /* ── transición genérica entre vistas ─────────────────────────────── */
   var VIEW_IDS = ['view1','viewHub','viewWhere','viewCreate','viewCreateForm','view2','viewSettings','viewCams','viewProfile','viewMine','viewMyEvents','viewDance','viewMap','view3','viewEvCams','viewLive'];
+  /* GUARD anti-carreras: entrar/salir rápido (dos goView en <240 ms) dejaba el
+     timeout de la transición VIEJA "reviviendo" su destino → dos vistas a la
+     vez, una montada sobre otra (bug reportado con captura en viewEvCams).
+     goSeq invalida los timeouts antiguos y curView protege al destino actual. */
+  var goSeq = 0, curView = null;
   function goView(toId, accent){
     var to = $('#'+toId);
     if(accent) setAccent(accent);
     if(toId === 'viewHub') updateHub();   // contadores vivos al volver al hub
-    // oculta TODAS las vistas visibles que no sean el destino (las
-    // transiciones solapadas podían dejar dos vistas a la vez)
     var froms = [];
     VIEW_IDS.forEach(function(id){
       var v = $('#'+id);
       if(v !== to && !v.classList.contains('hidden')) froms.push(v);
     });
-    if(!froms.length) return;
+    curView = toId;
+    if(!froms.length){
+      /* ya estás en el destino (o está saliendo por una transición previa):
+         cancela esa salida y quédate — sin esto, A→B→A rápido dejaba pantalla
+         en blanco o la vista equivocada */
+      ++goSeq;
+      to.classList.remove('out','hidden');
+      void to.offsetHeight;
+      to.classList.add('in');
+      return;
+    }
     /* al salir del modo en directo, apagar micro/timers del módulo Live */
     if(window.Live && froms.some(function(f){ return f.id === 'viewLive'; })) Live.close();
     pushHist();                       // apila el momento que dejamos (← vuelve aquí)
     froms.forEach(function(f){ f.classList.remove('in'); f.classList.add('out'); });
+    var seq = ++goSeq;
     setTimeout(function(){
-      froms.forEach(function(f){ f.classList.add('hidden'); f.classList.remove('out'); });
+      froms.forEach(function(f){
+        if(f.id === curView){ f.classList.remove('out'); }   // ahora es el destino de OTRA transición: no lo toques
+        else { f.classList.add('hidden'); f.classList.remove('out'); }
+      });
+      if(seq !== goSeq) return;       // hay una transición más nueva: no revivas este destino
       to.classList.remove('hidden');
       void to.offsetHeight;
       to.classList.add('in');
@@ -884,7 +902,7 @@
   /* colores de marcador vía CSS vars (--mk-*): cálidos sobre el mapa azul y
      con override en tema claro (los tonos claros se lavan sobre crema) */
   var MAP_TYPE_COLOR = { sala:'var(--mk-sala)', congreso:'var(--mk-congreso)', exterior:'var(--mk-ext)' };
-  var MAP_TYPE_LABEL = { sala:'Sala de baile', congreso:'Congreso', exterior:'Al exterior' };
+  var MAP_TYPE_LABEL = { sala:'Sala de baile', congreso:'Congreso', exterior:'Social al exterior' };
   /* contornos REALES (IGN vía georef-spain-provincia/municipio) proyectados al
      viewBox 0..100: los genera tools/build_map.py en js/map-geo.js (MAP_GEO).
      Dos escenas: 'region' (Comunidad + provincias vecinas) y 'city' (municipio

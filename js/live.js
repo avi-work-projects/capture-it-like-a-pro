@@ -124,28 +124,34 @@ function render(){
       '<p class="lv-hint">' + mapHint + '</p>' +
     '</div>' +
 
-    /* ── detector ── */
-    '<div class="lv-card">' +
-      '<div class="lv-card-h">Detector de canciones</div>' +
-      '<div class="lv-prep idle" id="lvPrep"><b id="lvPrepState">INACTIVO</b><span class="lv-cd" id="lvPrepCd">--:--</span><span class="lv-msg" id="lvPrepMsg">Arranca el detector para avisos de turno</span></div>' +
-      '<div class="lv-np" id="lvNp" hidden>' +
-        '<b id="lvNpTitle"></b><span id="lvNpArtist"></span>' +
-        '<div class="lv-bar"><div class="lv-bar-fill" id="lvNpFill"></div></div>' +
-        '<span class="lv-np-time"><span id="lvNpEl">--:--</span> / <span id="lvNpTot">--:--</span></span>' +
-      '</div>' +
-      '<div class="lv-token" id="lvTokenRow" hidden>' +
-        '<input type="password" id="lvToken" placeholder="Pega tu API token de audd.io" autocomplete="off">' +
-      '</div>' +
-      '<div class="lv-det-actions">' +
-        '<button class="cta" id="lvDetStart">Iniciar detector</button>' +
-        '<button class="cta ghost" id="lvDetStop" hidden>Parar</button>' +
-      '</div>' +
-      '<div class="lv-status" id="lvDetStatus">El detector escucha por el micrófono e identifica cada canción (AudD).</div>' +
-      '<div class="lv-log" id="lvLog"></div>' +
-    '</div>';
+    /* ── detector (SOLO cámara; el bailarín ve su turno calculado por cola) ── */
+    (cam
+      ? '<div class="lv-card">' +
+          '<div class="lv-card-h">Detector de canciones</div>' +
+          '<div class="lv-prep idle" id="lvPrep"><b id="lvPrepState">INACTIVO</b><span class="lv-cd" id="lvPrepCd">--:--</span><span class="lv-msg" id="lvPrepMsg">Arranca el detector para avisos de turno</span></div>' +
+          '<div class="lv-np" id="lvNp" hidden>' +
+            '<b id="lvNpTitle"></b><span id="lvNpArtist"></span>' +
+            '<div class="lv-bar"><div class="lv-bar-fill" id="lvNpFill"></div></div>' +
+            '<span class="lv-np-time"><span id="lvNpEl">--:--</span> / <span id="lvNpTot">--:--</span></span>' +
+          '</div>' +
+          '<div class="lv-token" id="lvTokenRow" hidden>' +
+            '<input type="password" id="lvToken" placeholder="Pega tu API token de audd.io" autocomplete="off">' +
+          '</div>' +
+          '<div class="lv-det-actions">' +
+            '<button class="cta" id="lvDetStart">Iniciar detector</button>' +
+            '<button class="cta ghost" id="lvDetStop" hidden>Parar</button>' +
+          '</div>' +
+          '<div class="lv-status" id="lvDetStatus">El detector escucha por el micrófono e identifica cada canción (AudD).</div>' +
+          '<div class="lv-log" id="lvLog"></div>' +
+        '</div>'
+      : '<div class="lv-card">' +
+          '<div class="lv-card-h">Tu turno</div>' +
+          '<div class="lv-prep idle" id="lvPrep"><b id="lvPrepState">—</b><span class="lv-cd" id="lvPrepCd">--:--</span><span class="lv-msg" id="lvPrepMsg"></span></div>' +
+          '<p class="lv-hint">El aviso se calcula con tu posición en la cola (el camarógrafo lleva el detector de canciones).</p>' +
+        '</div>');
 
   renderQueue();
-  bindDetectorUI();
+  if(cam) bindDetectorUI();
   tickUI();
 }
 
@@ -254,7 +260,9 @@ var PREP_ALERT_SEC = 25, PREP_GO_SEC = 6;
 
 function tickUI(){
   var prep = $('#lvPrep'); if(!prep) return;
-  var state = 'idle', label = 'INACTIVO', cd = '--:--', msg = 'Arranca el detector para avisos de turno';
+  var state = 'idle', label, cd = '--:--', msg;
+  if(role === 'cam'){ label = 'INACTIVO'; msg = 'Arranca el detector para avisos de turno'; }
+  else { label = 'SIN APUNTAR'; msg = 'Apúntate a la cola para ver tu turno'; }
   var song = det && det.currentSong;
   var fails = det ? det.consecutiveFails : 0;
   var left = songsLeftForMe();

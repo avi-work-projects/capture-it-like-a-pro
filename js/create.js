@@ -15,7 +15,7 @@ window.CreateEv = (function(){
 var KEY = 'cilap-myevents';
 var CITY_COUNTRY = { mad:'es', sev:'es', bcn:'es', waw:'pl', kra:'pl' };
 var DOW_LBL = ['D','L','M','X','J','V','S'];             // getDay(): 0=domingo
-var TYPE_TITLE = { sala:'Nueva sala de baile', congreso:'Nuevo congreso', exterior:'Nuevo evento al exterior' };
+var TYPE_TITLE = { sala:'Nueva sala de baile', congreso:'Nuevo congreso', exterior:'Nuevo social al exterior' };
 
 var app = null;      // navegación inyectada (wire)
 var type = 'sala';

@@ -59,13 +59,14 @@
         <span class="name">Bailarín</span>
         <span class="sub">Vengo a bailar</span>
       </button>
+      <!-- PROMOTOR: crear salas/congresos/sociales — tarjeta MENOR que los roles,
+           dentro de .cards para que scrollee/rebote exactamente igual que ellas -->
+      <button class="card create enter" id="hubCreate" style="animation-delay:.38s">
+        <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+        <span class="crt"><span class="name">Promotor</span>
+        <span class="sub">Añade salas, congresos y sociales</span></span>
+      </button>
     </div>
-    <!-- crear tu propio evento (sala / congreso / exterior) — en la Home -->
-    <button class="card create enter" id="hubCreate" style="animation-delay:.38s">
-      <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
-      <span class="crt"><span class="name">Crear evento</span>
-      <span class="sub">Sala, congreso o al exterior</span></span>
-    </button>
     <div class="map-links">
       <button class="map-link enter" id="mapaBtn" style="animation-delay:.44s">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6Z"/><path d="M9 4v14M15 6v14"/></svg>
@@ -151,7 +152,7 @@
       </button>
       <button class="card big ct-exterior" data-ctype="exterior">
         <svg class="icn-hub" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>
-        <span class="name">Al exterior</span>
+        <span class="name">Social al exterior</span>
         <span class="sub">Un día concreto, al aire libre</span>
       </button>
       <!-- tus eventos creados (módulo js/create.js) -->
@@ -340,7 +341,7 @@
         </button>
         <button class="opt" data-value="exterior" data-label="Exterior">
           <span class="ic"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3.5 17.5h17"/><path d="M7.8 17.5a4.2 4.2 0 0 1 8.4 0"/><path d="M12 9.8V7M6.4 12.6 4.8 11M17.6 12.6 19.2 11"/><path d="M5.5 21h13"/></svg></span>
-          <span class="lbl"><b>Al exterior</b><small>terrazas, playa, parque</small></span>
+          <span class="lbl"><b>Sociales al exterior</b><small>terrazas, playa, parque</small></span>
         </button>
       </div>
     </section>

@@ -554,15 +554,30 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 .sheet-head button{
   background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;padding:4px 8px;
 }
-.map-row{
-  display:flex;align-items:center;gap:10px;
-  background:var(--surface);border:1px solid var(--line);border-radius:11px;
-  padding:10px 12px;margin-bottom:8px;cursor:pointer;
+/* rejilla de tarjetas con MINIATURA real del mapa + acciones por tarjeta */
+#maps-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.map-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px;cursor:pointer}
+.map-card.current{border-color:var(--accent);box-shadow:0 0 14px var(--accent-glow)}
+.mc-thumb{position:relative;border-radius:8px;overflow:hidden;background:var(--surface-2);aspect-ratio:4/3;margin-bottom:7px}
+.mc-thumb svg{width:100%;height:100%;display:block}
+.mc-cur{
+  position:absolute;top:5px;left:5px;
+  font-family:var(--mono);font-size:7.5px;letter-spacing:.1em;
+  color:var(--accent);background:var(--bg);border:1px solid var(--accent);
+  border-radius:5px;padding:2px 5px;
 }
-.map-row.current{border-color:var(--accent)}
-.map-row .mn{flex:1;min-width:0;font-family:var(--mono);font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.map-row .md{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.05em}
-.map-row .mx{background:none;border:none;color:#ff3b30;font-size:13px;cursor:pointer;padding:4px 6px}
+.mc-name{font-family:var(--mono);font-size:11.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mc-meta{font-family:var(--mono);font-size:8.5px;color:var(--muted);letter-spacing:.04em;margin:2px 0 7px}
+.mc-actions,.mc-confirm{display:flex;gap:5px;align-items:center}
+.mc-actions[hidden],.mc-confirm[hidden]{display:none}
+.mc-confirm span{flex:1;font-family:var(--mono);font-size:9px;color:#ff6a60}
+.mc-b{
+  flex:1;background:var(--surface-2);border:1px solid var(--line);border-radius:7px;
+  color:var(--text);font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;
+  text-transform:uppercase;padding:6px 4px;cursor:pointer;
+}
+.mc-b.ic{flex:none;width:30px}
+.mc-b.del{color:#ff5a4d;border-color:rgba(255,90,77,.4)}
 #maps-new{
   width:100%;background:var(--surface);border:1px dashed var(--line);border-radius:11px;
   color:var(--accent);font-family:var(--mono);font-size:11px;letter-spacing:.1em;
@@ -1037,6 +1052,8 @@ function applyTheme(t){
   app.classList.toggle('light', t === 'light');
   themeBtn.textContent = t === 'light' ? '☾' : '☀';
   try{ localStorage.setItem('cilap-theme', t); }catch(err){}
+  /* la planta interior sin color propio sigue al tema → repintar */
+  try{ if(typeof renderFloor === 'function' && state) renderFloor(); }catch(err){}
 }
 themeBtn.addEventListener('click', () => applyTheme(app.classList.contains('light') ? 'dark' : 'light'));
 (() => { let t = 'dark'; try{ t = localStorage.getItem('cilap-theme') || 'dark'; }catch(err){} applyTheme(t); })();
@@ -1269,8 +1286,10 @@ function renderFloor(){
   let glow = '', body = '', sel = '';
   state.pieces.forEach(p => {
     const def = PIECES_DEF[p.kind], d = def.path, tr = pieceTransform(p);
-    /* color por pieza (p.color) o el de la definición; el contorno se aclara desde el cuerpo */
-    const fill = p.color || def.fill || '#161616';
+    /* color por pieza (p.color) o el de la definición; el contorno se aclara desde el cuerpo.
+       Interior sin color: la planta sigue al TEMA (papel en claro, oscuro en oscuro) —
+       en claro la sala salía como una losa negra sobre el lienzo blanco. */
+    const fill = p.color || def.fill || (app.classList.contains('light') ? '#eae7db' : '#161616');
     const edge = p.color ? lighten(p.color, 0.28) : (def.edge || '#3da9ff');
     glow += '<path class="pglow" data-id="' + p.id + '" fill="' + edge + '" stroke="' + edge + '" d="' + d + '" transform="' + tr + '"/>';
     /* RELLENO + su DECORACIÓN intercalados por pieza → la decoración acompaña a su
@@ -1310,7 +1329,11 @@ function applyBg(){
 /* ───────── render de elementos ───────── */
 function renderElements(){
   canvas.querySelectorAll('.el').forEach(n => n.remove());
-  state.elements.forEach(e => canvas.appendChild(makeNode(e)));
+  /* EXTERIOR: PROFUNDIDAD por altura — lo colocado más ARRIBA está más LEJOS
+     (se pinta detrás) y lo de más ABAJO más CERCA (delante). Así se ve qué
+     elementos/siluetas se superponen entre sí (norma del mapa exterior). */
+  var els = EXT ? state.elements.slice().sort((a, b) => a.y - b.y) : state.elements;
+  els.forEach(e => canvas.appendChild(makeNode(e)));
 }
 function makeNode(e){
   const t = TYPES[e.type];
@@ -1515,9 +1538,10 @@ $('#btn-color').addEventListener('click', () => {
 });
 
 /* ───────── modal de texto (sustituye al prompt del SO) ───────── */
-function openTextModal(current){
+function openTextModal(current, title){
   return new Promise(resolve => {
     const m = $('#text-modal'), inp = $('#tm-input');
+    $('#tm-title').textContent = title || 'Texto del elemento';
     inp.value = current || '';
     m.classList.add('open');
     setTimeout(() => { inp.focus(); inp.select(); }, 60);
@@ -1850,7 +1874,10 @@ function startDragEl(ev, id, node){
     node.removeEventListener('pointermove', onMove);
     node.removeEventListener('pointerup', onUp);
     node.removeEventListener('pointercancel', onUp);
-    if(moved) saveDraft();
+    if(moved){
+      saveDraft();
+      if(EXT) renderElements();   // reordena la profundidad (arriba=lejos) al soltar
+    }
   };
   node.addEventListener('pointermove', onMove);
   node.addEventListener('pointerup', onUp);
@@ -2104,41 +2131,96 @@ $('#btn-redo').addEventListener('click', redo);
 
 /* ───────── panel Mis mapas ───────── */
 const panel = $('#maps-panel');
+/* "hace X" compacto para la fecha de guardado */
+function relTime(ts){
+  if(!ts) return '';
+  const d = Date.now() - ts, MIN = 60000, H = 3600000, DAY = 86400000;
+  if(d < H) return 'hace ' + Math.max(1, Math.round(d / MIN)) + ' min';
+  if(d < DAY) return 'hace ' + Math.round(d / H) + ' h';
+  if(d < 30 * DAY) return 'hace ' + Math.round(d / DAY) + ' d';
+  return new Date(ts).toLocaleDateString('es-ES', { day:'numeric', month:'short' });
+}
+/* MINIATURA real: piezas con su forma/color + puntos de elementos (cámara en rojo) */
+function mapThumb(m){
+  let body = '';
+  (m.pieces || []).forEach(p => {
+    const def = PIECES_DEF[p.kind]; if(!def) return;
+    const fill = p.color || def.fill || (app.classList.contains('light') ? '#eae7db' : '#161616');
+    const edge = p.color ? lighten(p.color, 0.28) : (def.edge || '#3da9ff');
+    body += '<path fill="' + fill + '" stroke="' + edge + '" stroke-width="1.4" vector-effect="non-scaling-stroke" d="' + def.path + '" transform="' + pieceTransform(p) + '"/>';
+  });
+  (m.elements || []).forEach(e => {
+    const cam = e.type === 'camarografo';
+    body += '<circle cx="' + e.x + '" cy="' + e.y + '" r="' + (cam ? 2.6 : 1.9) + '" fill="' + (cam ? '#ff3b30' : '#9aa0a6') + '"/>';
+  });
+  return '<svg viewBox="0 0 100 100" preserveAspectRatio="none"' + (m.bg ? ' style="background:' + m.bg + '"' : '') + '>' + body + '</svg>';
+}
 function renderMapsList(){
   const lib = loadLib();
   const list = $('#maps-list');
   if(!lib.length){
-    list.innerHTML = '<div class="maps-empty">Aún no hay mapas guardados. Usa «Guardar» para añadir el actual.</div>';
+    list.innerHTML = '<div class="maps-empty">Aún no hay mapas guardados. Usa 💾 (Guardar) para añadir el actual.</div>';
     return;
   }
   list.innerHTML = '';
   lib.slice().sort((a, b) => (b.updated||0) - (a.updated||0)).forEach(m => {
-    const row = document.createElement('div');
-    row.className = 'map-row' + (m.id === state.id ? ' current' : '');
-    const date = m.updated ? new Date(m.updated).toLocaleDateString('es-ES', {day:'numeric', month:'short'}) : '';
-    row.innerHTML =
-      '<span class="mn">' + escapeHtml(m.name || 'Sin nombre') + '</span>' +
-      '<span class="md">' + m.elements.length + ' elem · ' + date + '</span>' +
-      '<button class="mx" title="Borrar">✕</button>';
-    row.addEventListener('click', ev => {
-      if(ev.target.closest('.mx')){
-        if(confirm('¿Borrar «' + (m.name || 'Sin nombre') + '» de Mis mapas?')){
-          localStorage.setItem(LIB_KEY, JSON.stringify(loadLib().filter(x => x.id !== m.id)));
-          renderMapsList();
-        }
+    const card = document.createElement('div');
+    card.className = 'map-card' + (m.id === state.id ? ' current' : '');
+    card.innerHTML =
+      '<div class="mc-thumb">' + mapThumb(m) + (m.id === state.id ? '<span class="mc-cur">EN EDICIÓN</span>' : '') + '</div>' +
+      '<div class="mc-name">' + escapeHtml(m.name || 'Sin nombre') + '</div>' +
+      '<div class="mc-meta">' + (m.pieces || []).length + (((m.pieces || []).length === 1) ? ' pieza' : ' piezas') + ' · ' + (m.elements || []).length + ' elem · ' + relTime(m.updated) + '</div>' +
+      '<div class="mc-actions">' +
+        '<button class="mc-b" data-act="open">Abrir</button>' +
+        '<button class="mc-b ic" data-act="ren" title="Renombrar">✎</button>' +
+        '<button class="mc-b ic" data-act="dup" title="Duplicar">⧉</button>' +
+        '<button class="mc-b ic del" data-act="del" title="Borrar">🗑</button>' +
+      '</div>' +
+      '<div class="mc-confirm" hidden><span>¿Borrarlo?</span><button class="mc-b del" data-act="delyes">Sí</button><button class="mc-b" data-act="delno">No</button></div>';
+    card.addEventListener('click', async ev => {
+      const b = ev.target.closest('[data-act]');
+      const act = b ? b.dataset.act : 'open';           // tocar la tarjeta = abrir
+      if(act === 'del'){ card.querySelector('.mc-confirm').hidden = false; card.querySelector('.mc-actions').hidden = true; return; }
+      if(act === 'delno'){ card.querySelector('.mc-confirm').hidden = true; card.querySelector('.mc-actions').hidden = false; return; }
+      if(act === 'delyes'){
+        localStorage.setItem(LIB_KEY, JSON.stringify(loadLib().filter(x => x.id !== m.id)));
+        renderMapsList();
+        toast('Mapa borrado');
         return;
       }
+      if(act === 'ren'){
+        const v = await openTextModal(m.name || '', 'Nombre del mapa');
+        if(v === null) return;
+        const lib2 = loadLib(), it = lib2.find(x => x.id === m.id);
+        if(it){ it.name = v.trim().slice(0, 40); localStorage.setItem(LIB_KEY, JSON.stringify(lib2)); }
+        if(state.id === m.id){ state.name = v.trim().slice(0, 40); $('#map-name').value = state.name; saveDraft(); }
+        renderMapsList();
+        return;
+      }
+      if(act === 'dup'){
+        const copy = JSON.parse(JSON.stringify(m));
+        copy.id = 'm' + Date.now();
+        copy.name = (m.name || 'Sin nombre') + ' (copia)';
+        copy.updated = Date.now();
+        const lib2 = loadLib(); lib2.push(copy);
+        localStorage.setItem(LIB_KEY, JSON.stringify(lib2));
+        renderMapsList();
+        toast('Duplicado');
+        return;
+      }
+      /* abrir */
       state = JSON.parse(JSON.stringify(m));
       syncSeq();
       select(null, null);
       $('#map-name').value = state.name || '';
+      renderFloor();
       renderElements();
       applyBg();
       saveDraft();
       panel.classList.remove('open');
       toast('Mapa cargado');
     });
-    list.appendChild(row);
+    list.appendChild(card);
   });
 }
 $('#btn-maps').addEventListener('click', () => {
@@ -2149,12 +2231,21 @@ $('#maps-close').addEventListener('click', () => panel.classList.remove('open'))
 panel.addEventListener('click', ev => {
   if(ev.target === panel) panel.classList.remove('open');
 });
+/* nuevo mapa: confirmación por DOBLE TOQUE (sin confirm() del sistema) */
+let newArm = null;
 $('#maps-new').addEventListener('click', () => {
-  if(!confirm('¿Empezar un mapa nuevo? Lo que no esté guardado se pierde.')) return;
+  if(!newArm){
+    $('#maps-new').textContent = '¿Seguro? Lo no guardado se pierde — toca otra vez';
+    newArm = setTimeout(() => { newArm = null; $('#maps-new').textContent = '+ Nuevo mapa'; }, 2600);
+    return;
+  }
+  clearTimeout(newArm); newArm = null;
+  $('#maps-new').textContent = '+ Nuevo mapa';
   state = freshMap();
   idSeq = 2;
   select(null, null);
   $('#map-name').value = '';
+  renderFloor();
   renderElements();
   applyBg();
   saveDraft();
@@ -2207,6 +2298,7 @@ $('#btn-reload').addEventListener('click', () => {
 loadDraft();
 if(LIVE){
   app.classList.add('live', 'live-' + LIVE);
+  state.gridOff = true;   // embebido: mapa "limpio", sin rejilla de edición
   if(LIVE === 'cam'){
     currentTab = 'camaras';   // solo la cámara responde (reglas sec-camaras)
     if(!state.elements.some(e => e.type === 'camarografo')){

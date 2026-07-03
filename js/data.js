@@ -14,7 +14,7 @@
   ════════════════════════════════════════════════════════════════════ */
   var CITY_LABELS = { all:'Todas', mad:'Madrid', sev:'Sevilla', bcn:'Barcelona',
                       waw:'Varsovia', kra:'Cracovia' };
-  var TYPE_LABELS = { sala:'Salas de baile', congreso:'Congresos', exterior:'Al exterior' };
+  var TYPE_LABELS = { sala:'Salas de baile', congreso:'Congresos', exterior:'Sociales al exterior' };
   var SUB_LABELS  = { all:'Todos', terraza:'Terraza', playa:'Playa', parque:'Parque' };
   /* provincias (nivel entre País y Ciudad): claves p+código INE (España) o
      slug (Polonia). Cada ciudad pertenece a una; ev.prov se deriva de su city. */
