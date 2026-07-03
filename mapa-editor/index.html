@@ -61,6 +61,22 @@ body{background:#000;font-family:var(--body);overflow:hidden}
   overflow:hidden;
   display:flex;flex-direction:column;
 }
+/* tema CLARO — mismas variables que la app (se sincroniza vía cilap-theme) */
+.app.light{
+  --bg:#f5f5f2;
+  --surface:#ffffff;
+  --surface-2:#ebebe7;
+  --line:#d4d4cd;
+  --text:#101010;
+  --muted:#71716a;
+  --c-gen:#3c3c3c;   /* figuras genéricas: blanco ilegible sobre claro */
+  /* acentos claros (lima/ámbar) → tono oscuro de la misma familia en claro */
+  --c-elementos:#6f8f00;
+  --c-camaras:#a98200;
+  --c-acceso:#6f8f00;
+  --c-cam:#a98200;
+  --c-farola:#a98200;
+}
 .app::before{
   content:'';position:absolute;inset:0;
   background-color:var(--accent);opacity:.12;
@@ -634,6 +650,7 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
     <button class="hd-btn ic" id="btn-save" title="Guardar en Mis mapas"><svg viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h7"/><path d="M8 14h8"/><path d="M8 17h8"/></svg></button>
     <button class="hd-btn ic" id="btn-clear" title="Limpiar el plano"><svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V5h6v2"/><path d="M6 7l1 13h10l1-13"/></svg></button>
     <button class="hd-btn ic" id="btn-maps" title="Mis mapas"><svg viewBox="0 0 24 24"><path d="M12 3 3 7.5 12 12l9-4.5z"/><path d="M3 12l9 4.5L21 12"/><path d="M3 16.5 12 21l9-4.5"/></svg></button>
+    <button class="hd-btn ic" id="btn-theme" title="Tema claro/oscuro">☀</button>
     <!-- TEMPORAL: recarga anti-caché para el móvil (quitar al acabar) -->
     <button class="hd-btn ic" id="btn-reload" title="Recargar"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-1.5 6"/><path d="M20 4v6h-6"/></svg></button>
   </header>
@@ -1002,6 +1019,16 @@ let idSeq = 2;
 const $ = s => document.querySelector(s);
 const app = document.getElementById('app');
 const canvas = $('#canvas'), floor = $('#floor'), ghost = $('#ghost');
+
+/* ── tema claro/oscuro: COMPARTIDO con la app (localStorage cilap-theme) ── */
+const themeBtn = $('#btn-theme');
+function applyTheme(t){
+  app.classList.toggle('light', t === 'light');
+  themeBtn.textContent = t === 'light' ? '☾' : '☀';
+  try{ localStorage.setItem('cilap-theme', t); }catch(err){}
+}
+themeBtn.addEventListener('click', () => applyTheme(app.classList.contains('light') ? 'dark' : 'light'));
+(() => { let t = 'dark'; try{ t = localStorage.getItem('cilap-theme') || 'dark'; }catch(err){} applyTheme(t); })();
 
 let currentTab = 'estructura';   // ambos modos arrancan en Estructura
 let elsHidden = false;           // ocultar elementos mientras se diseña la estructura
