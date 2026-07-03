@@ -1005,8 +1005,10 @@
     var r = own ? (mapScope === 'region' ? (i % 3) * 1.4 : 0)
                 : (i === 0 ? 0 : (mapScope === 'city' ? 10 : 7) + (i % 4) * 4);
     q = [ q[0] + Math.cos(ang) * r * 0.75, q[1] + Math.sin(ang) * r ];
-    /* recorte al marco: lo de fuera del encuadre asoma pegado al borde */
-    return [ Math.max(5, Math.min(95, q[0])), Math.max(5, Math.min(95, q[1])) ];
+    /* recorte al marco: lo de fuera del encuadre asoma pegado al borde.
+       Margen 7 (no 5): en las ESQUINAS el clip redondeado (rx=11) se comía el
+       marcador y quedaba seleccionable pero invisible */
+    return [ Math.max(7, Math.min(93, q[0])), Math.max(7, Math.min(93, q[1])) ];
   }
   /* ¿el filtro actual alcanza alguna provincia con cobertura de mapa? */
   function mapCoverage(){
@@ -1092,6 +1094,17 @@
   $('#mapNext').addEventListener('click', function(){ if(mapDayIdx < mapDays.length - 1){ mapDayIdx++; mapSel = 0; renderMap(); } });
   $('#mapSelPrev').addEventListener('click', function(){ mapSelStep(-1); });
   $('#mapSelNext').addEventListener('click', function(){ mapSelStep(1); });
+  /* la tarjeta de evento bajo el mapa también se desliza con SWIPE */
+  (function(){
+    var sx = 0, sy = 0, on = false;
+    var info = $('#mapInfo');
+    info.addEventListener('touchstart', function(e){ on = true; sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive:true });
+    info.addEventListener('touchend', function(e){
+      if(!on) return; on = false;
+      var dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+      if(Math.abs(dx) > 42 && Math.abs(dx) > Math.abs(dy) * 1.4) mapSelStep(dx < 0 ? 1 : -1);
+    });
+  })();
   $('#mapScope').querySelectorAll('button').forEach(function(b){
     b.addEventListener('click', function(){
       if(mapScope === b.dataset.scope) return;

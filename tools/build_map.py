@@ -154,7 +154,9 @@ all_pts = [p for r in centro_rings for p in r]
 CENTER = make_proj(all_pts)
 cen_parts, cen_pts = [], 0
 for r in centro_rings:
-    d, np_ = to_path(CENTER, r, 0.3, smooth=1)
+    # SIN Chaikin: suavizar cada barrio por separado redondea las teselas y
+    # las fronteras compartidas dejan de encajar (huecos/solapes = efecto raro)
+    d, np_ = to_path(CENTER, r, 0.12, smooth=0)
     if np_ >= 4:
         cen_parts.append(d); cen_pts += np_
 cen_d = ' '.join(cen_parts)

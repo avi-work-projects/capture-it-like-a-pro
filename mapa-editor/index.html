@@ -389,8 +389,11 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 /* ── modo EN DIRECTO embebido (iframe de la app): solo el lienzo ── */
 .app.live header,.app.live .name-row,.app.live .tabs,.app.live .below{display:none}
 .app.live .canvas-wrap{padding:10px 12px 12px}
-/* solo-ver: nada responde al puntero (ni piezas ni elementos) */
-.app.live-view #canvas svg,.app.live-view #canvas .el{pointer-events:none !important}
+/* solo-ver: nada responde al puntero. OJO: no basta con el svg — las piezas
+   (.pfl) llevan pointer-events:auto PROPIO que las re-activaba y se podía
+   editar la estructura desde "Estoy dentro" (bug reportado 2 veces) */
+.app.live-view #canvas svg,.app.live-view #canvas .el,
+.app.live-view #canvas .pfl,.app.live-view #canvas .pglow{pointer-events:none !important}
 
 /* padding inferior generoso: la última línea (hint) no debe besar el borde/recortarse */
 .tab-body{position:relative;z-index:2;padding:8px 18px calc(16px + env(safe-area-inset-bottom));min-height:120px}

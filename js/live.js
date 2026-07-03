@@ -2,31 +2,31 @@
    MODO EN DIRECTO ("Estoy dentro") — window.Live
    Vista para un evento QUE ESTÁ OCURRIENDO AHORA, con dos caras:
 
-   BAILARÍN:  apuntarse a la cola (o salir), ver la gente apuntada y su
-              posición, ver DÓNDE está el camarógrafo (mapa creado, solo
-              lectura) y el detector de canciones con aviso de turno
-              ("te quedan N canciones" → ¡PREPÁRATE! → ¡TU TURNO!).
-   CÁMARA:    su cola de parejas (con "cambio de pareja" manual), marcar SU
-              posición arrastrándose en el mapa, y el detector para cambiar
-              de pareja al acabar cada canción.
+   BAILARÍN — flujo en dos fases:
+     1) LO PRIMERO: lista de CAMARÓGRAFOS del evento, con la sala en la que
+        está cada uno y orden de preferencia: reservado > te interesa grabar
+        con él > le sigues > resto. Desde ahí te apuntas a la cola de uno.
+        Sin camarógrafos → "No hay camarógrafos disponibles".
+     2) Ya en una cola: TU TURNO, la cola de parejas y DÓNDE ESTÁ UBICADO
+        (mapa creado, solo lectura, nada editable).
+   CÁMARA:   su cola de parejas (avance manual o automático con el detector),
+             marcar SU posición en el mapa y el detector de canciones.
 
-   El mapa se muestra embebiendo el editor (mapa-editor/?live=view|cam) en un
-   iframe: mismo render, cero duplicación. El mapa del evento vive en
-   localStorage 'cilap-live-map' (de momento un mapa DEMO fijo que siembra
-   este módulo; cuando haya backend, vendrá del evento).
+   La "sala" de cada camarógrafo es DEMO por ahora (Sala principal / Sala 2):
+   cuando el cámara se ubique en el mapa de una sala concreta, saldrá la real.
 
-   Cola: sin backend es SIMULADA (parejas demo) + tu posición real al
-   apuntarte. Estado por evento en localStorage 'cilap-live'.
-
-   El detector (js/detector.js) es el motor real portado de bachata-detector:
-   micrófono + AudD. app.js nos inyecta la navegación con Live.wire(...).
+   Mapa embebido: mapa-editor/?live=view|cam (localStorage 'cilap-live-map',
+   demo fijo sembrado aquí). Cola simulada (parejas demo + tú); estado por
+   evento en 'cilap-live' {cam, myIdx, served}. El detector (js/detector.js)
+   es el motor real de bachata-detector. app.js inyecta navegación (wire).
    ══════════════════════════════════════════════════════════════════════════ */
 window.Live = (function(){
 'use strict';
 
-var LKEY = 'cilap-live';        // { [evId]: { joined, myIdx, served } }
+var LKEY = 'cilap-live';        // { [evId]: { cam, myIdx, served } }
 var MAPKEY = 'cilap-live-map';
-var SONG_AVG_MIN = 3.5;         // duración media de una bachata (para estimaciones)
+var SONG_AVG_MIN = 3.5;         // duración media de una bachata (estimaciones)
+var SALA_DEMO = ['Sala principal', 'Sala 2'];   // demo hasta que el cam se ubique
 
 var DEMO_COUPLES = ['Marcos & Lucía', 'Dani & Sofía', 'Álex & Marta', 'Hugo & Elena', 'Pablo & Nerea'];
 
@@ -58,22 +58,41 @@ function fmtM(s){ return Math.floor(s / 60) + ':' + String(Math.floor(s) % 60).p
 
 /* ── estado por evento ── */
 function store(){ try{ return JSON.parse(localStorage.getItem(LKEY)) || {}; }catch(e){ return {}; } }
-function st(){ var d = store(); return d[ev.id] || { joined:false, myIdx:null, served:0 }; }
+function st(){ var d = store(); return d[ev.id] || { cam:null, myIdx:null, served:0 }; }
 function setSt(patch){
   var d = store(); d[ev.id] = Object.assign({}, st(), patch);
   try{ localStorage.setItem(LKEY, JSON.stringify(d)); }catch(e){}
 }
 
-/* la cola: parejas demo + tú (si te apuntaste, en la posición que cogiste) */
+/* ── camarógrafos del evento, con sala y preferencias ───────────────────── */
+function evBase(){ return (ev.id || '').split('@')[0]; }
+function lsObj(k){ try{ return JSON.parse(localStorage.getItem(k)) || {}; }catch(e){ return {}; } }
+/* preferencias del bailarín con este cam: reservado > te interesa > le sigues */
+function camPrefs(camId){
+  var rv = lsObj('cilap-resv'), it = lsObj('cilap-interest'), fo = lsObj('cilap-follows');
+  var keys = [ev.id + '_' + camId, evBase() + '_' + camId];
+  var resv  = keys.some(function(k){ return rv[k]; });
+  var inter = keys.some(function(k){ return it[k]; });
+  return { resv:resv, interest:inter, follow:!!fo[camId], score:(resv ? 4 : 0) + (inter ? 2 : 0) + (fo[camId] ? 1 : 0) };
+}
+function evCams(){
+  return (ev.camIds || []).map(function(id, i){
+    var c = (window.CAMS_BY_ID || {})[id] || (typeof CAMS_BY_ID !== 'undefined' ? CAMS_BY_ID[id] : null);
+    if(!c) return null;
+    return { id:id, name:c.name, sala:SALA_DEMO[i % SALA_DEMO.length], prefs:camPrefs(id) };
+  }).filter(Boolean).sort(function(a, b){ return b.prefs.score - a.prefs.score; });
+}
+
+/* la cola: parejas demo + tú (en la posición que cogiste al apuntarte) */
 function queueList(){
   var s = st(), list = DEMO_COUPLES.map(function(n){ return { name:n, me:false }; });
-  if(s.joined && s.myIdx != null) list.splice(Math.min(s.myIdx, list.length), 0, { name:'Tú y tu pareja', me:true });
+  if(s.cam && s.myIdx != null) list.splice(Math.min(s.myIdx, list.length), 0, { name:'Tú y tu pareja', me:true });
   return list;
 }
-function myIdx(){ var s = st(); return (s.joined && s.myIdx != null) ? s.myIdx : -1; }
 function songsLeftForMe(){
-  var i = myIdx(); if(i < 0) return null;
-  return i - st().served;   // 0 = bailando ahora; <0 = ya bailaste
+  var s = st();
+  if(!s.cam || s.myIdx == null) return null;
+  return s.myIdx - s.served;   // 0 = bailando ahora; <0 = ya bailaste
 }
 
 /* ── API pública ─────────────────────────────────────────────────────────── */
@@ -95,64 +114,112 @@ function close(){
   if(det){ det.stop(); det = null; }
 }
 
-function currentEventId(){ return ev ? ev.id : null; }
-
 /* ── render ──────────────────────────────────────────────────────────────── */
+function mapCard(mode, title, hint){
+  return '<div class="lv-card">' +
+    '<div class="lv-card-h">' + title + '</div>' +
+    '<div class="lv-map-wrap"><iframe id="lvMap" src="mapa-editor/?live=' + mode + '" title="Mapa del evento"></iframe></div>' +
+    '<p class="lv-hint">' + hint + '</p>' +
+  '</div>';
+}
+function prepCard(title, hint){
+  return '<div class="lv-card">' +
+    '<div class="lv-card-h">' + title + '</div>' +
+    '<div class="lv-prep idle" id="lvPrep"><b id="lvPrepState">—</b><span class="lv-cd" id="lvPrepCd">--:--</span><span class="lv-msg" id="lvPrepMsg"></span></div>' +
+    (hint ? '<p class="lv-hint">' + hint + '</p>' : '') +
+  '</div>';
+}
+
 function render(){
   var cam = role === 'cam';
   $('#liveTitle').textContent = cam ? 'Panel en directo' : 'Estoy dentro';
   $('#liveSub').textContent = ev.name + ' · ' + (ev.venue || '');
+  var head = '<div class="lv-now"><span class="lv-dot"></span>EN DIRECTO · ' + esc(evHours(ev)) + '</div>';
 
-  var mapMode = cam ? 'cam' : 'view';
-  var mapTitle = cam ? 'Marca tu posición en la sala' : 'Dónde está el camarógrafo';
-  var mapHint  = cam ? 'Arrastra el marcador rojo parpadeante a donde estés.' : 'El marcador rojo parpadeante es el camarógrafo.';
+  if(cam){
+    $('#liveBody').innerHTML = head +
+      '<div class="lv-card">' +
+        '<div class="lv-card-h">Tu cola de parejas <span class="lv-count" id="lvQCount"></span></div>' +
+        '<div id="lvQList"></div>' +
+        '<div id="lvQActions"></div>' +
+      '</div>' +
+      mapCard('cam', 'Marca tu posición en la sala', 'Arrastra el marcador rojo parpadeante a donde estés.') +
+      '<div class="lv-card">' +
+        '<div class="lv-card-h">Detector de canciones</div>' +
+        '<div class="lv-prep idle" id="lvPrep"><b id="lvPrepState">INACTIVO</b><span class="lv-cd" id="lvPrepCd">--:--</span><span class="lv-msg" id="lvPrepMsg">Arranca el detector para avisos de turno</span></div>' +
+        '<div class="lv-np" id="lvNp" hidden>' +
+          '<b id="lvNpTitle"></b><span id="lvNpArtist"></span>' +
+          '<div class="lv-bar"><div class="lv-bar-fill" id="lvNpFill"></div></div>' +
+          '<span class="lv-np-time"><span id="lvNpEl">--:--</span> / <span id="lvNpTot">--:--</span></span>' +
+        '</div>' +
+        '<div class="lv-token" id="lvTokenRow" hidden>' +
+          '<input type="password" id="lvToken" placeholder="Pega tu API token de audd.io" autocomplete="off">' +
+        '</div>' +
+        '<div class="lv-det-actions">' +
+          '<button class="cta" id="lvDetStart">Iniciar detector</button>' +
+          '<button class="cta ghost" id="lvDetStop" hidden>Parar</button>' +
+        '</div>' +
+        '<div class="lv-status" id="lvDetStatus">El detector escucha por el micrófono e identifica cada canción (AudD).</div>' +
+        '<div class="lv-log" id="lvLog"></div>' +
+      '</div>';
+    renderQueue();
+    bindDetectorUI();
+    tickUI();
+    return;
+  }
 
-  $('#liveBody').innerHTML =
-    '<div class="lv-now"><span class="lv-dot"></span>EN DIRECTO · ' + esc(evHours(ev)) + '</div>' +
+  /* ── BAILARÍN ── */
+  var s = st();
+  var mine = s.cam ? evCams().filter(function(c){ return c.id === s.cam; })[0] : null;
 
-    /* ── cola ── */
+  if(!mine){
+    /* FASE 1: lo primero, la lista de camarógrafos del evento */
+    $('#liveBody').innerHTML = head +
+      '<div class="lv-card">' +
+        '<div class="lv-card-h">Camarógrafos en el evento</div>' +
+        '<div id="lvCamList"></div>' +
+      '</div>';
+    renderCamPick();
+    return;
+  }
+
+  /* FASE 2: en la cola de un camarógrafo → turno, cola y ubicación */
+  $('#liveBody').innerHTML = head +
+    '<div class="lv-inqueue">En la cola de <b>' + esc(mine.name) + '</b> · ' + esc(mine.sala) + '</div>' +
+    prepCard('Tu turno', 'El aviso se calcula con tu posición (el camarógrafo lleva el detector de canciones).') +
     '<div class="lv-card">' +
       '<div class="lv-card-h">Cola de parejas <span class="lv-count" id="lvQCount"></span></div>' +
       '<div id="lvQList"></div>' +
       '<div id="lvQActions"></div>' +
     '</div>' +
-
-    /* ── mapa ── */
-    '<div class="lv-card">' +
-      '<div class="lv-card-h">' + mapTitle + '</div>' +
-      '<div class="lv-map-wrap"><iframe id="lvMap" src="mapa-editor/?live=' + mapMode + '" title="Mapa del evento"></iframe></div>' +
-      '<p class="lv-hint">' + mapHint + '</p>' +
-    '</div>' +
-
-    /* ── detector (SOLO cámara; el bailarín ve su turno calculado por cola) ── */
-    (cam
-      ? '<div class="lv-card">' +
-          '<div class="lv-card-h">Detector de canciones</div>' +
-          '<div class="lv-prep idle" id="lvPrep"><b id="lvPrepState">INACTIVO</b><span class="lv-cd" id="lvPrepCd">--:--</span><span class="lv-msg" id="lvPrepMsg">Arranca el detector para avisos de turno</span></div>' +
-          '<div class="lv-np" id="lvNp" hidden>' +
-            '<b id="lvNpTitle"></b><span id="lvNpArtist"></span>' +
-            '<div class="lv-bar"><div class="lv-bar-fill" id="lvNpFill"></div></div>' +
-            '<span class="lv-np-time"><span id="lvNpEl">--:--</span> / <span id="lvNpTot">--:--</span></span>' +
-          '</div>' +
-          '<div class="lv-token" id="lvTokenRow" hidden>' +
-            '<input type="password" id="lvToken" placeholder="Pega tu API token de audd.io" autocomplete="off">' +
-          '</div>' +
-          '<div class="lv-det-actions">' +
-            '<button class="cta" id="lvDetStart">Iniciar detector</button>' +
-            '<button class="cta ghost" id="lvDetStop" hidden>Parar</button>' +
-          '</div>' +
-          '<div class="lv-status" id="lvDetStatus">El detector escucha por el micrófono e identifica cada canción (AudD).</div>' +
-          '<div class="lv-log" id="lvLog"></div>' +
-        '</div>'
-      : '<div class="lv-card">' +
-          '<div class="lv-card-h">Tu turno</div>' +
-          '<div class="lv-prep idle" id="lvPrep"><b id="lvPrepState">—</b><span class="lv-cd" id="lvPrepCd">--:--</span><span class="lv-msg" id="lvPrepMsg"></span></div>' +
-          '<p class="lv-hint">El aviso se calcula con tu posición en la cola (el camarógrafo lleva el detector de canciones).</p>' +
-        '</div>');
-
+    mapCard('view', 'Dónde está ubicado', 'El marcador rojo parpadeante es ' + esc(mine.name) + ' (' + esc(mine.sala) + ').');
   renderQueue();
-  if(cam) bindDetectorUI();
   tickUI();
+}
+
+/* FASE 1 del bailarín: elegir camarógrafo (orden: reservado > interesa > sigues) */
+function renderCamPick(){
+  var box = $('#lvCamList'), cams = evCams();
+  if(!cams.length){
+    box.innerHTML = '<div class="lv-empty">No hay camarógrafos disponibles.<br><span>La sala está vacía — prueba más tarde.</span></div>';
+    return;
+  }
+  box.innerHTML = cams.map(function(c){
+    var badges = '';
+    if(c.prefs.resv)          badges += '<span class="lv-badge resv">Plaza reservada ✓</span>';
+    else if(c.prefs.interest) badges += '<span class="lv-badge int">Te interesa ♥</span>';
+    else if(c.prefs.follow)   badges += '<span class="lv-badge fol">Le sigues</span>';
+    return '<div class="lv-camrow">' +
+      '<div class="lv-cam-i"><b>' + esc(c.name) + '</b><span class="lv-cam-s">' + esc(c.sala) + '</span>' + badges + '</div>' +
+      '<button class="lv-join" data-cam="' + esc(c.id) + '">Apuntarme<br>a su cola</button>' +
+    '</div>';
+  }).join('');
+  box.querySelectorAll('.lv-join').forEach(function(b){
+    b.addEventListener('click', function(){
+      setSt({ cam: b.dataset.cam, myIdx: DEMO_COUPLES.length, served: 0 });
+      render();
+    });
+  });
 }
 
 function renderQueue(){
@@ -175,9 +242,7 @@ function renderQueue(){
         '<p class="lv-hint">Con el detector en marcha, la cola avanza SOLA con cada cambio de canción.</p>';
   } else {
     var left = songsLeftForMe();
-    if(!s.joined){
-      a = '<button class="cta" id="lvJoin">Apuntarme a la cola</button>';
-    } else if(left != null && left < 0){
+    if(left != null && left < 0){
       a = '<p class="lv-hint done-hint">Ya bailaste ✓ — tu vídeo llegará por WeTransfer.</p>' +
           '<button class="cta ghost" id="lvJoinAgain">Volver a apuntarme</button>';
     } else {
@@ -187,15 +252,13 @@ function renderQueue(){
   }
   $('#lvQActions').innerHTML = a;
 
-  var j = $('#lvJoin') || $('#lvJoinAgain');
-  if(j) j.addEventListener('click', function(){
-    setSt({ joined:true, myIdx: DEMO_COUPLES.length + (st().served > DEMO_COUPLES.length ? st().served - DEMO_COUPLES.length : 0) });
-    /* si ya bailaste y repites, a la cola actual: tu nuevo idx = final real */
-    if(songsLeftForMe() < 0) setSt({ myIdx: st().served + queueList().length });
+  var again = $('#lvJoinAgain');
+  if(again) again.addEventListener('click', function(){
+    setSt({ myIdx: st().served + queueList().length });   // al final de la cola actual
     renderQueue(); tickUI();
   });
   var l = $('#lvLeave');
-  if(l) l.addEventListener('click', function(){ setSt({ joined:false, myIdx:null }); renderQueue(); tickUI(); });
+  if(l) l.addEventListener('click', function(){ setSt({ cam:null, myIdx:null }); render(); });
   var adv = $('#lvAdvance');
   if(adv) adv.addEventListener('click', advance);
 }
@@ -207,7 +270,7 @@ function advance(){
   renderQueue(); tickUI();
 }
 
-/* ── detector ────────────────────────────────────────────────────────────── */
+/* ── detector (solo cámara) ──────────────────────────────────────────────── */
 function bindDetectorUI(){
   var hasKey = !!Detector.getKey();
   $('#lvTokenRow').hidden = hasKey;
@@ -262,15 +325,14 @@ function tickUI(){
   var prep = $('#lvPrep'); if(!prep) return;
   var state = 'idle', label, cd = '--:--', msg;
   if(role === 'cam'){ label = 'INACTIVO'; msg = 'Arranca el detector para avisos de turno'; }
-  else { label = 'SIN APUNTAR'; msg = 'Apúntate a la cola para ver tu turno'; }
+  else { label = 'EN COLA'; msg = ''; }
   var song = det && det.currentSong;
   var fails = det ? det.consecutiveFails : 0;
   var left = songsLeftForMe();
 
-  /* progreso de la canción en curso */
-  if(song){
+  /* progreso de la canción en curso (solo cámara tiene #lvNp) */
+  if(song && $('#lvNp')){
     var elapsed = det.nowSec() - song.startedAtSec;
-    var remaining = Math.max(0, song.duration - elapsed);
     $('#lvNp').hidden = false;
     $('#lvNpTitle').textContent = song.title || '(sin título)';
     $('#lvNpArtist').textContent = song.artist || '';
@@ -289,27 +351,18 @@ function tickUI(){
     } else {
       var elapsed2 = det.nowSec() - song.startedAtSec;
       var rem = Math.max(0, song.duration - elapsed2);
-      if(role === 'cam'){
-        /* cámara: cada cambio de canción es cambio de pareja */
-        if(justChanged){ state = 'go'; label = '¡CAMBIO DE PAREJA!'; cd = fmtM(rem); msg = 'Suena: ' + song.title; }
-        else if(elapsed2 >= song.duration){ state = 'waiting'; label = 'ESPERANDO SIGUIENTE'; cd = '🔍'; msg = 'Buscando la próxima canción…'; }
-        else if(rem <= PREP_ALERT_SEC){ state = 'alert'; label = '¡PREPÁRATE!'; cd = fmtM(rem); msg = 'La canción está acabando'; }
-        else { state = 'waiting'; label = 'EN CURSO'; cd = fmtM(rem); msg = 'Tiempo hasta el cambio de pareja'; }
-      } else {
-        /* bailarín: el aviso depende de su posición en la cola */
-        if(left == null){ state = 'waiting'; label = 'EN CURSO'; cd = fmtM(rem); msg = 'Apúntate a la cola para avisos de turno'; }
-        else if(left < 0){ state = 'idle'; label = 'YA BAILASTE ✓'; cd = '--:--'; msg = 'Tu vídeo llegará por WeTransfer'; }
-        else if(left === 0){ state = 'go'; label = '¡TU TURNO — A BAILAR!'; cd = fmtM(rem); msg = 'Suena: ' + song.title; }
-        else if(left === 1 && rem <= PREP_ALERT_SEC){ state = 'alert'; label = '¡PREPÁRATE!'; cd = fmtM(rem); msg = 'La siguiente canción es la tuya'; }
-        else if(left === 1){ state = 'waiting'; label = 'ERES EL SIGUIENTE'; cd = fmtM(rem); msg = 'Cuando acabe esta canción, te toca'; }
-        else { state = 'waiting'; label = 'EN COLA · #' + left; cd = '~' + Math.max(1, Math.round(left * SONG_AVG_MIN)) + "'"; msg = 'Te quedan ' + left + ' canciones por delante'; }
-      }
+      /* cámara: cada cambio de canción es cambio de pareja */
+      if(justChanged){ state = 'go'; label = '¡CAMBIO DE PAREJA!'; cd = fmtM(rem); msg = 'Suena: ' + song.title; }
+      else if(elapsed2 >= song.duration){ state = 'waiting'; label = 'ESPERANDO SIGUIENTE'; cd = '🔍'; msg = 'Buscando la próxima canción…'; }
+      else if(rem <= PREP_ALERT_SEC){ state = 'alert'; label = '¡PREPÁRATE!'; cd = fmtM(rem); msg = 'La canción está acabando'; }
+      else { state = 'waiting'; label = 'EN CURSO'; cd = fmtM(rem); msg = 'Tiempo hasta el cambio de pareja'; }
     }
   } else if(role !== 'cam' && left != null){
-    /* sin detector (solo bailarín): al menos tu posición */
+    /* bailarín: su turno según la cola */
     if(left < 0){ state = 'idle'; label = 'YA BAILASTE ✓'; cd = '--:--'; msg = 'Tu vídeo llegará por WeTransfer'; }
-    else if(left === 0){ state = 'go'; label = '¡TE TOCA!'; cd = 'YA'; msg = 'Estás bailando (según la cola)'; }
-    else { state = 'idle'; label = 'EN COLA · #' + left; cd = '~' + Math.max(1, Math.round(left * SONG_AVG_MIN)) + "'"; msg = 'Arranca el detector para avisos precisos'; }
+    else if(left === 0){ state = 'go'; label = '¡TE TOCA — A BAILAR!'; cd = 'YA'; msg = 'Estás bailando (según la cola)'; }
+    else if(left === 1){ state = 'alert'; label = '¡PREPÁRATE!'; cd = '~' + Math.round(SONG_AVG_MIN) + "'"; msg = 'Eres el siguiente'; }
+    else { state = 'waiting'; label = 'EN COLA · #' + left; cd = '~' + Math.max(1, Math.round(left * SONG_AVG_MIN)) + "'"; msg = 'Te quedan ' + left + ' canciones por delante'; }
   }
 
   prep.className = 'lv-prep ' + state;
@@ -318,5 +371,5 @@ function tickUI(){
   $('#lvPrepMsg').textContent = msg;
 }
 
-return { wire:wire, open:open, close:close, currentEventId:currentEventId };
+return { wire:wire, open:open, close:close };
 })();
