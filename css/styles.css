@@ -803,6 +803,55 @@ body{
 .lv-status{font-family:var(--mono);font-size:10px;letter-spacing:.03em;color:var(--muted);margin-top:10px}
 .lv-log{font-family:var(--mono);font-size:9.5px;line-height:1.5;color:var(--muted);opacity:.7;margin-top:6px;max-height:62px;overflow:hidden}
 #liveBody{padding-bottom:26px}
+
+/* ── wizard Crear evento (módulo js/create.js) ───────────────────────────── */
+#createFormBody{display:flex;flex-direction:column;padding-bottom:30px}
+.cf-l{
+  font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin:14px 0 6px;
+}
+.cf-opt{text-transform:none;letter-spacing:.02em}
+.cf-in{
+  width:100%;background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  color:var(--text);font-size:14px;padding:11px 13px;outline:none;
+  color-scheme:dark;
+}
+.app.light .cf-in{color-scheme:light}
+.cf-in:focus{border-color:var(--accent)}
+.cf-row{display:flex;gap:12px}
+.cf-row > div{flex:1;min-width:0}
+.cf-times{display:flex;gap:6px}
+.cf-times .cf-in{min-width:0;padding:11px 7px;font-size:13px}
+/* chips de días de la semana (sala) */
+.cf-dows{display:flex;gap:7px}
+.cf-dow{
+  flex:1;padding:10px 0;
+  background:var(--surface);border:1px solid var(--line);border-radius:9px;
+  color:var(--muted);font-family:var(--mono);font-size:12px;cursor:pointer;
+}
+.cf-dow.on{color:var(--accent);border-color:var(--accent);box-shadow:0 0 12px var(--accent-glow)}
+/* pases por jornada (congreso) */
+.cf-passdays{display:flex;flex-direction:column;gap:6px}
+.cf-pass{
+  display:flex;align-items:center;gap:14px;
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:9px 13px;
+}
+.cf-pass-d{flex:1;font-size:13px;color:var(--text)}
+.cf-chk{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);cursor:pointer}
+.cf-chk input{accent-color:var(--accent);width:15px;height:15px}
+.cf-err{color:#ff6a60;font-size:12.5px;margin:12px 0 0}
+.cf-err[hidden]{display:none}
+/* lista "Tus eventos creados" (selector de tipo) */
+.cf-mine-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.cf-mine{
+  display:flex;align-items:center;gap:10px;
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:9px 13px;
+}
+.cf-mine-n{flex:1;min-width:0;font-size:13.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cf-mine-t{flex:none;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.cf-mine-x{flex:none;background:none;border:none;color:#ff3b30;font-size:13px;cursor:pointer;padding:2px 4px}
 /* cada acción del hub tiene su acento: el color de la sección que abre */
 #hubProx{--hac:#3da9ff;--hglow:rgba(61,169,255,.30)}     /* azul = próximos eventos */
 #whereCity{--hac:#3da9ff;--hglow:rgba(61,169,255,.30)}   /* azul = país/ciudad */

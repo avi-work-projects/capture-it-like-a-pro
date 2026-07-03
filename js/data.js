@@ -145,8 +145,15 @@
         e.startsAt = st; e.endsAt = st + dur;
       } else if(e.dateStart){
         var a = e.dateStart.split('-'), b = (e.dateEnd || e.dateStart).split('-');
-        e.startsAt = new Date(+a[0], +a[1]-1, +a[2], 10, 0).getTime();
-        e.endsAt   = new Date(+b[0], +b[1]-1, +b[2], 23, 59).getTime();
+        if(e.timeLabel && e.dateStart === (e.dateEnd || e.dateStart)){
+          /* puntual de UN día con horario (wizard exterior): horas reales */
+          var tl2 = tlMins(e.timeLabel);
+          e.startsAt = new Date(+a[0], +a[1]-1, +a[2], Math.floor(tl2[0]/60), tl2[0]%60).getTime();
+          e.endsAt   = e.startsAt + (tl2[1] - tl2[0]) * 60000;
+        } else {
+          e.startsAt = new Date(+a[0], +a[1]-1, +a[2], 10, 0).getTime();
+          e.endsAt   = new Date(+b[0], +b[1]-1, +b[2], 23, 59).getTime();
+        }
       }
     });
     /* CONGRESOS: pases de DÍA/NOCHE por día (los administra quien crea el

@@ -428,7 +428,7 @@
   $('#homeBtnEC').addEventListener('click', goHome);
 
   /* ── transición genérica entre vistas ─────────────────────────────── */
-  var VIEW_IDS = ['view1','viewHub','viewWhere','viewCreate','view2','viewSettings','viewCams','viewProfile','viewMine','viewMyEvents','viewDance','viewMap','view3','viewEvCams','viewLive'];
+  var VIEW_IDS = ['view1','viewHub','viewWhere','viewCreate','viewCreateForm','view2','viewSettings','viewCams','viewProfile','viewMine','viewMyEvents','viewDance','viewMap','view3','viewEvCams','viewLive'];
   function goView(toId, accent){
     var to = $('#'+toId);
     if(accent) setAccent(accent);
@@ -1801,14 +1801,18 @@
     goView('viewSettings','ac-violet');
   }
   $('#hubSettings').addEventListener('click', openSettings);
-  /* Crear evento: selector de tipo (el asistente completo llega con la fase de
-     pases de congreso; de momento cada tipo muestra la nota "muy pronto") */
-  $('#hubCreate').addEventListener('click', function(){ $('#createNote').hidden = true; goView('viewCreate','ac-red'); });
+  /* Crear evento: selector de tipo → wizard (módulo js/create.js) */
+  $('#hubCreate').addEventListener('click', function(){ goView('viewCreate','ac-red'); });
   $('#createBack').addEventListener('click', histBack);
   $('#createHome').addEventListener('click', goHome);
-  document.querySelectorAll('#viewCreate [data-ctype]').forEach(function(b){
-    b.addEventListener('click', function(){ $('#createNote').hidden = false; });
-  });
+  if(window.CreateEv){
+    CreateEv.wire({ goView: goView, histBack: histBack, goHome: goHome });
+    document.querySelectorAll('#viewCreate [data-ctype]').forEach(function(b){
+      b.addEventListener('click', function(){ CreateEv.open(b.dataset.ctype); });
+    });
+    $('#cfBack').addEventListener('click', histBack);
+    $('#cfHome').addEventListener('click', goHome);
+  }
   /* "Indicar lugar habitual": abre el MISMO picker de pasos, solo País + Ciudad */
   /* OJO: envuelto — pasar startRefPick directo colaba el MouseEvent como
      refTarget y el picker se comportaba como el de camarógrafos (multi) */
@@ -2307,6 +2311,7 @@
       var v = s.view;
       if(v === 'view1'){ goView('view1','ac-red'); return; }
       if(v === 'viewHub' || v === 'viewWhere' || v === 'viewCreate'){ goView(v, 'ac-red'); return; }
+      if(v === 'viewCreateForm'){ goView('viewCreate','ac-red'); return; }   // el formulario no se restaura a medias
       if(v === 'viewCams'){ renderCamDir(); goView('viewCams','ac-amber'); return; }
       if(v === 'viewMine'){ renderMine(); goView('viewMine','ac-lime'); return; }
       if(v === 'viewMyEvents'){ renderMyEvents(); goView('viewMyEvents','ac-red'); return; }

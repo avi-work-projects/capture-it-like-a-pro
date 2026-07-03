@@ -154,8 +154,24 @@
         <span class="name">Al exterior</span>
         <span class="sub">Un día concreto, al aire libre</span>
       </button>
-      <p class="create-note" id="createNote" hidden>El asistente de creación llega en la siguiente fase — primero estamos montando los pases de día/noche de los congresos.</p>
+      <!-- tus eventos creados (módulo js/create.js) -->
+      <div id="createMine" class="cf-mine-list"></div>
     </div>
+  </section>
+
+  <!-- formulario del tipo elegido (módulo js/create.js) -->
+  <section class="view hidden" id="viewCreateForm">
+    <div class="v2-head">
+      <div class="nav-btns">
+        <button class="nav-back" id="cfHome" title="Inicio"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10.5V20h12v-9.5"/></svg></button>
+        <button class="nav-back" id="cfBack" title="Volver">←</button>
+      </div>
+      <div>
+        <h2 class="v2-title" id="cfTitle">Nuevo evento</h2>
+        <p class="v2-sub" id="cfSub">—</p>
+      </div>
+    </div>
+    <div id="createFormBody"></div>
   </section>
 
   <!-- ════════════════ ¿DÓNDE? (tras "Próximos eventos") ════════════════ -->
@@ -662,6 +678,7 @@
   '<script src="js/calendar.js'+v+'"><\/script>'+
   '<script src="js/detector.js'+v+'"><\/script>'+
   '<script src="js/live.js'+v+'"><\/script>'+
+  '<script src="js/create.js'+v+'"><\/script>'+
   '<script src="js/app.js'+v+'"><\/script>');})();</script>
 
 <!--
