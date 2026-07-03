@@ -81,29 +81,29 @@
      liveCams = check-in ya hecho (demo). */
   var EVENTS = [
   /* === SALAS REALES de Madrid (sbkapp.es), semanales === */
-  { id:'s_thehost', name:"The Host", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[2, 3, 4, 5], timeLabel:"23:30–04:00", venue:"C. de Ferraz, 38", camIds:["juan", "ana"], liveCams:["juan"] },
-  { id:'s_salacalips', name:"Sala Calipso", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[5, 6], timeLabel:"22:00–04:00", venue:"C. de Uruguay, 5", camIds:[] },
-  { id:'s_salsebasti', name:"Salsebastián", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[5, 6], timeLabel:"22:00–04:00", venue:"Av. Fuente Nueva, 5, Nave 16B", camIds:[] },
-  { id:'s_azucar', name:"Azúcar", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[5, 6], timeLabel:"23:00–05:00", venue:"C. de Atocha, 107", camIds:["lucia"] },
-  { id:'s_salabongos', name:"Sala Bongos", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[5, 6], timeLabel:"23:00–05:00", venue:"C. de Bravo Murillo, 52", camIds:["david"] },
-  { id:'s_laermita', name:"La Ermita", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[6, 0], timeLabel:"18:00–22:00", venue:"P.º de la Virgen del Puerto, 4", camIds:[] },
-  { id:'s_karamelosa', name:"Karamelo (Sala Cha3)", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[6], timeLabel:"23:00–05:00", venue:"Calle de San Pol de Mar, 1", camIds:[] },
-  { id:'s_catslatind', name:"Cats Latin Dance", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[0], timeLabel:"20:00–02:00", venue:"C. de Julián Romea, 4", camIds:[] },
-  { id:'s_kumarah540', name:"Kumarah 5.40", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[4, 0], timeLabel:"22:00–03:00", venue:"C. Sofía, 3", camIds:[] },
-  { id:'s_salajowke', name:"Sala Jowke", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[0], timeLabel:"20:00–02:00", venue:"Av. San Martín de Valdeiglesias, 22", camIds:[] },
+  { id:'s_thehost', name:"The Host", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[2, 3, 4, 5], timeLabel:"23:30–04:00", venue:"C. de Ferraz, 38", coords:[-3.71731,40.42631], camIds:["juan", "ana"], liveCams:["juan"] },
+  { id:'s_salacalips', name:"Sala Calipso", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[5, 6], timeLabel:"22:00–04:00", venue:"C. de Uruguay, 5", coords:[-3.67582,40.45529], camIds:[] },
+  { id:'s_salsebasti', name:"Salsebastián", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[5, 6], timeLabel:"22:00–04:00", venue:"Av. Fuente Nueva, 5, Nave 16B", coords:[-3.61069,40.54729], camIds:[] },
+  { id:'s_azucar', name:"Azúcar", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[5, 6], timeLabel:"23:00–05:00", venue:"C. de Atocha, 107", coords:[-3.69517,40.41057], camIds:["lucia"] },
+  { id:'s_salabongos', name:"Sala Bongos", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[5, 6], timeLabel:"23:00–05:00", venue:"C. de Bravo Murillo, 52", coords:[-3.70304,40.45318], camIds:["david"] },
+  { id:'s_laermita', name:"La Ermita", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[6, 0], timeLabel:"18:00–22:00", venue:"P.º de la Virgen del Puerto, 4", coords:[-3.72125,40.41552], camIds:[] },
+  { id:'s_karamelosa', name:"Karamelo (Sala Cha3)", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[6], timeLabel:"23:00–05:00", venue:"Calle de San Pol de Mar, 1", coords:[-3.72658,40.42392], camIds:[] },
+  { id:'s_catslatind', name:"Cats Latin Dance", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[0], timeLabel:"20:00–02:00", venue:"C. de Julián Romea, 4", coords:[-3.71343,40.44278], camIds:[] },
+  { id:'s_kumarah540', name:"Kumarah 5.40", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[4, 0], timeLabel:"22:00–03:00", venue:"C. Sofía, 3", coords:[-3.89313,40.49977], camIds:[] },
+  { id:'s_salajowke', name:"Sala Jowke", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[0], timeLabel:"20:00–02:00", venue:"Av. San Martín de Valdeiglesias, 22", coords:[-3.82743,40.35819], camIds:[] },
   /* === CONGRESOS REALES (lasalsadelbaile.com), fechas concretas === */
   /* pasados (para "Ver eventos pasados" del calendario) */
   { id:'c_valbaila', name:"Valencia Baila 2026 · Spring", country:'es', city:'sev', type:'congreso', recurrence:'oneoff', dateStart:'2026-04-24', dateEnd:'2026-04-26', venue:"Sevilla", camIds:["lucia"] },
   { id:'c_aura', name:"Aura Latin Festival", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-05-15', dateEnd:'2026-05-17', venue:"Madrid", camIds:["juan", "carlos"] },
-  { id:'c_urban', name:"URBAN Bachata Festival 2026", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-06-12', dateEnd:'2026-06-14', venue:"Occidental Aranjuez", camIds:["juan", "ana"] },
-  { id:'c_madsum', name:"Madrid Summer Festival 2026", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-06-26', dateEnd:'2026-06-28', venue:"Hotel Isla de la Garena", camIds:["carlos"] },
+  { id:'c_urban', name:"URBAN Bachata Festival 2026", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-06-12', dateEnd:'2026-06-14', venue:"Occidental Aranjuez", coords:[-3.60433,40.05702], camIds:["juan", "ana"] },
+  { id:'c_madsum', name:"Madrid Summer Festival 2026", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-06-26', dateEnd:'2026-06-28', venue:"Hotel Isla de la Garena", coords:[-3.40119,40.48613], camIds:["carlos"] },
   { id:'c_bigsoc', name:"The Big Social Dance", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-08-09', dateEnd:'2026-08-10', venue:"Madrid", camIds:[] },
   { id:'c_bcnsum', name:"Bachatazo Barcelona Summer 2026", country:'es', city:'bcn', type:'congreso', recurrence:'oneoff', dateStart:'2026-08-13', dateEnd:'2026-08-17', venue:"Barcelona", camIds:["lucia", "david"] },
   { id:'c_back', name:"Back to School 2026 · Madrid", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-10-30', dateEnd:'2026-11-01', venue:"Madrid", camIds:["juan"] },
   { id:'c_full', name:"Full Bachata 2026", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-11-27', dateEnd:'2026-11-29', venue:"Madrid", camIds:[] },
   { id:'c_emotion', name:"E-Motion Sevilla Bachata Congress", country:'es', city:'sev', type:'congreso', recurrence:'oneoff', dateStart:'2026-11-27', dateEnd:'2026-11-29', venue:"Sevilla", camIds:["marta"] },
   /* === EXTERIOR (al aire libre), fechas concretas === */
-  { id:'e_sunset', name:"Bachata Sunset Madrid", country:'es', city:'mad', type:'exterior', sub:'terraza', recurrence:'oneoff', dateStart:'2026-06-20', dateEnd:'2026-06-20', venue:"Terraza Plaza España", camIds:["carlos"] },
+  { id:'e_sunset', name:"Bachata Sunset Madrid", country:'es', city:'mad', type:'exterior', sub:'terraza', recurrence:'oneoff', dateStart:'2026-06-20', dateEnd:'2026-06-20', venue:"Terraza Plaza España", coords:[-3.71088,40.42345], camIds:["carlos"] },
   { id:'e_beach', name:"Bachata Beach Party", country:'es', city:'bcn', type:'exterior', sub:'playa', recurrence:'oneoff', dateStart:'2026-07-11', dateEnd:'2026-07-11', venue:"Playa Bogatell", camIds:["lucia", "david"] }
   ];
   var EVENTS_BY_ID = {};

@@ -1,25 +1,32 @@
-# Genera js/map-geo.js: contornos reales (simplificados) de la Comunidad de
-# Madrid y provincias vecinas, proyectados al viewBox 0..100 del mapa de la app.
-# Fuente: georef-spain-provincia (opendatasoft, datos IGN). Uso:
-#   python tools/build_map.py        (descarga los GeoJSON si no están en caché)
+# Genera js/map-geo.js: contornos reales (simplificados+suavizados) del mapa de
+# eventos, proyectados al viewBox 0..100 del SVG de la app. Dos escenas:
+#   - region: Comunidad de Madrid + 5 provincias vecinas (contexto)
+#   - city:   municipio de Madrid "a pelo" (vista ciudad)
+# Fuente: georef-spain-provincia / georef-spain-municipio (opendatasoft, IGN).
+# Uso:  python tools/build_map.py   (descarga los GeoJSON si no están en caché)
+# Para OTRA provincia: ver .claude/skills/mapa-provincia/SKILL.md
 import json, math, os, unicodedata, urllib.parse, urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SRC = os.path.join(HERE, 'provs.geojson')          # 5 provincias (sin tilde)
-SRC_AV = os.path.join(HERE, 'avila.geojson')       # Ávila por código (la tilde rompe el where)
 OUT = os.path.join(HERE, '..', 'js', 'map-geo.js')
-API = 'https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/georef-spain-provincia/exports/geojson'
+API = 'https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/%s/exports/geojson'
 
-def fetch(path, where):
+def fetch(dataset, where, path):
     if os.path.exists(path): return
-    url = API + '?' + urllib.parse.urlencode({'where': where, 'select': 'prov_name'})
+    url = (API % dataset) + '?' + urllib.parse.urlencode({'where': where, 'select': '*'})
     urllib.request.urlretrieve(url, path)
 
-fetch(SRC, "prov_name in ('Madrid','Toledo','Guadalajara','Cuenca','Segovia')")
-fetch(SRC_AV, "prov_code='05'")
+SRC    = os.path.join(HERE, 'provs.geojson')   # 5 provincias (sin tilde en el where)
+SRC_AV = os.path.join(HERE, 'avila.geojson')   # Ávila por código (la tilde rompe el where)
+SRC_MUN= os.path.join(HERE, 'mun_madrid.geojson')
+fetch('georef-spain-provincia', "prov_name in ('Madrid','Toledo','Guadalajara','Cuenca','Segovia')", SRC)
+fetch('georef-spain-provincia', "prov_code='05'", SRC_AV)
+fetch('georef-spain-municipio', "mun_code='28079'", SRC_MUN)
 
 gj = json.load(open(SRC, encoding='utf-8'))
 gj['features'] += json.load(open(SRC_AV, encoding='utf-8'))['features']
+mun = json.load(open(SRC_MUN, encoding='utf-8'))
+assert len(mun['features']) == 1, 'esperaba 1 municipio, hay %d' % len(mun['features'])
 
 def rings(geom):
     if geom['type'] == 'Polygon':
@@ -41,26 +48,21 @@ for f in gj['features']:
     provs[unicodedata.normalize('NFC', name)] = biggest(f['geometry'])
 
 mad = provs['Madrid']
+mun_ring = biggest(mun['features'][0]['geometry'])
 
-# ── proyección equirrectangular centrada en Madrid, ajustada al viewBox ──
-lons = [p[0] for p in mad]; lats = [p[1] for p in mad]
-lon_min, lon_max = min(lons), max(lons)
-lat_min, lat_max = min(lats), max(lats)
-lat_mid = (lat_min + lat_max) / 2
-coslat = math.cos(math.radians(lat_mid))
+# ── proyección equirrectangular centrada en la figura, ajustada al viewBox ──
+def make_proj(ring, span_units=76.0):
+    lons = [p[0] for p in ring]; lats = [p[1] for p in ring]
+    lat_mid = (min(lats) + max(lats)) / 2
+    coslat = math.cos(math.radians(lat_mid))
+    w = (max(lons) - min(lons)) * coslat
+    h = max(lats) - min(lats)
+    return { 'lon0': (min(lons) + max(lons)) / 2, 'lat0': lat_mid,
+             'coslat': coslat, 'k': span_units / max(w, h) }
 
-w_deg = (lon_max - lon_min) * coslat
-h_deg = lat_max - lat_min
-# Madrid ocupa [12..88] (76 unidades) en su eje mayor, centrado en 50,50
-span = max(w_deg, h_deg)
-k = 76.0 / span
-lon0 = (lon_min + lon_max) / 2
-lat0 = lat_mid
-
-def proj(lon, lat):
-    x = 50 + (lon - lon0) * coslat * k
-    y = 50 - (lat - lat0) * k
-    return x, y
+def proj_pt(pr, lon, lat):
+    return (50 + (lon - pr['lon0']) * pr['coslat'] * pr['k'],
+            50 - (lat - pr['lat0']) * pr['k'])
 
 # ── Douglas-Peucker en unidades de viewBox ──
 def dp(pts, tol):
@@ -85,7 +87,7 @@ def dp(pts, tol):
 # ── suavizado Chaikin (anillo cerrado): sin él, el trazo DP queda anguloso,
 #    con picos de mitra tipo "rayo" que cantan al ampliar ──
 def chaikin(pts, iters):
-    ring = pts[:-1]  # trabajar abierto, cerrar al final
+    ring = pts[:-1]
     for _ in range(iters):
         out = []
         n = len(ring)
@@ -96,8 +98,8 @@ def chaikin(pts, iters):
         ring = out
     return ring + [ring[0]]
 
-def to_path(ring, tol, smooth=2):
-    pts = [proj(lon, lat) for lon, lat in ring]
+def to_path(pr, ring, tol, smooth=2):
+    pts = [proj_pt(pr, lon, lat) for lon, lat in ring]
     if pts[0] != pts[-1]: pts.append(pts[0])
     pts = dp(pts, tol)
     if smooth: pts = chaikin(pts, smooth)
@@ -107,31 +109,35 @@ def to_path(ring, tol, smooth=2):
 import sys
 sys.setrecursionlimit(100000)
 
-mad_d, n_mad = to_path(mad, 0.45, smooth=2)
+REG = make_proj(mad)          # escena Comunidad
+CITY = make_proj(mun_ring)    # escena municipio
+
+mad_d, n = to_path(REG, mad, 0.45, smooth=2); print('Madrid (region)', n, 'pts')
 neigh = {}
 for name in ['Segovia', 'Guadalajara', 'Cuenca', 'Toledo', 'Ávila']:
-    neigh[name], n = to_path(provs[name], 0.7, smooth=1)
+    neigh[name], n = to_path(REG, provs[name], 0.7, smooth=1)
     print(name, n, 'pts')
-print('Madrid', n_mad, 'pts')
+mun_d, n = to_path(CITY, mun_ring, 0.4, smooth=2); print('Municipio (city)', n, 'pts')
 
-# ── ciudades (lon, lat reales); se proyectan y se recortan al marco ──
+# ── centros de ciudad (lon, lat CRUDOS): la app los proyecta en runtime con la
+#    proyección de la escena activa (fallback para eventos sin coords propias) ──
 cities = {
-    'mad':   (-3.7038, 40.4168), 'tol':   (-4.0273, 39.8628),
-    'gua':   (-3.1669, 40.6333), 'seg':   (-4.1088, 40.9429),
-    'avila': (-4.6812, 40.6566), 'cuenca':(-2.1370, 40.0700),
-    'sev':   (-5.9940, 37.3920), 'bcn':   ( 2.1700, 41.3800),
-    'waw':   (21.0100, 52.2300), 'kra':   (19.9400, 50.0600),
+    'mad':   [-3.7038, 40.4168], 'tol':   [-4.0273, 39.8628],
+    'gua':   [-3.1669, 40.6333], 'seg':   [-4.1088, 40.9429],
+    'avila': [-4.6812, 40.6566], 'cuenca':[-2.1370, 40.0700],
+    'sev':   [-5.9940, 37.3920], 'bcn':   [ 2.1700, 41.3800],
+    'waw':   [21.0100, 52.2300], 'kra':   [19.9400, 50.0600],
 }
-cxy = {}
-for kk, (lon, lat) in cities.items():
-    x, y = proj(lon, lat)
-    cxy[kk] = [round(max(7, min(93, x)), 1), round(max(7, min(93, y)), 1)]
+
+def js_proj(pr):
+    return '{lon0:%.6f, lat0:%.6f, coslat:%.6f, k:%.4f}' % (pr['lon0'], pr['lat0'], pr['coslat'], pr['k'])
 
 js = []
-js.append('/* GENERADO (tools/build_map.py) a partir de georef-spain-provincia')
+js.append('/* GENERADO (tools/build_map.py) a partir de georef-spain-provincia/municipio')
 js.append('   (opendatasoft, datos IGN). Contornos REALES simplificados (Douglas-Peucker +')
-js.append('   suavizado Chaikin) y proyectados (equirrectangular centrada en Madrid) al')
-js.append('   viewBox 0..100. No editar a mano: regenerar con el script. */')
+js.append('   suavizado Chaikin) y proyectados (equirrectangular) al viewBox 0..100.')
+js.append('   proj: x = 50+(lon-lon0)*coslat*k ; y = 50-(lat-lat0)*k')
+js.append('   No editar a mano: regenerar con el script. */')
 js.append('window.MAP_GEO = {')
 js.append('  madrid: "%s",' % mad_d)
 js.append('  provs: {')
@@ -139,10 +145,9 @@ for name, d in neigh.items():
     key = name.replace('Á', 'A').lower()
     js.append('    %s: "%s",' % (key, d))
 js.append('  },')
-js.append('  cities: %s,' % json.dumps(cxy))
-# parámetros de proyección: x = 50 + (lon-lon0)*coslat*k ; y = 50 - (lat-lat0)*k
-# (permiten proyectar en runtime coordenadas reales de cualquier local/evento)
-js.append('  proj: {lon0:%.6f, lat0:%.6f, coslat:%.6f, k:%.4f}' % (lon0, lat0, coslat, k))
+js.append('  proj: %s,' % js_proj(REG))
+js.append('  city: { d: "%s", proj: %s },' % (mun_d, js_proj(CITY)))
+js.append('  cities: %s' % json.dumps(cities))
 js.append('};')
 open(OUT, 'w', encoding='utf-8').write('\n'.join(js) + '\n')
 print('written', OUT)

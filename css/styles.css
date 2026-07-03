@@ -1310,6 +1310,15 @@ body{
 /* ── mapa de eventos ── */
 .map-daynav{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px}
 .map-dayttl{font-family:var(--mono);font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--text);min-width:140px;text-align:center}
+/* conmutador de alcance: Comunidad ⇄ Ciudad */
+.map-scope{display:flex;justify-content:center;gap:8px;margin-top:10px}
+.map-scope button{
+  font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);background:var(--surface);
+  border:1px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer;
+  transition:color .15s, border-color .15s;
+}
+.map-scope button.on{color:var(--accent);border-color:var(--accent)}
 .map-wrap{position:relative;margin-top:12px}
 .map-stage{width:100%;max-width:480px;margin:0 auto;aspect-ratio:1/1}
 .map-svg{width:100%;height:100%;display:block}

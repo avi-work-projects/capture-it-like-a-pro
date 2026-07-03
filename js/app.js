@@ -741,6 +741,10 @@
       ? '1 evento encontrado' : list.length + ' eventos encontrados';
     $('#resEmpty').style.display = list.length ? 'none' : 'flex';
     if($('#dateRangeLbl')) updateDateLabel();
+    /* Mapa solo donde hay cobertura geométrica (hoy: área de Madrid) */
+    var cov = mapCoverage();
+    $('#mapBtn').disabled = !cov;
+    $('#mapBtn').title = cov ? 'Ver mapa de eventos' : 'Mapa no disponible aún en esta zona';
     if(evMode === 'prox') scheduleRelayout();   // rellena y ancla
   }
   /* contenido interno de una tarjeta de evento (lista "Próximos").
@@ -793,17 +797,26 @@
      con override en tema claro (los tonos claros se lavan sobre crema) */
   var MAP_TYPE_COLOR = { sala:'var(--mk-sala)', congreso:'var(--mk-congreso)', exterior:'var(--mk-ext)' };
   var MAP_TYPE_LABEL = { sala:'Sala de baile', congreso:'Congreso', exterior:'Al exterior' };
-  /* contornos REALES (IGN vía georef-spain-provincia) proyectados al viewBox
-     0..100: los genera scratchpad/build_map.py en js/map-geo.js (window.MAP_GEO).
-     MAP_GEO.cities = lon/lat reales de cada ciudad ya proyectadas (recortadas al
-     marco si caen fuera, p. ej. Sevilla/Barcelona). */
-  var MAP_GEO = window.MAP_GEO || { madrid:'', provs:{}, cities:{} };
-  var MAP_CITY_XY = MAP_GEO.cities || {};
-  var mapDays = [], mapDayIdx = 0, mapSel = 0;
-  var MAP_PROVINCES_SVG =
-    '<defs><clipPath id="mapClip"><rect x="3" y="3" width="94" height="94" rx="11"/></clipPath></defs>' +
-    '<g clip-path="url(#mapClip)">' +
-      '<rect class="map-bg" x="3" y="3" width="94" height="94"/>' +
+  /* contornos REALES (IGN vía georef-spain-provincia/municipio) proyectados al
+     viewBox 0..100: los genera tools/build_map.py en js/map-geo.js (MAP_GEO).
+     Dos escenas: 'region' (Comunidad + provincias vecinas) y 'city' (municipio
+     de Madrid a pelo). MAP_GEO.cities = lon/lat CRUDOS del centro de cada
+     ciudad (fallback para eventos sin coords propias). */
+  var MAP_GEO = window.MAP_GEO || { madrid:'', provs:{}, proj:null, city:{ d:'', proj:null }, cities:{} };
+  var mapDays = [], mapDayIdx = 0, mapSel = 0, mapScope = 'region';
+  /* cobertura del mapa (por ahora, área de Madrid): si el filtro actual no
+     alcanza ninguna ciudad cubierta, el botón Mapa se deshabilita */
+  var MAP_COVERED_CITIES = { mad:1 };
+  var MAP_SCOPE_SUB = { region:'Comunidad de Madrid', city:'Madrid · ciudad' };
+  function mapFrame(inner){
+    return '<defs><clipPath id="mapClip"><rect x="3" y="3" width="94" height="94" rx="11"/></clipPath></defs>' +
+      '<g clip-path="url(#mapClip)">' +
+        '<rect class="map-bg" x="3" y="3" width="94" height="94"/>' + inner +
+      '</g>' +
+      '<rect class="map-region" x="3" y="3" width="94" height="94" rx="11"/>';
+  }
+  var MAP_SCENE = {
+    region: mapFrame(
       '<g class="map-neigh">' +
         Object.keys(MAP_GEO.provs).map(function(k){ return '<path d="' + MAP_GEO.provs[k] + '"/>'; }).join('') +
       '</g>' +
@@ -815,13 +828,16 @@
         '<text x="4" y="52" text-anchor="start">Ávila</text>' +
       '</g>' +
       '<path class="map-madrid" d="' + MAP_GEO.madrid + '"/>' +
-      '<text class="map-madrid-lbl" x="44" y="42">MADRID</text>' +
-    '</g>' +
-    '<rect class="map-region" x="3" y="3" width="94" height="94" rx="11"/>';
+      '<text class="map-madrid-lbl" x="44" y="42">MADRID</text>'),
+    /* vista ciudad "a pelo": solo el contorno real del municipio */
+    city: mapFrame('<path class="map-madrid" d="' + MAP_GEO.city.d + '"/>')
+  };
 
   function mapBuildDays(){
     var now = Date.now(), winFrom = now, winTo = now + 60 * 86400000;
-    function passes(ev){ return inFilter(state.country, ev.country) && inFilter(state.city, ev.city) && inFilter(state.type, ev.type) && (!state.subtype || inFilter(state.subtype, ev.sub)); }
+    /* solo ciudades con cobertura: un evento de Sevilla no debe salir clavado
+       al borde del mapa de Madrid */
+    function passes(ev){ return MAP_COVERED_CITIES[ev.city] && inFilter(state.country, ev.country) && inFilter(state.city, ev.city) && inFilter(state.type, ev.type) && (!state.subtype || inFilter(state.subtype, ev.sub)); }
     function instance(ev, s, e){ return Object.assign({}, ev, { id: ev.id + '@' + s, startsAt:s, endsAt:e, recurrence:'oneoff' }); }
     var list = [];
     EVENTS.forEach(function(ev){
@@ -847,12 +863,31 @@
     });
     return days;
   }
+  function mapProj(){ return (mapScope === 'city' && MAP_GEO.city.proj) ? MAP_GEO.city.proj : MAP_GEO.proj; }
+  function mapProject(ll){
+    var p = mapProj();
+    return [ 50 + (ll[0] - p.lon0) * p.coslat * p.k, 50 - (ll[1] - p.lat0) * p.k ];
+  }
   function mapMarkerXY(ev, i){
-    var base = MAP_CITY_XY[ev.city] || [50, 50];
-    /* reparte los eventos por el interior (espiral áurea); más estrecho en X que
-       en Y porque el contorno es más alto que ancho */
-    var ang = i * 2.39996, r = (i === 0) ? 0 : 7 + (i % 4) * 4;
-    return [ base[0] + Math.cos(ang) * r * 0.75, base[1] + Math.sin(ang) * r ];
+    var own = !!ev.coords, ll = ev.coords || MAP_GEO.cities[ev.city];
+    if(!ll || !mapProj()) return [50, 50];
+    var q = mapProject(ll);
+    /* con coords propias el punto es EXACTO (en la vista región, un pelín de
+       jitter: los locales del centro caen a <1 unidad y se fundirían en uno);
+       sin coords, reparto en espiral áurea alrededor del centro de su ciudad */
+    var ang = i * 2.39996;
+    var r = own ? (mapScope === 'region' ? (i % 3) * 1.4 : 0)
+                : (i === 0 ? 0 : (mapScope === 'city' ? 10 : 7) + (i % 4) * 4);
+    q = [ q[0] + Math.cos(ang) * r * 0.75, q[1] + Math.sin(ang) * r ];
+    /* recorte al marco: lo de fuera del encuadre asoma pegado al borde */
+    return [ Math.max(5, Math.min(95, q[0])), Math.max(5, Math.min(95, q[1])) ];
+  }
+  /* ¿el filtro actual alcanza alguna ciudad con cobertura de mapa? */
+  function mapCoverage(){
+    return EVENTS.some(function(ev){
+      return MAP_COVERED_CITIES[ev.city] && inFilter(state.country, ev.country) &&
+             inFilter(state.city, ev.city) && inFilter(state.type, ev.type);
+    });
   }
   function mapTypeGlyph(type, color){
     if(type === 'congreso') return '<path d="M0,-1.5 L1.3,1.2 L-1.3,1.2 Z" style="fill:' + color + '"/>';
@@ -872,6 +907,10 @@
   }
   function renderMap(){
     var stage = $('#mapStage'), empty = $('#mapEmpty'), info = $('#mapInfo');
+    $('#viewMap .v2-sub').textContent = MAP_SCOPE_SUB[mapScope];
+    $('#mapScope').querySelectorAll('button').forEach(function(b){
+      b.classList.toggle('on', b.dataset.scope === mapScope);
+    });
     if(!mapDays.length){
       stage.innerHTML = ''; $('#mapDayLbl').textContent = '—'; empty.style.display = 'block';
       info.hidden = true;
@@ -894,7 +933,7 @@
         '<circle class="mk-halo" r="1.3" fill="none" style="stroke:' + col + '"/>' +
         mapTypeGlyph(ev.type, col) + '</g>';
     }).join('');
-    stage.innerHTML = '<svg viewBox="0 0 100 100" class="map-svg" preserveAspectRatio="xMidYMid meet">' + MAP_PROVINCES_SVG + markers + '</svg>';
+    stage.innerHTML = '<svg viewBox="0 0 100 100" class="map-svg" preserveAspectRatio="xMidYMid meet">' + MAP_SCENE[mapScope] + markers + '</svg>';
     stage.querySelectorAll('.map-mk').forEach(function(g){
       g.addEventListener('click', function(){ mapSel = Number(g.dataset.ev); renderMap(); });
     });
@@ -927,6 +966,12 @@
   $('#mapNext').addEventListener('click', function(){ if(mapDayIdx < mapDays.length - 1){ mapDayIdx++; mapSel = 0; renderMap(); } });
   $('#mapSelPrev').addEventListener('click', function(){ mapSelStep(-1); });
   $('#mapSelNext').addEventListener('click', function(){ mapSelStep(1); });
+  $('#mapScope').querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click', function(){
+      if(mapScope === b.dataset.scope) return;
+      mapScope = b.dataset.scope; renderMap();
+    });
+  });
   $('#mapBack').addEventListener('click', histBack);
   $('#mapHome').addEventListener('click', goHome);
 
@@ -2080,7 +2125,7 @@
       evMode: evMode, horSala: horSala, horSub: horSub,
       calMonth: calMonth, calYear: calYear, calSub: calSub, calPast: calPast,
       step: openStepNow(), editing: editing, refMode: refMode,
-      event: currentEvent, profile: currentProfile, dance: currentDance, mapDayIdx: mapDayIdx
+      event: currentEvent, profile: currentProfile, dance: currentDance, mapDayIdx: mapDayIdx, mapScope: mapScope
     };
   }
   function pushHist(){ if(histLock) return; navStack.push(snapNav()); if(navStack.length > 60) navStack.shift(); }
@@ -2101,7 +2146,7 @@
       if(v === 'viewMyEvents'){ renderMyEvents(); goView('viewMyEvents','ac-red'); return; }
       if(v === 'viewSettings'){ openSettings(); return; }
       if(v === 'viewDance' && s.dance){ currentDance = s.dance; renderDance(); goView('viewDance','ac-lime'); return; }
-      if(v === 'viewMap'){ mapDays = mapBuildDays(); mapDayIdx = s.mapDayIdx || 0; mapSel = 0; renderMap(); goView('viewMap','ac-blue'); return; }
+      if(v === 'viewMap'){ mapDays = mapBuildDays(); mapDayIdx = s.mapDayIdx || 0; mapSel = 0; mapScope = s.mapScope || 'region'; renderMap(); goView('viewMap','ac-blue'); return; }
       if(v === 'viewProfile' && s.profile){ openProfile(s.profile); return; }
       if(v === 'view3' && s.event){ openEvent(s.event); return; }
       if(v === 'viewEvCams' && s.event){ openEvent(s.event); renderEventCams(); goView('viewEvCams','ac-red'); return; }
