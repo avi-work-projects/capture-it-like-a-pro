@@ -51,6 +51,9 @@ body{background:#000;font-family:var(--body);overflow:hidden}
   --c-banco:#9c7b50;
   --c-pino:#2f7d3a;
   --c-palmera:#3f9e47;
+  --c-casa:#d08a4e;
+  --c-puente:#8a8f96;
+  --c-farola:#ffd60a;
 
   position:relative;
   width:100%;max-width:430px;height:100dvh;margin:0 auto;
@@ -216,25 +219,23 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
   color:var(--el-c);opacity:.85;pointer-events:none;max-width:96px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
-/* EXTERIOR: MISMO aspecto que el interior (el que gustaba: recuadro oscuro + borde e
-   icono del color, etiqueta debajo con su fuente y color originales). Mejoras añadidas:
-   el icono ESCALA con el recuadro (sin tope, CONSERVANDO proporción → no se achata),
-   sombra suave para que el chip resalte en el mapa, y un halo sutil en el texto para
-   que se lea sobre cualquier fondo (sin borde negro duro). */
-/* PIN BLANCO tipo mapa: chip blanco redondeado SIN borde, sombra suave, icono de color
-   (con un filo oscuro fino para que los iconos claros se distingan sobre el blanco);
-   etiqueta debajo con su color y un halo para leerse sobre el fondo del mapa. */
-.mode-ext .el .ic{
-  background:rgba(255,255,255,.96);
-  border:none;border-radius:12px;
+/* EXTERIOR: TODOS los elementos van como las siluetas — dibujo RELLENO directamente
+   sobre el mapa, SIN chip blanco de fondo (los iconos llevan sus fills inline
+   multicolor + stroke="none" por path). Solo la cámara conserva su chip/baliza. */
+.mode-ext .el:not(.t-camarografo) .ic{background:none;border:none;box-shadow:none;border-radius:0}
+.mode-ext .el:not(.t-camarografo) .ic svg{
+  width:96%;height:96%;max-width:none;max-height:none;
+  fill:var(--el-c);stroke:rgba(0,0,0,.34);stroke-width:.7;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.35));
+}
+/* etiqueta en su color sobre una pastilla oscura → legible en cualquier fondo */
+.mode-ext .el .lb{background:rgba(20,20,20,.62);border-radius:4px;padding:0 4px;text-shadow:none;opacity:1}
+/* la cámara mantiene el chip claro con su baliza (visibilidad ante todo) */
+.mode-ext .el.t-camarografo .ic{
+  background:rgba(255,255,255,.96);border:none;border-radius:12px;
   box-shadow:0 2px 7px rgba(0,0,0,.32);
 }
-.mode-ext .el .ic svg{width:62%;height:62%;max-width:none;max-height:none;filter:drop-shadow(0 0 .5px rgba(0,0,0,.4))}
-/* etiqueta en su color original sobre una pastilla oscura → legible en cualquier fondo */
-.mode-ext .el .lb{background:rgba(20,20,20,.62);border-radius:4px;padding:0 4px;text-shadow:none;opacity:1}
-/* SILUETAS (árbol/arbusto/banco): sin recuadro, icono RELLENO del color (con filo oscuro) */
-.mode-ext .el.sil .ic{background:none;border:none;box-shadow:none}
-.mode-ext .el.sil .ic svg{width:96%;height:96%;fill:var(--el-c);stroke:rgba(0,0,0,.34);stroke-width:.7;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}
+.mode-ext .el.t-camarografo .ic svg{width:62%;height:62%;max-width:none;max-height:none}
 /* INTERIOR: el fondo del mapa no se puede editar */
 .mode-int #bg-btn{display:none}
 .el.t-columna .ic{border-radius:50%}
@@ -369,7 +370,8 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 
 /* ───────────── CUERPO DE LA SECCIÓN ACTIVA ───────────── */
 /* min-height fija (≥ la sección más alta) → el lienzo no cambia entre pestañas */
-.tab-body{position:relative;z-index:2;padding:8px 18px calc(8px + env(safe-area-inset-bottom));min-height:120px}
+/* padding inferior generoso: la última línea (hint) no debe besar el borde/recortarse */
+.tab-body{position:relative;z-index:2;padding:8px 18px calc(16px + env(safe-area-inset-bottom));min-height:120px}
 .tab-pane{display:flex;flex-direction:column;gap:6px}
 .tab-pane.hidden{display:none}
 .pane-hint{
@@ -455,15 +457,21 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 .pal-item.add-more .ic{border-color:var(--accent)}
 .pal-item.add-more .ic svg{stroke:var(--accent)}
 .pal-item.add-more span{color:var(--accent)}
-/* submenú «+»: OVERLAY anclado abajo, POR ENCIMA de los paneles de botones.
-   Se queda abierto al colocar; se cierra con ✕. */
+/* submenú «+»: hoja inferior con fondo atenuado (mismo patrón que Mis mapas),
+   POR ENCIMA de todo (z65) y nunca recortada: la hoja ancla al borde inferior
+   del app y su interior scrollea. Se queda abierta al colocar; ✕ o fondo cierran. */
 .el-more{
-  display:none;position:absolute;left:14px;right:14px;bottom:12px;z-index:55;
-  max-height:62%;overflow-y:auto;
-  background:var(--surface);border:1px solid var(--accent);border-radius:14px;padding:10px 12px;
-  box-shadow:0 10px 34px rgba(0,0,0,.55);
+  display:none;position:absolute;inset:0;z-index:65;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(2px);
 }
-.el-more.open{display:block}
+.el-more.open{display:flex;align-items:flex-end}
+.el-more .em-sheet{
+  width:100%;max-height:62%;overflow-y:auto;
+  background:var(--bg);border-top:1px solid var(--accent);
+  border-radius:18px 18px 0 0;
+  padding:12px 16px calc(16px + env(safe-area-inset-bottom));
+  box-shadow:0 -10px 34px rgba(0,0,0,.55);
+}
 .el-more-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
 .el-more-head span{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text)}
 .el-more-x{background:none;border:none;color:var(--muted);font-size:14px;line-height:1;cursor:pointer;padding:2px 6px}
@@ -758,7 +766,7 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
   <div id="text-modal">
     <div class="modal-card">
       <div class="modal-title" id="tm-title">Texto del elemento</div>
-      <input id="tm-input" type="text" maxlength="24" placeholder="Escribe un texto…" autocomplete="off">
+      <input id="tm-input" type="text" maxlength="24" placeholder="Escribe un texto… (vacío = sin texto)" autocomplete="off">
       <div class="modal-actions">
         <button id="tm-cancel" class="modal-btn ghost">Cancelar</button>
         <button id="tm-ok" class="modal-btn primary">Guardar</button>
@@ -931,21 +939,35 @@ const TYPES = {
   palmera:   { label:'Palmera',        color:'var(--c-palmera)',   silhouette:true, w:32, h:42,
     icon:'<svg viewBox="0 0 24 24"><path fill="#7a5733" d="M11.1 8c-.5 4.3-1.4 9.3-2.4 14h2.7c.6-5 1.4-9.2 2.1-13.2z"/><path fill="#3f9e47" d="M12 7.4C9.1 5.6 5.4 5.9 2.8 8.3c2.8-1.1 5.2-.7 7.2.9zM12 7.4c2.9-1.8 6.6-1.5 9.2.9-2.8-1.1-5.2-.7-7.2.9zM12 7.4C10.6 4.2 7.8 2.4 4.3 2.5c2.6 1 4.5 2.9 5.7 5.3zM12 7.4c1.4-3.2 4.2-5 7.7-4.9-2.6 1-4.5 2.9-5.7 5.3zM12 7.4c-.3-3 .2-5.1 1-7.1-1.6 2.1-1.9 4.5-1.6 7z"/></svg>' },
   arbusto:   { label:'Arbusto',        color:'var(--c-arbusto)',   silhouette:true, w:30, h:22,
-    icon:'<svg viewBox="0 0 24 24"><path d="M2 20c-.3-2.6 1.4-4.4 3.6-4.1.2-2.3 2.3-3.7 4.4-2.7.9-1.7 3.6-1.9 4.9-.2 2.4-.6 4.6 1.1 4.5 3.4 1.8.4 2.8 2.3 1.9 3.6z"/></svg>' },
+    icon:'<svg viewBox="0 0 24 24"><path fill="#4e9e4a" stroke="none" d="M2 20c-.3-2.6 1.4-4.4 3.6-4.1.2-2.3 2.3-3.7 4.4-2.7.9-1.7 3.6-1.9 4.9-.2 2.4-.6 4.6 1.1 4.5 3.4 1.8.4 2.8 2.3 1.9 3.6z"/><path fill="#3c8a3f" stroke="none" d="M7.5 20c.2-1.9 1.6-3.1 3.3-2.9.5-1.2 2-1.8 3.3-1.2 1.7-.4 3.3.7 3.4 2.4z"/></svg>' },
   banco:     { label:'Banco',          color:'var(--c-banco)',     silhouette:true, w:40, h:22,
-    icon:'<svg viewBox="0 0 24 24"><path d="M3 9.5h18v2.2H3z"/><path d="M3 13.6h18v2.2H3z"/><path d="M4.3 15.6h1.7V21H4.3zM18 15.6h1.7V21H18z"/></svg>' },
+    icon:'<svg viewBox="0 0 24 24"><path fill="#9c7b50" stroke="none" d="M3 9.5h18v2.2H3z"/><path fill="#9c7b50" stroke="none" d="M3 13.6h18v2.2H3z"/><path fill="#6f5738" stroke="none" d="M4.3 15.6h1.7V21H4.3zM18 15.6h1.7V21H18z"/></svg>' },
   fuente:    { label:'Fuente',         color:'var(--c-fuente)',    editable:true, w:42, h:44,
-    icon:'<svg viewBox="0 0 24 24"><path d="M4 21h16"/><path d="M6.5 21l1-3.5h9l1 3.5"/><path d="M9 17.5v-2a3 3 0 0 1 6 0v2"/><path d="M12 15.5V7.4"/><path d="M12 7.4C9.8 7.4 8.7 9.2 8.7 11.4"/><path d="M12 7.4c2.2 0 3.3 1.8 3.3 4"/><circle cx="12" cy="5.5" r="1.1"/></svg>' },
+    icon:'<svg viewBox="0 0 24 24"><path fill="#8fd3cf" stroke="none" d="M12 3.2c1.6 2 2.6 3.4 2.6 4.9a2.6 2.6 0 1 1-5.2 0c0-1.5 1-2.9 2.6-4.9z"/><path fill="#2b6f68" stroke="none" d="M11 10.4h2v2.6h-2z"/><path fill="#2dd4bf" stroke="none" d="M5 13h14l-1.2 3.6H6.2z"/><path fill="#1f7f74" stroke="none" d="M4 16.6h16v2.2H4z"/></svg>' },
   comida:    { label:'Comida',         color:'var(--c-comida)',    editable:true, w:38, h:26,
-    icon:'<svg viewBox="0 0 24 24"><path d="M3 10l2-4h14l2 4"/><path d="M5 10v11h14V10"/><path d="M3 10h18"/><path d="M9.5 21v-6h5v6"/></svg>' },
-  edificio:  { label:'Edificio',       color:'var(--c-edificio)',  editable:true, w:56, h:58,
-    icon:'<svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/></svg>' },
+    icon:'<svg viewBox="0 0 24 24"><path fill="#c77b17" stroke="none" d="M4.5 10.5h15V21h-15z"/><path fill="#5e3d17" stroke="none" d="M9.8 15h4.4v6H9.8z"/><path fill="#ff9f0a" stroke="none" d="M3 5.5h18l1.4 4.5H1.6z"/><path fill="#ffe1b0" stroke="none" d="M6.2 5.5h3l-.5 4.5H4.9zM14.8 5.5h3l1.3 4.5h-3.8z"/></svg>' },
+  edificio:  { label:'Edificio 1',     color:'var(--c-edificio)',  editable:true, w:56, h:58,
+    icon:'<svg viewBox="0 0 24 24"><path fill="#93a7bd" stroke="none" d="M6 3h12v18H6z"/><path fill="#1c2733" stroke="none" d="M9 6h2v2H9zM13 6h2v2h-2zM9 10h2v2H9zM13 10h2v2h-2zM9 14h2v2H9zM13 14h2v2h-2z"/><path fill="#5b6c80" stroke="none" d="M10.7 17.5h2.6V21h-2.6z"/></svg>' },
+  edificio2: { label:'Edificio 2',     color:'var(--c-edificio)',  editable:true, w:58, h:60,
+    icon:'<svg viewBox="0 0 24 24"><path fill="#7f96ad" stroke="none" d="M3.5 8h8v13h-8z"/><path fill="#a9bccf" stroke="none" d="M12.5 3h8v18h-8z"/><path fill="#15202b" stroke="none" d="M5.5 10.2h1.6V12H5.5zM8.1 10.2h1.6V12H8.1zM5.5 13.6h1.6v1.8H5.5zM8.1 13.6h1.6v1.8H8.1zM5.5 17h1.6v1.8H5.5zM8.1 17h1.6v1.8H8.1z"/><path fill="#2c3a49" stroke="none" d="M14.5 5.4h1.6v1.8h-1.6zM17.7 5.4h1.6v1.8h-1.6zM14.5 8.8h1.6v1.8h-1.6zM17.7 8.8h1.6v1.8h-1.6zM14.5 12.2h1.6v1.8h-1.6zM17.7 12.2h1.6v1.8h-1.6zM14.5 15.6h1.6v1.8h-1.6zM17.7 15.6h1.6v1.8h-1.6z"/></svg>' },
+  edificio3: { label:'Edificio 3',     color:'var(--c-edificio)',  editable:true, w:60, h:44,
+    icon:'<svg viewBox="0 0 24 24"><path fill="#8e7aa2" stroke="none" d="M2.5 7.4h19V9h-19z"/><path fill="#a58fb8" stroke="none" d="M2.5 9h19v12h-19z"/><path fill="#241a2e" stroke="none" d="M5 11.6h2.4V14H5zM9.2 11.6h2.4V14H9.2zM13.4 11.6h2.4V14h-2.4zM17.6 11.6H20V14h-2.4z"/><path fill="#6d5a80" stroke="none" d="M10.5 16.4h3V21h-3z"/></svg>' },
+  casa1:     { label:'Casa 1',         color:'var(--c-casa)',      editable:true, w:44, h:40,
+    icon:'<svg viewBox="0 0 24 24"><path fill="#a04b3d" stroke="none" d="M12 3.2 2.8 10.6h18.4z"/><path fill="#d8b98a" stroke="none" d="M4.5 10.6h15V21h-15z"/><path fill="#5e4630" stroke="none" d="M10.4 15h3.2v6h-3.2z"/><path fill="#2e4a66" stroke="none" d="M6.3 12.6h3v3h-3zM14.7 12.6h3v3h-3z"/></svg>' },
+  casa2:     { label:'Casa 2',         color:'var(--c-casa)',      editable:true, w:44, h:40,
+    icon:'<svg viewBox="0 0 24 24"><path fill="#6f4a38" stroke="none" d="M16.4 3.6h2.2v4.2h-2.2z"/><path fill="#c9563f" stroke="none" d="M12 2.6 2.6 10.4h18.8z"/><path fill="#e8e0cf" stroke="none" d="M4.4 10.4h15.2V21H4.4z"/><path fill="#4a586b" stroke="none" d="M7 13h3.4v3.4H7z"/><path fill="#5e4630" stroke="none" d="M13.6 14.4h3.4V21h-3.4z"/></svg>' },
+  casa3:     { label:'Casa 3',         color:'var(--c-casa)',      editable:true, w:44, h:42,
+    icon:'<svg viewBox="0 0 24 24"><path fill="#8b9a52" stroke="none" d="M12 2.8 3.4 8.6h17.2z"/><path fill="#d9cba8" stroke="none" d="M5 8.6h14V21H5z"/><path fill="#3c4c60" stroke="none" d="M7 10.8h3v2.6H7zM14 10.8h3v2.6h-3zM7 15.4h3v2.6H7z"/><path fill="#5e4630" stroke="none" d="M13.6 15.4h3.6V21h-3.6z"/></svg>' },
+  puente:    { label:'Puente',         color:'var(--c-puente)',    editable:true, w:70, h:30,
+    icon:'<svg viewBox="0 0 24 24"><path fill="#454c55" stroke="none" d="M2 6.6h20V8H2z"/><path fill="#9aa2ab" stroke="none" d="M2 8h20v3H2z"/><path fill="#6d757f" stroke="none" d="M2 11h3.4v8H2zM10.3 11h3.4v8h-3.4zM18.6 11H22v8h-3.4z"/></svg>' },
+  farola:    { label:'Farola',         color:'var(--c-farola)',    editable:true, w:16, h:36,
+    icon:'<svg viewBox="0 0 24 24"><path fill="#ffd60a" stroke="none" d="M12 2.2a3.1 3.1 0 0 1 3.1 3.1 3.1 3.1 0 0 1-6.2 0A3.1 3.1 0 0 1 12 2.2z"/><path fill="#2b3036" stroke="none" d="M10.1 5.9h3.8v1.4h-3.8z"/><path fill="#3c4148" stroke="none" d="M11.2 7.3h1.6V20h-1.6z"/><path fill="#3c4148" stroke="none" d="M8.6 20h6.8v1.7H8.6z"/></svg>' },
   metro:     { label:'Metro',          color:'var(--c-metro)',     editable:true, w:24, h:26,
-    icon:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M7 16V8l5 6 5-6v8"/></svg>' },
+    icon:'<svg viewBox="0 0 24 24"><path fill="#e33e2f" stroke="none" d="M12 2 22 12 12 22 2 12z"/><path fill="#ffffff" stroke="none" d="M7.2 15.4V8.6l4.8 4.4 4.8-4.4v6.8h-2.1v-2.7L12 15.1l-2.7-2.4v2.7z"/></svg>' },
   iglesia:   { label:'Iglesia',        color:'var(--c-iglesia)',   editable:true, w:48, h:56,
-    icon:'<svg viewBox="0 0 24 24"><path d="M12 2v5M10 4h4"/><path d="M6 21V10l6-4 6 4v11"/><path d="M10 21v-5h4v5"/></svg>' },
+    icon:'<svg viewBox="0 0 24 24"><path fill="#d9b65d" stroke="none" d="M11.2 2.4h1.6v4h-1.6z"/><path fill="#d9b65d" stroke="none" d="M10 3.7h4v1.2h-4z"/><path fill="#e6d7ae" stroke="none" d="M6.5 21V10.5L12 6.6l5.5 3.9V21z"/><path fill="#b08e3e" stroke="none" d="M5.6 11.1 12 6.6l6.4 4.5-.9 1.2L12 8.4l-5.5 3.9z"/><path fill="#6b5322" stroke="none" d="M10.4 21v-4.4a1.6 1.6 0 0 1 3.2 0V21z"/></svg>' },
   monumento: { label:'Monumento',      color:'var(--c-monumento)', editable:true, w:42, h:56,
-    icon:'<svg viewBox="0 0 24 24"><path d="M7 22h10"/><path d="M8.5 22v-3h7v3"/><path d="M10 19l1.4-9h1.2l1.4 9z"/><circle cx="12" cy="7.6" r="1.6"/><path d="M12.8 9.4l2.9-3.1"/><path d="M15.7 6.3l-.5-1.5M15.7 6.3l1-1.1M15.7 6.3l.1-1.5"/></svg>' },
+    icon:'<svg viewBox="0 0 24 24"><path fill="#c9c3b6" stroke="none" d="M10.6 4 12 2.2 13.4 4l-.6 10h-1.6z"/><path fill="#a8a294" stroke="none" d="M9 14h6v2.4H9z"/><path fill="#8e887b" stroke="none" d="M7.4 16.4h9.2V19H7.4z"/><path fill="#726d61" stroke="none" d="M6 19h12v2H6z"/></svg>' },
   /* agua/carretera siguen definidos para no romper mapas exteriores antiguos (ya no en la paleta) */
   agua:      { label:'Agua',           color:'var(--c-agua)',      w:56, h:40,
     icon:'<svg viewBox="0 0 24 24"><path d="M3 8c2-1.5 4 1.5 6 0s4-1.5 6 0 4 1.5 6 0"/><path d="M3 13c2-1.5 4 1.5 6 0s4-1.5 6 0 4 1.5 6 0"/><path d="M3 18c2-1.5 4 1.5 6 0s4-1.5 6 0 4 1.5 6 0"/></svg>' },
@@ -1263,10 +1285,10 @@ function makeNode(e){
   n.style.setProperty('--h', (e.h || t.h || 30) + 'px');
   n.style.left = e.x + '%';
   n.style.top  = e.y + '%';
-  /* texto: el escrito por el usuario manda; si no hay, los genéricos van en blanco
-     (blankLabel) y el resto muestra su etiqueta por defecto */
-  const hasText = e.text != null && e.text !== '';
-  const labelText = t.silhouette ? '' : (hasText ? e.text : (t.blankLabel ? '' : t.label));
+  /* texto: el escrito por el usuario manda (y '' = "sin texto", lo quita);
+     sin editar (null), los genéricos van en blanco (blankLabel) y el resto
+     muestra su etiqueta por defecto */
+  const labelText = t.silhouette ? '' : (e.text != null ? e.text : (t.blankLabel ? '' : t.label));
   n.innerHTML = '<div class="ic">' + t.icon + '</div>' +
                 (labelText ? '<div class="lb">' + escapeHtml(labelText) + '</div>' : '') +
                 '<span class="lock-badge"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>';
@@ -1881,9 +1903,10 @@ function buildPalItem(type, opts){
    cada una con 3 ejemplos + un botón «+» que abre un submenú con TODO el tipo.
    El submenú se queda ABIERTO al colocar (se cierra solo con ✕). */
 const EXT_SIL = ['arbol','arbusto','banco','pino','palmera'];           // todas las siluetas
-const EXT_PIN = ['monumento','fuente','edificio','iglesia','comida'];   // todos los principales
+const EXT_PIN = ['edificio','edificio2','edificio3','casa1','casa2','casa3',
+                 'puente','farola','fuente','monumento','iglesia','comida','metro'];  // todos los principales
 const EXT_SIL_EX = ['arbol','arbusto','banco'];                         // 3 ejemplos fila 1
-const EXT_PIN_EX = ['monumento','fuente','edificio'];                   // 3 ejemplos fila 2
+const EXT_PIN_EX = ['edificio','casa1','fuente'];                       // 3 ejemplos fila 2
 function buildAddMore(cat){
   const b = document.createElement('div');
   b.className = 'pal-item add-more';
@@ -1900,23 +1923,23 @@ function openMore(cat){
   $('#el-more').classList.add('open');
 }
 if(EXT){
+  /* sin subsección "Otros" (figuras genéricas): no aportaba en exterior */
   $('#pane-elementos').innerHTML =
     '<div class="el-sec"><span class="el-sec-lbl">Siluetas</span><div class="el-row" id="row-sil"></div></div>' +
     '<div class="el-sec"><span class="el-sec-lbl">Elementos</span><div class="el-row" id="row-pin"></div></div>' +
-    '<div class="otros"><span class="otros-lbl">Otros</span><div class="otros-row" id="pal-otros"></div></div>' +
     '<p class="pane-hint">Toca o arrastra para colocar · «+» abre el menú.</p>';
-  /* submenú del «+» como OVERLAY (fuera de .below para que no lo recorte el scroll y
-     se despliegue POR ENCIMA de los paneles de botones) */
+  /* submenú del «+» como HOJA INFERIOR con fondo atenuado (patrón Mis mapas):
+     va por encima de todo y nunca se recorta; el fondo también cierra */
   const more = document.createElement('div');
   more.className = 'el-more'; more.id = 'el-more';
-  more.innerHTML = '<div class="el-more-head"><span id="el-more-title"></span><button id="el-more-close" class="el-more-x">✕</button></div><div class="el-more-grid" id="el-more-grid"></div>';
+  more.innerHTML = '<div class="em-sheet"><div class="el-more-head"><span id="el-more-title"></span><button id="el-more-close" class="el-more-x">✕</button></div><div class="el-more-grid" id="el-more-grid"></div></div>';
   document.getElementById('app').appendChild(more);
   EXT_SIL_EX.forEach(t => $('#row-sil').appendChild(buildPalItem(t)));
   $('#row-sil').appendChild(buildAddMore('sil'));
   EXT_PIN_EX.forEach(t => $('#row-pin').appendChild(buildPalItem(t)));
   $('#row-pin').appendChild(buildAddMore('pin'));
-  GROUP.otros.forEach(tp => $('#pal-otros').appendChild(buildPalItem(tp, { iconOnly:true })));
   $('#el-more-close').addEventListener('click', () => $('#el-more').classList.remove('open'));
+  more.addEventListener('click', e => { if(e.target === more) more.classList.remove('open'); });
 }else{
   GROUP.main.forEach(tp => $('#pal-main').appendChild(buildPalItem(tp)));
   GROUP.otros.forEach(tp => $('#pal-otros').appendChild(buildPalItem(tp, { iconOnly:true })));
@@ -1943,7 +1966,7 @@ if(EXT){
     '<button class="shape-btn" data-kind="' + k + '" title="' + PIECES_DEF[k].label + '">' +
     '<svg viewBox="0 0 100 100">' + STRUCT_ICON[k] + '</svg></button>').join('');
   const hint = $('#pane-estructura .pane-hint');
-  if(hint) hint.textContent = 'Toca para añadir · solapa piezas del mismo tipo para fusionarlas (quedan abiertas).';
+  if(hint) hint.textContent = 'Toca para añadir · solapa piezas del mismo tipo para fusionarlas.';
 
   /* panel de ORDEN (fondo/frente) + NAVEGACIÓN entre formas, entre edición y piezas */
   const nav = document.createElement('div');
