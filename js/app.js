@@ -1914,7 +1914,7 @@
   var camSort = { key:'rating', dir:'desc' }, rev3On = false;
   var placeCountries = [], placeCities = [];   // vacío = todos
   var SORT_DEF = { rating:'desc', price:'asc', videos:'desc' };   // sentido inicial por criterio
-  var CITY_COUNTRY = { mad:'es', sev:'es', bcn:'es', waw:'pl', kra:'pl' };
+  /* CITY_COUNTRY viene de data.js (derivado de las tablas de db.js) */
   function upcomingOf(c){
     return EVENTS.filter(function(e){
       return e.camIds.indexOf(c.id) !== -1 && eventStatus(e) !== 'terminado';

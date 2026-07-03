@@ -13,12 +13,12 @@ window.CreateEv = (function(){
 'use strict';
 
 var KEY = 'cilap-myevents';
-var CITY_COUNTRY = { mad:'es', sev:'es', bcn:'es', waw:'pl', kra:'pl' };
 var DOW_LBL = ['D','L','M','X','J','V','S'];             // getDay(): 0=domingo
 var TYPE_TITLE = { sala:'Nueva sala de baile', congreso:'Nuevo congreso', exterior:'Nuevo social al exterior' };
 
 var app = null;      // navegación inyectada (wire)
 var type = 'sala';
+/* CITY_COUNTRY / CITY_LABELS son globales de data.js (derivados de db.js) */
 /* mapas de salas por evento: máximos por tipo; interior permitido en todos
    MENOS en los sociales al exterior (solo mapas de exterior) */
 var MAP_MAX = { sala:3, congreso:6, exterior:2 };

@@ -30,48 +30,16 @@ var MAPKEY_VIEW = 'cilap-live-map-view';  // mapa (por sala) que VE el bailarín
 var CAMSKEY = 'cilap-live-cams';
 var SONG_AVG = 210;
 
-var DEMO_COUPLES = ['Marcos & Lucía', 'Dani & Sofía', 'Álex & Marta', 'Hugo & Elena',
-                    'Pablo & Nerea', 'Iván & Carla', 'Sergio & Paula', 'Leo & Noa'];
-
-/* SALAS del local: cada una con SU mapa completo (páginas independientes) */
-var SALAS = [
-  { name:'Sala principal', map:{
-      id:'sala-1', name:'Sala principal',
-      pieces:[ { id:1, kind:'rect', x:50, y:50, w:86, h:88, rot:0 } ],
-      elements:[
-        { id:2, type:'escenario', x:50, y:13, w:150, h:42, rot:0 },
-        { id:3, type:'dj',        x:50, y:27, w:28,  h:28, rot:0 },
-        { id:4, type:'bar',       x:86, y:52, w:24,  h:96, rot:0 },
-        { id:5, type:'banos',     x:13, y:88, w:26,  h:26, rot:0 },
-        { id:6, type:'acceso',    x:50, y:92, w:26,  h:26, rot:0 },
-        { id:7, type:'columna',   x:24, y:46, w:16,  h:16, rot:0 },
-        { id:8, type:'columna',   x:70, y:70, w:16,  h:16, rot:0 }
-      ] } },
-  { name:'Sala 2', map:{
-      id:'sala-2', name:'Sala 2',
-      pieces:[ { id:1, kind:'rect', x:50, y:52, w:72, h:80, rot:0 } ],
-      elements:[
-        { id:2, type:'dj',     x:50, y:22, w:26, h:26, rot:0 },
-        { id:3, type:'bar',    x:74, y:60, w:22, h:70, rot:0 },
-        { id:4, type:'acceso', x:32, y:88, w:24, h:24, rot:0 }
-      ] } }
-];
-/* cola demo y sitio (sala + posición dentro de SU sala) por cámara */
-var CAM_DEMO = {
-  juan:   { n:0, sala:0, x:32, y:42 },
-  carlos: { n:2, sala:0, x:60, y:62 },
-  lucia:  { n:3, sala:0, x:30, y:76 },
-  ana:    { n:0, sala:1, x:50, y:40 },
-  david:  { n:4, sala:1, x:62, y:70 }
-};
-var DEMO_SONGS = [
-  ['Romeo Santos', 'Propuesta Indecente', 224],
-  ['Prince Royce', 'Darte un Beso', 192],
-  ['Aventura', 'Obsesión', 238],
-  ['Juan Luis Guerra', 'Bachata Rosa', 204],
-  ['Manuel Turizo', 'La Bachata', 163],
-  ['Grupo Extra', 'Me Emborracharé', 210]
-];
+/* los datos demo del directo viven en las TABLAS de js/db.js (DB.demo) —
+   aquí solo se indexan al formato interno del módulo */
+var DEMO_COUPLES = DB.demo.couples;
+var SALAS = DB.demo.salas;
+var DEMO_SONGS = DB.demo.songs;
+/* cola demo y sitio por cámara: {n, sala, x, y} desde DB.demo.live_cams */
+var CAM_DEMO = {};
+DB.demo.live_cams.forEach(function(lc){
+  CAM_DEMO[lc.cam] = { n:lc.queue, sala:lc.sala, x:lc.x, y:lc.y };
+});
 /* mapa base del CÁMARA (su marcador "Tú" persiste aquí) */
 var CAM_BASE_MAP = { id:'sala-cam', name:'Tu sala', pieces:SALAS[0].map.pieces, elements:SALAS[0].map.elements };
 

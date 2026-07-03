@@ -1,134 +1,71 @@
-/* data.js — datos mock + helpers puros (globales; se carga ANTES que app.js) */
-/* ════════════════════════ MODELO DE DATOS (mock) ════════════════════
-     Entidades y relaciones (detalle completo en PROYECTO.md):
-       CAM (camarógrafo): id, name, city, desc, rating (media de notas
-            enteras 0-6), videos (nº entregados), price (€/vídeo declarado
-            por el camarógrafo, 4-20 → tier $/$$/$$$).
-       EVENT: id, name, country, city, type, sub (solo exterior), venue,
-            when, camIds[] → referencia a CAM.
-       DANCE (baile grabado, para "Mis bailes"): eventId→EVENT, camId→CAM,
-            date, song (identificada por AudD), partner, status
-            (pendiente → enviado [WeTransfer] → recibido).
-       SESSION (sesión de grabación, para "Mis sesiones"): eventId→EVENT,
-            date, couples (parejas grabadas), sent (vídeos ya enviados).
-  ════════════════════════════════════════════════════════════════════ */
-  var CITY_LABELS = { all:'Todas', mad:'Madrid', sev:'Sevilla', bcn:'Barcelona',
-                      waw:'Varsovia', kra:'Cracovia' };
-  var TYPE_LABELS = { sala:'Salas de baile', congreso:'Congresos', exterior:'Sociales al exterior' };
-  var SUB_LABELS  = { all:'Todos', terraza:'Terraza', playa:'Playa', parque:'Parque', piscina:'Piscina' };
-  /* provincias (nivel entre País y Ciudad): claves p+código INE (España) o
-     slug (Polonia). Cada ciudad pertenece a una; ev.prov se deriva de su city. */
-  var PROV_LABELS = { all:'Todas', p28:'Madrid', p41:'Sevilla', p08:'Barcelona',
-                      pmz:'Mazovia', pmp:'Małopolska' };
-  var CITY_PROV = { mad:'p28', sev:'p41', bcn:'p08', waw:'pmz', kra:'pmp' };
+/* data.js — capa de ACCESO a datos: hace los "JOIN" sobre las tablas de
+   js/db.js (window.DB) y construye las estructuras de runtime que consume el
+   resto de la app (EVENTS, CAMS, etiquetas…). PARA CAMBIAR DATOS: editar
+   db.js; aquí solo vive la lógica de derivación/joins y los helpers puros. */
 
-  /* rating = media de notas ENTERAS 0-6 de los bailarines;
-     price = tasa por vídeo declarada por el camarógrafo (mín 4 € · máx 20 €);
-     reserve = coste de reservar plaza, lo elige el camarógrafo (0 € o 2 €)
-               y se DESCUENTA de la tasa al apuntarse a la cola */
-  /* rating = media de reseñas (0-6); reviews = nº de reseñas;
-     topEvent = evento más concurrido (por parejas); topVenue = sala donde más
-     ha grabado (+ nº de veces); ig = instagram; bio = texto libre (≤200) */
-  var CAMS = [
-    { id:'juan',   name:'Juan Pérez',     city:'mad', desc:'5 años de experiencia · 4K',  rating:5.5, reviews:24, videos:132, price:9,  reserve:2,
-      ig:'juanperez.films', topEvent:{name:'Bachata Friday Night', couples:18}, topVenue:{name:'Sala Tropic', times:21},
-      bio:'Llevo 5 años grabando bachata. Me obsesiona pillar el momento exacto del giro. Entrego en 4K y respondo rápido por DM.' },
-    { id:'ana',    name:'Ana López',      city:'mad', desc:'Buena luz · 4K',              rating:5.7, reviews:31, videos:87,  price:14, reserve:2,
-      ig:'ana.lopez.video', topEvent:{name:'Bachata Friday Night', couples:15}, topVenue:{name:'Sala Tropic', times:13},
-      bio:'Vídeo y color cuidados, cada clip parece una escena. Suelo grabar en salas de Madrid los fines de semana.' },
-    { id:'carlos', name:'Carlos Ruiz',    city:'mad', desc:'Estabilizador pro · 48h',     rating:5.2, reviews:58, videos:210, price:6,  reserve:0,
-      ig:'carlosruiz4k', topEvent:{name:'Bachata Sunset Madrid', couples:22}, topVenue:{name:'Terraza Plaza España', times:9},
-      bio:'Estabilizador siempre, cero tirones. Entrega garantizada en 48h. Si quieres un plano concreto, dímelo antes de bailar.' },
-    { id:'lucia',  name:'Lucía Martín',   city:'bcn', desc:'Vídeos en 48h',               rating:5.4, reviews:19, videos:64,  price:8,  reserve:2,
-      ig:'lucia.captura', topEvent:{name:'Bachata Beach Party', couples:27}, topVenue:{name:'Sala Caribbean', times:16},
-      bio:'Rápida y cercana. Te mando el vídeo en 48h y sin marcas de agua. Barcelona y alrededores.' },
-    { id:'david',  name:'David Soto',     city:'bcn', desc:'2 cámaras',                   rating:4.8, reviews:11, videos:45,  price:5,  reserve:0,
-      ig:'davidsoto.cam', topEvent:{name:'Bachata Beach Party', couples:14}, topVenue:{name:'Sala Caribbean', times:7},
-      bio:'Grabo con dos cámaras para no perder ningún ángulo. Precio ajustado para que todos puedan llevarse su baile.' },
-    { id:'marta',  name:'Marta Gil',      city:'sev', desc:'Equipo doble · multicámara',  rating:5.9, reviews:42, videos:156, price:15, reserve:2,
-      ig:'marta.gil.films', topEvent:{name:'Congreso Bachatísimo', couples:40}, topVenue:{name:'Palacio de Congresos', times:11},
-      bio:'Equipo doble y mucho mimo en el montaje. He grabado los mayores congresos del sur. Pregúntame sin compromiso.' },
-    { id:'piotr',  name:'Piotr Nowak',    city:'waw', desc:'Slow-motion · 4K',            rating:5.0, reviews:2,  videos:38,  price:6,  reserve:0,
-      ig:'piotr.nowak.video', topEvent:{name:'Warsaw Bachata Social', couples:12}, topVenue:{name:'Klub Mokotów', times:8},
-      bio:'Slow-motion y 4K. Me encanta el detalle de los pies. Varsovia.' },
-    { id:'magda',  name:'Magda Kowalska', city:'kra', desc:'Multicámara',                 rating:5.3, reviews:3,  videos:71,  price:10, reserve:2,
-      ig:'magda.k.films', topEvent:{name:'Kraków Bachata Fest', couples:31}, topVenue:{name:'ICE Kraków', times:6},
-      bio:'Multicámara bien sincronizada. Cracovia y festivales. Entrega rápida.' }
-  ];
+  /* ── etiquetas y relaciones geográficas, derivadas de DB ── */
+  var CITY_LABELS = { all:'Todas' };
+  var PROV_LABELS = { all:'Todas' };
+  var CITY_PROV = {};       // city → province
+  var CITY_COUNTRY = {};    // city → country (via province)
+  var PROV_COUNTRY = {};
+  DB.provinces.forEach(function(p){ PROV_LABELS[p.id] = p.name; PROV_COUNTRY[p.id] = p.country; });
+  DB.cities.forEach(function(c){
+    CITY_LABELS[c.id] = c.name;
+    CITY_PROV[c.id] = c.prov;
+    CITY_COUNTRY[c.id] = PROV_COUNTRY[c.prov];
+  });
+  var TYPE_LABELS = {};
+  DB.types.forEach(function(t){ TYPE_LABELS[t.id] = t.name; });
+  var SUB_LABELS = { all:'Todos' };
+  DB.subtypes.forEach(function(s){ SUB_LABELS[s.id] = s.name; });
+
+  /* ── camarógrafos + reseñas (join reviews.cam → cams.id) ── */
+  var CAMS = DB.cams;
   var CAMS_BY_ID = {};
   CAMS.forEach(function(c){ CAMS_BY_ID[c.id] = c; });
   /* tier de precio automático: <7 → $ · 7-12 → $$ · >12 → $$$ */
   function priceTier(p){ return p < 7 ? '$' : (p > 12 ? '$$$' : '$$'); }
 
-  /* reseñas en texto (para la vista de perfil) — stars 0-6, date YYYY-MM-DD */
-  var REVIEWS = {
-    juan:  [ {by:'Lucía', stars:6, date:'2026-06-12', text:'Plano impecable y me lo mandó al día siguiente.'},
-             {by:'Sofía', stars:5, date:'2026-05-28', text:'Muy buen ojo para el momento del giro.'} ],
-    ana:   [ {by:'Diego', stars:6, date:'2026-06-14', text:'Edición muy cuidada, parece una peli.'},
-             {by:'Marta', stars:6, date:'2026-06-01', text:'La luz y el encuadre, de otro nivel.'},
-             {by:'Hugo',  stars:5, date:'2026-04-20', text:'Tardó un poco pero mereció la pena.'} ],
-    carlos:[ {by:'Inés',  stars:5, date:'2026-06-10', text:'Estabilidad perfecta, cero tirones.'},
-             {by:'Pablo', stars:5, date:'2026-05-15', text:'Entrega en 48h cumplida al minuto.'} ],
-    lucia: [ {by:'Ana',   stars:6, date:'2026-06-13', text:'Rapidísima y súper maja.'} ],
-    david: [ {by:'Sara',  stars:4, date:'2026-05-30', text:'Dos cámaras, buen resultado.'} ],
-    marta: [ {by:'Elena', stars:6, date:'2026-06-11', text:'El montaje a varias cámaras es espectacular.'},
-             {by:'Juan',  stars:6, date:'2026-05-20', text:'La mejor del congreso, sin duda.'} ],
-    piotr: [ {by:'Kasia', stars:5, date:'2026-06-05', text:'Slow-motion precioso.'} ],
-    magda: [ {by:'Tomek', stars:5, date:'2026-06-08', text:'Multicámara muy bien sincronizada.'} ]
-  };
+  var REVIEWS = {};
+  DB.reviews.forEach(function(r){ (REVIEWS[r.cam] = REVIEWS[r.cam] || []).push(r); });
   /* dd mmm a partir de YYYY-MM-DD (sin construir Date sin args) */
   function fmtRevDate(s){ var p = s.split('-'); return parseInt(p[2],10) + ' ' + MON[parseInt(p[1],10)-1]; }
 
-  /* recurrence: 'weekly' (salas reales que se repiten cada semana → "Horarios
-     salas"; weekdays JS 0=dom..6=sáb + timeLabel) | 'oneoff' (fecha concreta:
-     congresos/exterior reales con dateStart/dateEnd → calendario).
-     Datos reales: salas de sbkapp.es (Madrid), congresos de lasalsadelbaile.com.
-     liveCams = check-in ya hecho (demo). */
-  var EVENTS = [
-  /* === SALAS REALES de Madrid (sbkapp.es), semanales === */
-  /* The Host lleva 5 cámaras (demo del modo EN DIRECTO: colas de 0/0/2/3/4) */
-  { id:'s_thehost', name:"The Host", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[2, 3, 4, 5], timeLabel:"23:30–04:00", venue:"C. de Ferraz, 38", coords:[-3.71731,40.42631], camIds:["juan", "ana", "carlos", "lucia", "david"], liveCams:["juan"] },
-  { id:'s_salacalips', name:"Sala Calipso", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[5, 6], timeLabel:"22:00–04:00", venue:"C. de Uruguay, 5", coords:[-3.67582,40.45529], camIds:[] },
-  { id:'s_salsebasti', name:"Salsebastián", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[5, 6], timeLabel:"22:00–04:00", venue:"Av. Fuente Nueva, 5, Nave 16B", coords:[-3.61069,40.54729], camIds:[] },
-  { id:'s_azucar', name:"Azúcar", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[5, 6], timeLabel:"23:00–05:00", venue:"C. de Atocha, 107", coords:[-3.69517,40.41057], camIds:["lucia"] },
-  { id:'s_salabongos', name:"Sala Bongos", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[5, 6], timeLabel:"23:00–05:00", venue:"C. de Bravo Murillo, 52", coords:[-3.70304,40.45318], camIds:["david"] },
-  { id:'s_laermita', name:"La Ermita", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[6, 0], timeLabel:"18:00–22:00", venue:"P.º de la Virgen del Puerto, 4", coords:[-3.72125,40.41552], camIds:[] },
-  { id:'s_karamelosa', name:"Karamelo (Sala Cha3)", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[6], timeLabel:"23:00–05:00", venue:"Calle de San Pol de Mar, 1", coords:[-3.72658,40.42392], camIds:[] },
-  { id:'s_catslatind', name:"Cats Latin Dance", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[0], timeLabel:"20:00–02:00", venue:"C. de Julián Romea, 4", coords:[-3.71343,40.44278], camIds:[] },
-  { id:'s_kumarah540', name:"Kumarah 5.40", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[4, 0], timeLabel:"22:00–03:00", venue:"C. Sofía, 3", coords:[-3.89313,40.49977], camIds:[] },
-  { id:'s_salajowke', name:"Sala Jowke", country:'es', city:'mad', type:'sala', recurrence:'weekly', weekdays:[0], timeLabel:"20:00–02:00", venue:"Av. San Martín de Valdeiglesias, 22", coords:[-3.82743,40.35819], camIds:[] },
-  /* === CONGRESOS DEMO (para probar pases/bloqueos/sociales) === */
-  /* completo: pase de día Y de noche los 3 días */
-  { id:'c_demo_full', name:"Bachata Sunrise Weekend", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-07-10', dateEnd:'2026-07-12', venue:"Hotel Riu Plaza España", coords:[-3.71207,40.42395], camIds:["juan","marta"],
-    passes:[ { date:'2026-07-10', day:{start:'11:00',end:'20:00'}, night:{start:'22:00',end:'04:00'} },
-             { date:'2026-07-11', day:{start:'11:00',end:'20:00'}, night:{start:'22:00',end:'04:00'} },
-             { date:'2026-07-12', day:{start:'11:00',end:'20:00'}, night:{start:'22:00',end:'04:00'} } ] },
-  /* con bloqueos: viernes SOLO noche · sábado completo · domingo BLOQUEADO */
-  { id:'c_demo_block', name:"Madrid Bachata Camp", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-07-17', dateEnd:'2026-07-19', venue:"Palacio Vistalegre", coords:[-3.73238,40.38380], camIds:["carlos"],
-    passes:[ { date:'2026-07-17', day:null, night:{start:'22:00',end:'05:00'} },
-             { date:'2026-07-18', day:{start:'12:00',end:'20:00'}, night:{start:'23:00',end:'05:00'} },
-             { date:'2026-07-19', day:null, night:null } ] },
-  /* === CONGRESOS REALES (lasalsadelbaile.com), fechas concretas === */
-  /* pasados (para "Ver eventos pasados" del calendario) */
-  { id:'c_valbaila', name:"Valencia Baila 2026 · Spring", country:'es', city:'sev', type:'congreso', recurrence:'oneoff', dateStart:'2026-04-24', dateEnd:'2026-04-26', venue:"Sevilla", camIds:["lucia"] },
-  { id:'c_aura', name:"Aura Latin Festival", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-05-15', dateEnd:'2026-05-17', venue:"Madrid", camIds:["juan", "carlos"] },
-  { id:'c_urban', name:"URBAN Bachata Festival 2026", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-06-12', dateEnd:'2026-06-14', venue:"Occidental Aranjuez", coords:[-3.60433,40.05702], camIds:["juan", "ana"] },
-  { id:'c_madsum', name:"Madrid Summer Festival 2026", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-06-26', dateEnd:'2026-06-28', venue:"Hotel Isla de la Garena", coords:[-3.40119,40.48613], camIds:["carlos"] },
-  { id:'c_bigsoc', name:"The Big Social Dance", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-08-09', dateEnd:'2026-08-10', venue:"Madrid", camIds:[] },
-  { id:'c_bcnsum', name:"Bachatazo Barcelona Summer 2026", country:'es', city:'bcn', type:'congreso', recurrence:'oneoff', dateStart:'2026-08-13', dateEnd:'2026-08-17', venue:"Barcelona", camIds:["lucia", "david"] },
-  { id:'c_back', name:"Back to School 2026 · Madrid", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-10-30', dateEnd:'2026-11-01', venue:"Madrid", camIds:["juan"] },
-  { id:'c_full', name:"Full Bachata 2026", country:'es', city:'mad', type:'congreso', recurrence:'oneoff', dateStart:'2026-11-27', dateEnd:'2026-11-29', venue:"Madrid", camIds:[] },
-  { id:'c_emotion', name:"E-Motion Sevilla Bachata Congress", country:'es', city:'sev', type:'congreso', recurrence:'oneoff', dateStart:'2026-11-27', dateEnd:'2026-11-29', venue:"Sevilla", camIds:["marta"] },
-  /* === EXTERIOR (al aire libre), fechas concretas === */
-  { id:'e_sunset', name:"Bachata Sunset Madrid", country:'es', city:'mad', type:'exterior', sub:'terraza', recurrence:'oneoff', dateStart:'2026-06-20', dateEnd:'2026-06-20', venue:"Terraza Plaza España", coords:[-3.71088,40.42345], camIds:["carlos"] },
-  { id:'e_beach', name:"Bachata Beach Party", country:'es', city:'bcn', type:'exterior', sub:'playa', recurrence:'oneoff', dateStart:'2026-07-11', dateEnd:'2026-07-11', venue:"Playa Bogatell", camIds:["lucia", "david"] },
-  /* social tipo POOL PARTY (demo), en pleno finde del Madrid Bachata Camp */
-  { id:'e_pool', name:"Pool Party Bachata", country:'es', city:'mad', type:'exterior', sub:'piscina', recurrence:'oneoff', dateStart:'2026-07-18', dateEnd:'2026-07-18', timeLabel:'12:00–19:00', venue:"Piscina Hotel Emperador", coords:[-3.70687,40.42120], camIds:["ana"] }
-  ];
+  /* ── eventos: JOIN de DB.events + event_cams + passes ──
+     recurrence 'weekly' (weekdays 0=dom..6=sáb + timeLabel) | 'oneoff'
+     (dateStart/dateEnd). country/prov se derivan de la ciudad. */
+  var EVENTS = DB.events.map(function(rec){
+    var e = Object.assign({}, rec);
+    e.country = CITY_COUNTRY[e.city];
+    e.prov = CITY_PROV[e.city];
+    /* cámaras del evento (relación N:M) + las que ya hicieron check-in */
+    e.camIds = []; e.liveCams = [];
+    DB.event_cams.forEach(function(ec){
+      if(ec.event !== e.id) return;
+      e.camIds.push(ec.cam);
+      if(ec.live) e.liveCams.push(ec.cam);
+    });
+    if(!e.liveCams.length) delete e.liveCams;
+    /* pases de congreso (tabla passes; [ini,fin] → {start,end}) */
+    var ps = DB.passes.filter(function(p){ return p.event === e.id; });
+    if(ps.length){
+      e.passes = ps.map(function(p){
+        return { date: p.date,
+                 day:   p.day   ? { start:p.day[0],   end:p.day[1] }   : null,
+                 night: p.night ? { start:p.night[0], end:p.night[1] } : null };
+      });
+    }
+    return e;
+  });
   /* eventos creados por el usuario (wizard "Crear evento") — se funden con los
      demo al cargar; llevan mine:true para poder gestionarlos/borrarlos */
   try{
-    (JSON.parse(localStorage.getItem('cilap-myevents')) || []).forEach(function(e){ e.mine = true; EVENTS.push(e); });
+    (JSON.parse(localStorage.getItem('cilap-myevents')) || []).forEach(function(e){
+      e.mine = true;
+      e.country = e.country || CITY_COUNTRY[e.city];
+      EVENTS.push(e);
+    });
   }catch(err){}
 
   var EVENTS_BY_ID = {};
@@ -232,23 +169,11 @@
     return n < ev.startsAt ? 'previo' : (n > ev.endsAt ? 'terminado' : 'directo');
   }
 
-  /* mis bailes (rol bailarín) — el vídeo NO se guarda aquí: llega por WeTransfer.
-     partner.link: none (solo texto) | pending (correo enviado, falta que la
-     pareja confirme el baile) | ok (vinculada). La confirmación real es futura. */
-  var MY_DANCES = [
-    { eventId:'s_thehost', date:'12 jun 2026', song:'Romeo Santos — Propuesta Indecente',
-      partner:{ name:'Lucía', link:'ok' },                             camId:'juan',   status:'recibido' },
-    { eventId:'s_thehost', date:'12 jun 2026', song:'Prince Royce — Darte un Beso',
-      partner:{ name:'Sofía', link:'none' },                           camId:'ana',    status:'enviado' },
-    { eventId:'e_sunset',  date:'20 jun 2026', song:'Aventura — Obsesión',
-      partner:{ name:'Marta', link:'pending', email:'marta@mail.com' }, camId:'carlos', status:'pendiente' },
-    { eventId:'c_urban',   date:'13 jun 2026', song:'Juan Luis Guerra — Bachata Rosa',
-      partner:{ name:'Elena', link:'none' },                           camId:'juan',   status:'recibido' }
-  ];
-
-  /* mis sesiones (rol camarógrafo): cuántas parejas grabé por evento */
-  var MY_SESSIONS = [
-    { eventId:'s_thehost', date:'12 jun 2026', couples:14, sent:14 },
-    { eventId:'e_sunset',  date:'20 jun 2026', couples:9,  sent:6 },
-    { eventId:'c_urban',   date:'13 jun 2026', couples:11, sent:0 }
-  ];
+  /* mis bailes / mis sesiones — desde las tablas DB.my_dances/my_sessions
+     (partner.link: none | pending | ok; status: pendiente→enviado→recibido) */
+  var MY_DANCES = DB.my_dances.map(function(d){
+    return { eventId:d.event, date:d.date, song:d.song, partner:d.partner, camId:d.cam, status:d.status };
+  });
+  var MY_SESSIONS = DB.my_sessions.map(function(s){
+    return { eventId:s.event, date:s.date, couples:s.couples, sent:s.sent };
+  });
