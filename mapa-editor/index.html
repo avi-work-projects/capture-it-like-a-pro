@@ -860,7 +860,11 @@ const EXT = new URLSearchParams(location.search).get('mode') === 'exterior';
    ?live=cam  → el camarógrafo arrastra SU marcador (pestaña Cámaras, sin chrome)
    En ambos, el mapa vive en localStorage 'cilap-live-map' (lo siembra la app). */
 const LIVE = new URLSearchParams(location.search).get('live');
-const DRAFT_KEY = LIVE ? 'cilap-live-map' : (EXT ? 'cip_mapa_ext_v1' : 'cip_mapa_editor_v1');
+/* claves separadas: la vista del bailarín (por sala, la reescribe la app) no
+   debe pisar el mapa donde el CÁMARA guarda su posición */
+const DRAFT_KEY = LIVE === 'view' ? 'cilap-live-map-view'
+                : LIVE === 'cam'  ? 'cilap-live-map'
+                : (EXT ? 'cip_mapa_ext_v1' : 'cip_mapa_editor_v1');
 const LIB_KEY   = EXT ? 'cip_mapas_ext_v1' : 'cip_mapas_v1';
 
 /* paths unitarios reutilizables (0..1) */

@@ -831,6 +831,41 @@ body{
 .lv-camhead{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
 .lv-camhead b{font-family:var(--opt-font);font-size:19px;color:var(--text)}
 .lv-camhead > span{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+/* banner "estás en la cola de X" (fase 1, si ya estás apuntado) */
+.lv-joined{
+  display:flex;align-items:center;gap:10px;width:100%;
+  background:var(--surface);border:1px solid #30d158;border-radius:12px;
+  padding:11px 14px;margin-bottom:12px;
+  font:inherit;color:var(--text);text-align:left;cursor:pointer;
+  box-shadow:0 0 14px rgba(48,209,88,.15);
+}
+.lv-joined .lv-dot{background:#30d158;box-shadow:0 0 8px rgba(48,209,88,.8)}
+.lv-joined-t{flex:1;min-width:0;font-size:13px}
+.lv-joined-t b{color:#30d158}
+.app.light .lv-joined-t b{color:#1d7d3c}
+/* fila del cam al que estás apuntado + su contador "TÚ" */
+.lv-camrow.mine{border-color:#30d158}
+.lv-cam-q.mine b{color:#30d158;font-size:13px}
+.app.light .lv-cam-q.mine b,.app.light .lv-camrow.mine{border-color:#1d7d3c;color:inherit}
+.app.light .lv-cam-q.mine b{color:#1d7d3c}
+/* pager de salas (‹ nombre › + swipe sobre el mapa) */
+.lv-salapager{
+  display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:10px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text);
+}
+.lv-salapager small{color:var(--muted);font-size:9px;letter-spacing:.06em}
+.lv-map-wrap{position:relative}
+.lv-swipe{position:absolute;inset:0;z-index:2}   /* capa transparente: captura el swipe (el iframe se traga los toques) */
+/* demanda del cámara en el evento */
+.lv-demand{display:flex;gap:10px}
+.lv-demand > div{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;
+  background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 8px;
+}
+.lv-demand b{font-family:var(--mono);font-size:20px;color:var(--accent)}
+.lv-demand span{font-size:10.5px;color:var(--muted);line-height:1.3}
+/* el CTA de seguir del perfil no debe besar el borde/OSD inferior */
+#profFollowBtn{margin-bottom:30px}
 .lv-cam-i{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .lv-cam-i b{font-size:14.5px;color:var(--text)}
 .lv-cam-s{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}

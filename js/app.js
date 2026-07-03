@@ -1695,7 +1695,9 @@
     $('#liveEnterBtn').addEventListener('click', function(){
       if(currentEvent) Live.open(currentEvent, state.role ? state.role.value : 'dancer');
     });
-    $('#liveBack').addEventListener('click', histBack);
+    /* ← del directo: desde la ficha de un camarógrafo vuelve a la LISTA
+       (Live.back() lo resuelve); solo sale de la vista si ya estás en ella */
+    $('#liveBack').addEventListener('click', function(){ if(Live.back()) return; histBack(); });
     $('#liveHome').addEventListener('click', goHome);
   }
 
@@ -2286,9 +2288,30 @@
     $('#myEvToggle').style.display = hasPast ? 'flex' : 'none';
     $('#myEvPastSw').classList.toggle('on', myEvPast);
     var box = $('#myEvList');
-    $('#myEvEmpty').style.display = list.length ? 'none' : 'flex';
+    /* EN DIRECTO: si estás apuntado a la cola de un camarógrafo AHORA MISMO,
+       sale lo primero (aunque hayas salido del menú o cerrado la app) */
+    var liveH = '';
+    try{
+      var lv = JSON.parse(localStorage.getItem('cilap-live')) || {};
+      Object.keys(lv).forEach(function(evId){
+        var sLive = lv[evId]; if(!sLive || !sLive.cam) return;
+        var e = resolveEv(evId); if(!e || eventStatus(e) !== 'directo') return;
+        var p = (sLive.prog || {})[sLive.cam] || {};
+        if(p.myIdx == null) return;
+        var leftQ = p.myIdx - (p.served || 0);
+        var camL = CAMS_BY_ID[sLive.cam];
+        liveH += '<div class="date-head now">Ahora · en directo</div>' +
+          '<button class="dance dance-card" data-liveev="' + evId + '">' +
+            '<b>' + e.name + '</b>' +
+            '<span class="dinfo">En la cola de ' + (camL ? camL.name : 'un camarógrafo') +
+              (leftQ < 0 ? ' · ya bailaste ✓' : leftQ === 0 ? ' · ¡te toca!' : ' · eres el #' + leftQ + ' · ~' + Math.max(1, Math.round(leftQ * 3.5)) + ' min') + '</span>' +
+            '<span class="me-chips"><span class="me-chip attend">Estoy dentro</span></span>' +
+          '</button>';
+      });
+    }catch(e2){}
+    $('#myEvEmpty').style.display = (list.length || liveH) ? 'none' : 'flex';
     /* agrupado por fecha (cabeceras .date-head sticky), como Mis bailes */
-    var lastKey = null, h = '';
+    var lastKey = null, h = liveH;
     list.forEach(function(b){
       var ev = b.ev, d = new Date(b.ts);
       var key = d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
@@ -2304,7 +2327,15 @@
     });
     box.innerHTML = h;
     box.querySelectorAll('.dance-card').forEach(function(c){
-      c.addEventListener('click', function(){ openEvent(resolveEv(c.dataset.ev)); });
+      if(c.dataset.liveev){
+        /* tarjeta "en directo": directo al modo Estoy dentro de ese evento */
+        c.addEventListener('click', function(){
+          var e = resolveEv(c.dataset.liveev);
+          if(e && window.Live){ currentEvent = e; Live.open(e, state.role ? state.role.value : 'dancer'); }
+        });
+      } else {
+        c.addEventListener('click', function(){ openEvent(resolveEv(c.dataset.ev)); });
+      }
     });
     setTimeout(function(){ pinHeads('viewMyEvents', [$('#myEvToggle')]); }, 60);
   }
