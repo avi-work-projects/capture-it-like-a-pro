@@ -133,6 +133,33 @@ for f in bar['features']:
 bar_d = ' '.join(bar_parts)
 print('Barrios (city)', len(bar_parts), 'poligonos,', bar_pts, 'pts')
 
+# ── escena CENTRO: solo barrios dentro de la M-30 y su periferia inmediata.
+#    Aproximación: centroide del barrio a ≤ RADIO km de la Puerta del Sol
+#    (la M-30 queda a ~3.5-5.5 km del centro según el tramo). ──
+SOL = (-3.7038, 40.4168)
+RADIO_KM = 5.5
+def centroid(ring):
+    n = len(ring) - 1 if ring[0] == ring[-1] else len(ring)
+    return (sum(p[0] for p in ring[:n]) / n, sum(p[1] for p in ring[:n]) / n)
+def dist_km(a, b):
+    kx = 111.32 * math.cos(math.radians((a[1] + b[1]) / 2))
+    return math.hypot((a[0] - b[0]) * kx, (a[1] - b[1]) * 111.32)
+
+centro_rings = []
+for f in bar['features']:
+    r = biggest(f['geometry'])
+    if dist_km(centroid(r), SOL) <= RADIO_KM:
+        centro_rings.append(r)
+all_pts = [p for r in centro_rings for p in r]
+CENTER = make_proj(all_pts)
+cen_parts, cen_pts = [], 0
+for r in centro_rings:
+    d, np_ = to_path(CENTER, r, 0.3, smooth=1)
+    if np_ >= 4:
+        cen_parts.append(d); cen_pts += np_
+cen_d = ' '.join(cen_parts)
+print('Centro', len(cen_parts), 'barrios,', cen_pts, 'pts (radio %.1f km)' % RADIO_KM)
+
 # ── centros de ciudad (lon, lat CRUDOS): la app los proyecta en runtime con la
 #    proyección de la escena activa (fallback para eventos sin coords propias) ──
 cities = {
@@ -161,6 +188,7 @@ for name, d in neigh.items():
 js.append('  },')
 js.append('  proj: %s,' % js_proj(REG))
 js.append('  city: { d: "%s", dist: "%s", proj: %s },' % (mun_d, bar_d, js_proj(CITY)))
+js.append('  center: { d: "%s", proj: %s },' % (cen_d, js_proj(CENTER)))
 js.append('  cities: %s' % json.dumps(cities))
 js.append('};')
 open(OUT, 'w', encoding='utf-8').write('\n'.join(js) + '\n')

@@ -1329,6 +1329,8 @@ body{
 .map-madrid{fill:rgba(61,169,255,.13);stroke:#3da9ff;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}
 /* malla de barrios (vista ciudad): delimitación suave, solo trazo fino */
 .map-dist{fill:none;stroke:#3da9ff;stroke-width:.18;stroke-opacity:.45;stroke-linejoin:round}
+/* vista centro: mosaico de barrios de la M-30, relleno + borde por barrio */
+.map-center{fill:rgba(61,169,255,.13);stroke:#3da9ff;stroke-width:.3;stroke-opacity:.75;stroke-linejoin:round}
 .map-madrid-lbl{fill:var(--text);font-size:4px;text-anchor:middle;font-family:var(--display);letter-spacing:.12em}
 .map-mk{cursor:pointer}
 .mk-halo{transform-box:fill-box;transform-origin:center;animation:mkpulse 1.6s ease-out infinite}

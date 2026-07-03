@@ -841,12 +841,12 @@
      Dos escenas: 'region' (Comunidad + provincias vecinas) y 'city' (municipio
      de Madrid a pelo). MAP_GEO.cities = lon/lat CRUDOS del centro de cada
      ciudad (fallback para eventos sin coords propias). */
-  var MAP_GEO = window.MAP_GEO || { madrid:'', provs:{}, proj:null, city:{ d:'', proj:null }, cities:{} };
+  var MAP_GEO = window.MAP_GEO || { madrid:'', provs:{}, proj:null, city:{ d:'', proj:null }, center:{ d:'', proj:null }, cities:{} };
   var mapDays = [], mapDayIdx = 0, mapSel = 0, mapScope = 'region';
   /* cobertura del mapa POR PROVINCIA (por ahora, solo Madrid tiene geometría):
      si el filtro actual no alcanza ninguna, el botón Mapa se deshabilita */
   var MAP_COVERED_PROVS = { p28:1 };
-  var MAP_SCOPE_SUB = { region:'Comunidad de Madrid', city:'Madrid · ciudad' };
+  var MAP_SCOPE_SUB = { region:'Comunidad de Madrid', city:'Madrid · ciudad', center:'Madrid · centro (M-30)' };
   function mapFrame(inner){
     return '<defs><clipPath id="mapClip"><rect x="3" y="3" width="94" height="94" rx="11"/></clipPath></defs>' +
       '<g clip-path="url(#mapClip)">' +
@@ -872,7 +872,10 @@
        (128 polígonos en UN solo path) que hace reconocible la trama de Madrid */
     city: mapFrame(
       '<path class="map-madrid" d="' + MAP_GEO.city.d + '"/>' +
-      '<path class="map-dist" d="' + (MAP_GEO.city.dist || '') + '"/>')
+      '<path class="map-dist" d="' + (MAP_GEO.city.dist || '') + '"/>'),
+    /* vista centro: solo los barrios dentro de la M-30 (y periferia inmediata),
+       como mosaico relleno — la vista ciudad entera mete demasiado barrio */
+    center: mapFrame('<path class="map-center" d="' + (MAP_GEO.center ? MAP_GEO.center.d : '') + '"/>')
   };
 
   function mapBuildDays(){
@@ -905,7 +908,11 @@
     });
     return days;
   }
-  function mapProj(){ return (mapScope === 'city' && MAP_GEO.city.proj) ? MAP_GEO.city.proj : MAP_GEO.proj; }
+  function mapProj(){
+    if(mapScope === 'city'   && MAP_GEO.city.proj)   return MAP_GEO.city.proj;
+    if(mapScope === 'center' && MAP_GEO.center && MAP_GEO.center.proj) return MAP_GEO.center.proj;
+    return MAP_GEO.proj;
+  }
   function mapProject(ll){
     var p = mapProj();
     return [ 50 + (ll[0] - p.lon0) * p.coslat * p.k, 50 - (ll[1] - p.lat0) * p.k ];
