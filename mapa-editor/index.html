@@ -27,7 +27,6 @@ body{background:#000;font-family:var(--body);overflow:hidden}
   /* color por sección (tabs) */
   --c-estructura:#3da9ff;
   --c-elementos:#c6ff00;
-  --c-camaras:#ffd60a;
   /* colores por tipo de elemento */
   --c-acceso:#c6ff00;
   --c-bano:#2dd4bf;
@@ -72,7 +71,6 @@ body{background:#000;font-family:var(--body);overflow:hidden}
   --c-gen:#3c3c3c;   /* figuras genéricas: blanco ilegible sobre claro */
   /* acentos claros (lima/ámbar) → tono oscuro de la misma familia en claro */
   --c-elementos:#6f8f00;
-  --c-camaras:#a98200;
   --c-acceso:#6f8f00;
   --c-cam:#a98200;
   --c-farola:#a98200;
@@ -144,8 +142,6 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 }
 .tab[data-tab="estructura"].is-on{color:var(--c-estructura);border-color:var(--c-estructura);box-shadow:0 0 16px rgba(61,169,255,.30)}
 .tab[data-tab="elementos"].is-on{color:var(--c-elementos);border-color:var(--c-elementos);box-shadow:0 0 16px rgba(198,255,0,.30)}
-.tab[data-tab="camaras"].is-on{color:var(--c-camaras);border-color:var(--c-camaras);box-shadow:0 0 16px rgba(255,214,10,.30)}
-
 /* ───────────── LIENZO ───────────── */
 /* cuadrado y centrado → proporciones reales (un cuadrado se ve cuadrado,
    el semicírculo es medio círculo de verdad). El tamaño px lo fija el JS. */
@@ -204,6 +200,8 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 #floor .step-grada{stroke:rgba(0,0,0,.55);stroke-width:1.5}
 /* pistas deportivas: líneas blancas */
 #floor .court-line{fill:none;stroke:#f4f4f4;stroke-width:1;vector-effect:non-scaling-stroke;opacity:.92;stroke-linejoin:round}
+/* camino: motitas de gravilla / tierra */
+#floor .dec-gravel{fill:rgba(255,255,255,.18);stroke:none}
 /* jardín: matas de hierba (briznas verdes) + alguna florecilla diminuta */
 #floor .dec-grass{fill:#4ea63f;stroke:#1d5523;stroke-width:.45;vector-effect:non-scaling-stroke;stroke-linejoin:round;opacity:.95}
 #floor .dec-petal{fill:#ff9ec4;opacity:.85}
@@ -274,9 +272,6 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 .app.sec-estructura .el{pointer-events:none}
 .app.sec-elementos #floor .pfl{pointer-events:none}
 .app.sec-elementos .el.t-camarografo{pointer-events:none}
-.app.sec-camaras #floor .pfl{pointer-events:none}
-.app.sec-camaras .el{pointer-events:none}
-.app.sec-camaras .el.t-camarografo{pointer-events:auto}
 /* mostrar/ocultar elementos (botón de la sección Estructura) */
 #canvas.hide-els .el{display:none}
 /* candado en elementos con posición bloqueada */
@@ -535,45 +530,56 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 .toolbar #btn-save{border-color:var(--accent);color:var(--accent)}
 .toolbar #btn-clear{color:var(--muted)}
 
-/* ───────────── PANEL MIS MAPAS ───────────── */
+/* ───────────── PANEL MIS MAPAS (pantalla completa) ───────────── */
 #maps-panel{
   position:absolute;inset:0;z-index:60;
-  background:rgba(0,0,0,.6);backdrop-filter:blur(2px);
-  display:flex;align-items:flex-end;
+  background:var(--bg);
+  display:flex;flex-direction:column;
   opacity:0;pointer-events:none;transition:opacity .2s var(--ease);
 }
 #maps-panel.open{opacity:1;pointer-events:auto}
 #maps-panel .sheet{
-  width:100%;max-height:70%;overflow:auto;
-  background:var(--bg);border-top:1px solid var(--line);
-  border-radius:18px 18px 0 0;
-  padding:14px 18px calc(18px + env(safe-area-inset-bottom));
-  transform:translateY(12px);transition:transform .2s var(--ease);
+  flex:1;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  padding:0 18px calc(18px + env(safe-area-inset-bottom));
 }
-#maps-panel.open .sheet{transform:translateY(0)}
+#maps-panel .sheet::-webkit-scrollbar{width:0;height:0}
 .sheet-head{
+  position:sticky;top:0;z-index:2;background:var(--bg);
   display:flex;align-items:center;justify-content:space-between;
-  font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--text);
-  text-transform:uppercase;padding-bottom:10px;
+  font-family:var(--mono);font-size:12px;letter-spacing:.16em;color:var(--text);
+  text-transform:uppercase;
+  padding:calc(14px + env(safe-area-inset-top)) 18px 12px;
 }
 .sheet-head button{
-  background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;padding:4px 8px;
+  background:var(--surface);border:1px solid var(--line);border-radius:8px;
+  color:var(--text);font-size:13px;cursor:pointer;padding:6px 10px;
+  font-family:var(--mono);letter-spacing:.06em;
 }
-/* rejilla de tarjetas con MINIATURA real del mapa + acciones por tarjeta */
-#maps-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
-.map-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px;cursor:pointer}
+.sheet-head button:active{transform:scale(.95)}
+/* tarjetas de mapa: UNA COLUMNA, miniatura grande a la izquierda */
+#maps-list{display:flex;flex-direction:column;gap:10px;margin-bottom:10px}
+.map-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:10px;cursor:pointer;
+  display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:start;
+}
 .map-card.current{border-color:var(--accent);box-shadow:0 0 14px var(--accent-glow)}
-.mc-thumb{position:relative;border-radius:8px;overflow:hidden;background:var(--surface-2);aspect-ratio:4/3;margin-bottom:7px}
+.mc-thumb{position:relative;border-radius:10px;overflow:hidden;background:var(--surface-2);aspect-ratio:1;width:100%}
 .mc-thumb svg{width:100%;height:100%;display:block}
 .mc-cur{
   position:absolute;top:5px;left:5px;
-  font-family:var(--mono);font-size:7.5px;letter-spacing:.1em;
+  font-family:var(--mono);font-size:7px;letter-spacing:.1em;
   color:var(--accent);background:var(--bg);border:1px solid var(--accent);
   border-radius:5px;padding:2px 5px;
 }
-.mc-name{font-family:var(--mono);font-size:11.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mc-meta{font-family:var(--mono);font-size:8.5px;color:var(--muted);letter-spacing:.04em;margin:2px 0 7px}
-.mc-actions,.mc-confirm{display:flex;gap:5px;align-items:center}
+.mc-info{display:flex;flex-direction:column;gap:3px;min-width:0}
+.mc-name{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mc-meta{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.04em}
+.mc-assign{
+  font-family:var(--mono);font-size:8.5px;color:var(--accent);letter-spacing:.02em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px;
+}
+.mc-actions,.mc-confirm{display:flex;gap:5px;align-items:center;margin-top:4px}
 .mc-actions[hidden],.mc-confirm[hidden]{display:none}
 .mc-confirm span{flex:1;font-family:var(--mono);font-size:9px;color:#ff6a60}
 .mc-b{
@@ -586,7 +592,7 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
 #maps-new{
   width:100%;background:var(--surface);border:1px dashed var(--line);border-radius:11px;
   color:var(--accent);font-family:var(--mono);font-size:11px;letter-spacing:.1em;
-  text-transform:uppercase;padding:11px 0;cursor:pointer;margin-top:2px;
+  text-transform:uppercase;padding:13px 0;cursor:pointer;margin-top:2px;
 }
 .maps-empty{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.06em;padding:6px 2px 10px}
 
@@ -695,10 +701,6 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
       <svg viewBox="0 0 24 24"><circle cx="7" cy="7" r="3"/><rect x="14" y="4" width="6" height="6" rx="1"/><path d="M7 14l3 6H4z"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>
       Elementos
     </button>
-    <button class="tab" data-tab="camaras">
-      <svg viewBox="0 0 24 24"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="M15 10l6-3v10l-6-3"/></svg>
-      Cámaras
-    </button>
   </div>
 
   <div class="canvas-wrap">
@@ -789,17 +791,13 @@ header h1::before{content:'● ';color:var(--accent);font-size:8px;vertical-alig
       <p class="pane-hint">Arrastra al plano o toca para colocar.</p>
     </div>
 
-    <div class="tab-pane hidden" data-tab="camaras" id="pane-camaras">
-      <div id="pal-cam"></div>
-      <p class="pane-hint">Coloca dónde estará el camarógrafo (parpadea en rojo).</p>
-    </div>
   </div>
   </div><!-- /.below -->
 
 
   <div id="maps-panel">
+    <div class="sheet-head"><span>Mis mapas</span><button id="maps-close">← Volver</button></div>
     <div class="sheet">
-      <div class="sheet-head"><span>Mis mapas</span><button id="maps-close">✕</button></div>
       <div id="maps-list"></div>
       <button id="maps-new">+ Nuevo mapa</button>
     </div>
@@ -913,6 +911,8 @@ const STRUCT_EXT = ['carretera','carretera_c','agua_c','jardin'];
 const CARRETERA_COLOR = '#3a3d42';
 const AGUA_COLOR = '#1e6aa6';
 const GREEN_COLORS = ['#2f6b34', '#3f8f43'];   // jardín (default) y preset "Verde"
+const CAMINO1_COLOR  = '#6e5a40';              // camino tierra → gravilla
+const CAMINO2_COLOR  = '#9c7b4e';              // camino arena  → gravilla
 const ESCALERA_COLOR = '#a7a7ac';              // gris escalera → decoración de peldaños
 const GRADA_COLOR    = '#b0aca3';              // hormigón de grada → peldaños más marcados
 /* colores de PISTA (mapean a sus líneas) — solo para la forma cuadrado redondeado (jardín) */
@@ -938,8 +938,8 @@ const COURT_COLORS = [
 ];
 /* fondos de mapa sugeridos */
 const BG_COLORS = [
-  { name:'Oscuro', color:'#101010' },
   { name:'Papel',  color:'#e7e2d4' },
+  { name:'Hierba', color:'#8bc34a' },
   { name:'Césped', color:'#26371f' },
   { name:'Arena',  color:'#cdbd96' },
   { name:'Agua',   color:'#15324a' }
@@ -996,8 +996,10 @@ const TYPES = {
     icon:'<svg viewBox="0 0 24 24"><path fill="#9c7b50" stroke="none" d="M3 9.5h18v2.2H3z"/><path fill="#9c7b50" stroke="none" d="M3 13.6h18v2.2H3z"/><path fill="#6f5738" stroke="none" d="M4.3 15.6h1.7V21H4.3zM18 15.6h1.7V21H18z"/></svg>' },
   fuente:    { label:'Fuente',         color:'var(--c-fuente)',    editable:true, w:42, h:44,
     icon:'<svg viewBox="0 0 24 24"><path fill="#8fd3cf" stroke="none" d="M12 3.2c1.6 2 2.6 3.4 2.6 4.9a2.6 2.6 0 1 1-5.2 0c0-1.5 1-2.9 2.6-4.9z"/><path fill="#2b6f68" stroke="none" d="M11 10.4h2v2.6h-2z"/><path fill="#2dd4bf" stroke="none" d="M5 13h14l-1.2 3.6H6.2z"/><path fill="#1f7f74" stroke="none" d="M4 16.6h16v2.2H4z"/></svg>' },
-  comida:    { label:'Comida',         color:'var(--c-comida)',    editable:true, w:38, h:26,
+  comida:    { label:'Comida 1',       color:'var(--c-comida)',    editable:true, w:38, h:26,
     icon:'<svg viewBox="0 0 24 24"><path fill="#c77b17" stroke="none" d="M4.5 10.5h15V21h-15z"/><path fill="#5e3d17" stroke="none" d="M9.8 15h4.4v6H9.8z"/><path fill="#ff9f0a" stroke="none" d="M3 5.5h18l1.4 4.5H1.6z"/><path fill="#ffe1b0" stroke="none" d="M6.2 5.5h3l-.5 4.5H4.9zM14.8 5.5h3l1.3 4.5h-3.8z"/></svg>' },
+  comida2:   { label:'Comida 2',       color:'var(--c-comida)',    editable:true, w:32, h:32,
+    icon:'<svg viewBox="0 0 24 24"><path fill="#c77b17" stroke="none" d="M5.5 12h13v9h-13z"/><path fill="#ff9f0a" stroke="none" d="M4 8.5h16l.8 3.5H3.2z"/><path fill="#ffe1b0" stroke="none" d="M12 3c-3 0-5.8 1.8-7 4.5h14C17.8 4.8 15 3 12 3z"/><circle fill="#e85d3a" stroke="none" cx="12" cy="5.2" r="1"/><path fill="#5e3d17" stroke="none" d="M10 16h4v5h-4z"/></svg>' },
   edificio:  { label:'Edificio 1',     color:'var(--c-edificio)',  editable:true, w:56, h:58,
     icon:'<svg viewBox="0 0 24 24"><path fill="#93a7bd" stroke="none" d="M6 3h12v18H6z"/><path fill="#1c2733" stroke="none" d="M9 6h2v2H9zM13 6h2v2h-2zM9 10h2v2H9zM13 10h2v2h-2zM9 14h2v2H9zM13 14h2v2h-2z"/><path fill="#5b6c80" stroke="none" d="M10.7 17.5h2.6V21h-2.6z"/></svg>' },
   edificio2: { label:'Edificio 2',     color:'var(--c-edificio)',  editable:true, w:58, h:60,
@@ -1010,16 +1012,20 @@ const TYPES = {
     icon:'<svg viewBox="0 0 24 24"><path fill="#6f4a38" stroke="none" d="M16.4 3.6h2.2v4.2h-2.2z"/><path fill="#c9563f" stroke="none" d="M12 2.6 2.6 10.4h18.8z"/><path fill="#e8e0cf" stroke="none" d="M4.4 10.4h15.2V21H4.4z"/><path fill="#4a586b" stroke="none" d="M7 13h3.4v3.4H7z"/><path fill="#5e4630" stroke="none" d="M13.6 14.4h3.4V21h-3.4z"/></svg>' },
   casa3:     { label:'Casa 3',         color:'var(--c-casa)',      editable:true, w:44, h:42,
     icon:'<svg viewBox="0 0 24 24"><path fill="#8b9a52" stroke="none" d="M12 2.8 3.4 8.6h17.2z"/><path fill="#d9cba8" stroke="none" d="M5 8.6h14V21H5z"/><path fill="#3c4c60" stroke="none" d="M7 10.8h3v2.6H7zM14 10.8h3v2.6h-3zM7 15.4h3v2.6H7z"/><path fill="#5e4630" stroke="none" d="M13.6 15.4h3.6V21h-3.6z"/></svg>' },
-  puente:    { label:'Puente',         color:'var(--c-puente)',    editable:true, w:70, h:30,
+  puente:    { label:'Puente 1',       color:'var(--c-puente)',    editable:true, w:70, h:30,
     icon:'<svg viewBox="0 0 24 24"><path fill="#454c55" stroke="none" d="M2 6.6h20V8H2z"/><path fill="#9aa2ab" stroke="none" d="M2 8h20v3H2z"/><path fill="#6d757f" stroke="none" d="M2 11h3.4v8H2zM10.3 11h3.4v8h-3.4zM18.6 11H22v8h-3.4z"/></svg>' },
+  puente2:   { label:'Puente 2',       color:'var(--c-puente)',    editable:true, w:70, h:34,
+    icon:'<svg viewBox="0 0 24 24"><path fill="#9aa2ab" stroke="none" d="M1 7h22v2H1z"/><path fill="#7a8290" stroke="none" d="M1 9h22v1.5H1z"/><path fill="#9aa2ab" stroke="none" d="M3 10.5a4 4 0 0 0 8 0" /><path fill="#9aa2ab" stroke="none" d="M13 10.5a4 4 0 0 0 8 0"/><path fill="#6d757f" stroke="none" d="M3 7V5.5h1.4V7zM19.6 7V5.5H21V7zM11.3 7V5.5h1.4V7z"/><path fill="#b8bcc4" stroke="none" d="M3.2 5.5h1V4.2h-1zM19.8 5.5h1V4.2h-1zM11.5 5.5h1V4.2h-1z"/></svg>' },
   farola:    { label:'Farola',         color:'var(--c-farola)',    silhouette:true, w:16, h:36,
     icon:'<svg viewBox="0 0 24 24"><path fill="#ffd60a" stroke="none" d="M12 2.2a3.1 3.1 0 0 1 3.1 3.1 3.1 3.1 0 0 1-6.2 0A3.1 3.1 0 0 1 12 2.2z"/><path fill="#2b3036" stroke="none" d="M10.1 5.9h3.8v1.4h-3.8z"/><path fill="#3c4148" stroke="none" d="M11.2 7.3h1.6V20h-1.6z"/><path fill="#3c4148" stroke="none" d="M8.6 20h6.8v1.7H8.6z"/></svg>' },
   metro:     { label:'Metro',          color:'var(--c-metro)',     editable:true, w:24, h:26,
     icon:'<svg viewBox="0 0 24 24"><path fill="#e33e2f" stroke="none" d="M12 2 22 12 12 22 2 12z"/><path fill="#ffffff" stroke="none" d="M7.2 15.4V8.6l4.8 4.4 4.8-4.4v6.8h-2.1v-2.7L12 15.1l-2.7-2.4v2.7z"/></svg>' },
   iglesia:   { label:'Iglesia',        color:'var(--c-iglesia)',   editable:true, w:48, h:56,
     icon:'<svg viewBox="0 0 24 24"><path fill="#d9b65d" stroke="none" d="M11.2 2.4h1.6v4h-1.6z"/><path fill="#d9b65d" stroke="none" d="M10 3.7h4v1.2h-4z"/><path fill="#e6d7ae" stroke="none" d="M6.5 21V10.5L12 6.6l5.5 3.9V21z"/><path fill="#b08e3e" stroke="none" d="M5.6 11.1 12 6.6l6.4 4.5-.9 1.2L12 8.4l-5.5 3.9z"/><path fill="#6b5322" stroke="none" d="M10.4 21v-4.4a1.6 1.6 0 0 1 3.2 0V21z"/></svg>' },
-  monumento: { label:'Monumento',      color:'var(--c-monumento)', editable:true, w:42, h:56,
+  monumento: { label:'Monumento 1',    color:'var(--c-monumento)', editable:true, w:42, h:56,
     icon:'<svg viewBox="0 0 24 24"><path fill="#c9c3b6" stroke="none" d="M10.6 4 12 2.2 13.4 4l-.6 10h-1.6z"/><path fill="#a8a294" stroke="none" d="M9 14h6v2.4H9z"/><path fill="#8e887b" stroke="none" d="M7.4 16.4h9.2V19H7.4z"/><path fill="#726d61" stroke="none" d="M6 19h12v2H6z"/></svg>' },
+  monumento2:{ label:'Monumento 2',    color:'var(--c-monumento)', editable:true, w:46, h:50,
+    icon:'<svg viewBox="0 0 24 24"><path fill="#c9c3b6" stroke="none" d="M8 5h8v2H8z"/><path fill="#b8b3a8" stroke="none" d="M8 7h2v9H8zM14 7h2v9h-2z"/><path fill="#c9c3b6" stroke="none" d="M7 16h10v2H7z"/><path fill="#a8a294" stroke="none" d="M9 7h6v2H9z"/><path fill="#8e887b" stroke="none" d="M6 18h12v1.5H6z"/><path fill="#726d61" stroke="none" d="M5.5 19.5h13v2h-13z"/></svg>' },
   /* agua/carretera siguen definidos para no romper mapas exteriores antiguos (ya no en la paleta) */
   agua:      { label:'Agua',           color:'var(--c-agua)',      w:56, h:40,
     icon:'<svg viewBox="0 0 24 24"><path d="M3 8c2-1.5 4 1.5 6 0s4-1.5 6 0 4 1.5 6 0"/><path d="M3 13c2-1.5 4 1.5 6 0s4-1.5 6 0 4 1.5 6 0"/><path d="M3 18c2-1.5 4 1.5 6 0s4-1.5 6 0 4 1.5 6 0"/></svg>' },
@@ -1035,15 +1041,16 @@ function pieceMin(p){ return PIECES_DEF[p.kind].path === P_DONUT ? DONUT_MIN : P
 const GROUP = {
   main:  EXT ? ['arbol','arbusto','banco','fuente','comida','edificio','iglesia','monumento']
              : ['acceso','banos','columna','dj','bar','escenario'],
-  otros: ['gen_estrella','gen_circulo','gen_cuadrado'],
-  cam:   ['camarografo']
+  otros: ['gen_estrella','gen_circulo','gen_cuadrado']
 };
 
 function freshMap(){
-  /* exterior: sin rectángulo de planta — se dibuja al aire libre colocando elementos */
-  return { id:'m' + Date.now(), name:'',
-           pieces: EXT ? [] : [{ id:1, kind:'rect', x:50, y:50, w:80, h:85, rot:0 }],
-           elements:[] };
+  /* exterior: sin rectángulo de planta, fondo papel por defecto */
+  const m = { id:'m' + Date.now(), name:'',
+              pieces: EXT ? [] : [{ id:1, kind:'rect', x:50, y:50, w:80, h:85, rot:0 }],
+              elements:[] };
+  if(EXT) m.bg = '#e7e2d4';
+  return m;
 }
 
 let state = freshMap();
@@ -1069,11 +1076,10 @@ themeBtn.addEventListener('click', () => applyTheme(app.classList.contains('ligh
 
 let currentTab = 'estructura';   // ambos modos arrancan en Estructura
 let elsHidden = false;           // ocultar elementos mientras se diseña la estructura
-const SECTION_COLOR = { estructura:'#3da9ff', elementos:'#c6ff00', camaras:'#ffd60a' };
+const SECTION_COLOR = { estructura:'#3da9ff', elementos:'#c6ff00' };
 const SECTION_HINT  = {
   estructura:'Toca una forma de la planta para editarla',
-  elementos:'Toca un elemento para editarlo',
-  camaras:'Toca una cámara para editarla'
+  elementos:'Toca un elemento para editarlo'
 };
 function applyVisibility(){
   canvas.classList.toggle('hide-els', elsHidden && currentTab === 'estructura');
@@ -1211,11 +1217,13 @@ function roadMarks(p){
 }
 /* peldaños (escalera / grada de hormigón): líneas paralelas a lo ancho */
 function stepMarks(p, kind){
-  const tr = pieceTransform(p), n = 6, cls = kind === 'grada' ? 'step-line step-grada' : 'step-line';
+  const tr = pieceTransform(p);
+  const n = kind === 'grada' ? 6 : 12;
+  const cls = kind === 'grada' ? 'step-line step-grada' : 'step-line';
   let s = '';
   for(let i = 1; i < n; i++){
     const y = (i / n).toFixed(3);
-    s += '<path class="' + cls + '" d="M0.05 ' + y + ' H0.95" transform="' + tr + '"/>';
+    s += '<path class="' + cls + '" d="M0 ' + y + ' H1" transform="' + tr + '"/>';
   }
   return s;
 }
@@ -1269,6 +1277,18 @@ function flowerGlyph(x, y){
   }
   return '<g transform="translate(' + x + ' ' + y + ')">' + pet + '<circle class="dec-core" cx="0" cy="0" r="0.34"/></g>';
 }
+/* gravilla: 2–3 motitas de tamaño variado (textura de camino de tierra) */
+function gravelGlyph(x, y, seed){
+  let s = '';
+  const n = 2 + Math.floor(rnd(seed + 0.1) * 2);
+  for(let k = 0; k < n; k++){
+    const ox = (rnd(seed + k*0.37) * 2 - 1) * 1.2;
+    const oy = (rnd(seed + k*0.61) * 2 - 1) * 1.2;
+    const r  = 0.25 + rnd(seed + k*0.83) * 0.35;
+    s += '<circle class="dec-gravel" cx="' + (x+ox).toFixed(2) + '" cy="' + (y+oy).toFixed(2) + '" r="' + r.toFixed(2) + '"/>';
+  }
+  return s;
+}
 /* esparce glifos por el área de la pieza con posición ALEATORIA (jitter determinista
    por pieza+celda → no parpadea) y algún hueco; agua=olas horizontales · jardín=hierba
    (mayoría) con alguna flor; siempre orientados igual (sin rotación). Dentro de la forma. */
@@ -1291,6 +1311,7 @@ function decorMarks(p, type){
       }
       const X = +gx.toFixed(2), Y = +gy.toFixed(2);
       if(type === 'waves') s += waveGlyph(X, Y);
+      else if(type === 'gravel') s += gravelGlyph(X, Y, seed);
       else s += (rnd(seed + 0.5) < 0.22) ? flowerGlyph(X, Y) : grassGlyph(X, Y);   // jardín
     }
   }
@@ -1315,6 +1336,7 @@ function renderFloor(){
     else if(col === ESCALERA_COLOR) dec = stepMarks(p, 'stairs');
     else if(col === GRADA_COLOR) dec = stepMarks(p, 'grada');
     else if(COURTS[col]) dec = courtMarks(p, COURTS[col]);
+    else if(col === CAMINO1_COLOR || col === CAMINO2_COLOR) dec = decorMarks(p, 'gravel');
     else if(def.path !== P_DONUT){
       if(col === AGUA_COLOR) dec = decorMarks(p, 'waves');
       else if(GREEN_COLORS.includes(col)) dec = decorMarks(p, 'flowers');
@@ -1897,12 +1919,15 @@ function startDragEl(ev, id, node){
   node.addEventListener('pointerup', onUp);
   node.addEventListener('pointercancel', onUp);
 }
-/* posición en % manteniendo el elemento ENTERO dentro del lienzo (margen = medio tamaño) */
+/* posición en % manteniendo el elemento dentro del lienzo.
+   Exterior: margen mínimo (15% del tamaño) → pueden arrimarse a los bordes.
+   Interior: margen = medio tamaño → entero dentro. */
 function toPct(cx, cy, e){
   const r = canvas.getBoundingClientRect();
   const t = e ? TYPES[e.type] : null;
-  const mx = e ? ((e.w || t.w || 30) / 2 / r.width)  * 100 : 4;
-  const my = e ? ((e.h || t.h || 30) / 2 / r.height) * 100 : 6;
+  const f = EXT ? 0.15 : 0.5;
+  const mx = e ? ((e.w || t.w || 30) * f / r.width)  * 100 : 4;
+  const my = e ? ((e.h || t.h || 30) * f / r.height) * 100 : 6;
   const x = clampN((cx - r.left) / r.width  * 100, mx, 100 - mx);
   const y = clampN((cy - r.top)  / r.height * 100, my, 100 - my);
   return { x:+x.toFixed(2), y:+y.toFixed(2) };
@@ -1916,7 +1941,7 @@ $('#tabs').addEventListener('click', ev => {
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('is-on', x === t));
   document.querySelectorAll('.tab-pane').forEach(p =>
     p.classList.toggle('hidden', p.dataset.tab !== currentTab));
-  app.classList.remove('sec-estructura','sec-elementos','sec-camaras');
+  app.classList.remove('sec-estructura','sec-elementos');
   app.classList.add('sec-' + currentTab);
   select(null, null);      // la selección no cruza de una sección a otra
   applyVisibility();       // los elementos solo se ocultan dentro de Estructura
@@ -1983,7 +2008,7 @@ function buildPalItem(type, opts){
    El submenú se queda ABIERTO al colocar (se cierra solo con ✕). */
 const EXT_SIL = ['arbol','arbusto','banco','pino','palmera','farola'];  // todas las siluetas
 const EXT_PIN = ['edificio','edificio2','edificio3','casa1','casa2','casa3',
-                 'puente','fuente','monumento','iglesia','comida','metro'];  // todos los principales
+                 'puente','puente2','fuente','monumento','monumento2','iglesia','comida','comida2','metro'];  // todos los principales
 const EXT_SIL_EX = ['arbol','arbusto','banco'];                         // 3 ejemplos fila 1
 const EXT_PIN_EX = ['edificio','casa1','fuente'];                       // 3 ejemplos fila 2
 function buildAddMore(cat){
@@ -1996,7 +2021,7 @@ function buildAddMore(cat){
 }
 function openMore(cat){
   const list = cat === 'sil' ? EXT_SIL : EXT_PIN;
-  $('#el-more-title').textContent = cat === 'sil' ? 'Más siluetas' : 'Más elementos';
+  $('#el-more-title').textContent = cat === 'sil' ? 'Más decoración' : 'Más elementos';
   const grid = $('#el-more-grid'); grid.innerHTML = '';
   list.forEach(t => grid.appendChild(buildPalItem(t)));
   /* la hoja ocupa desde los botones de edición hasta el borde inferior de la
@@ -2010,7 +2035,7 @@ function openMore(cat){
 if(EXT){
   /* sin subsección "Otros" (figuras genéricas): no aportaba en exterior */
   $('#pane-elementos').innerHTML =
-    '<div class="el-sec"><span class="el-sec-lbl">Siluetas</span><div class="el-row" id="row-sil"></div></div>' +
+    '<div class="el-sec"><span class="el-sec-lbl">Decoración</span><div class="el-row" id="row-sil"></div></div>' +
     '<div class="el-sec"><span class="el-sec-lbl">Elementos</span><div class="el-row" id="row-pin"></div></div>' +
     '<p class="pane-hint">Toca o arrastra para colocar · «+» abre el menú.</p>';
   /* submenú del «+» como HOJA INFERIOR con fondo atenuado (patrón Mis mapas):
@@ -2029,7 +2054,6 @@ if(EXT){
   GROUP.main.forEach(tp => $('#pal-main').appendChild(buildPalItem(tp)));
   GROUP.otros.forEach(tp => $('#pal-otros').appendChild(buildPalItem(tp, { iconOnly:true })));
 }
-GROUP.cam.forEach(tp => $('#pal-cam').appendChild(buildPalItem(tp, { big:true })));
 
 /* ───────── piezas de estructura (interior fijo en HTML; exterior se genera) ───────── */
 /* iconos (stroke, viewBox 0 0 100 100) de las piezas de área del exterior */
@@ -2180,17 +2204,22 @@ function renderMapsList(){
   lib.slice().sort((a, b) => (b.updated||0) - (a.updated||0)).forEach(m => {
     const card = document.createElement('div');
     card.className = 'map-card' + (m.id === state.id ? ' current' : '');
+    const assignTxt = m.assign ? escapeHtml(m.assign) : '';
     card.innerHTML =
       '<div class="mc-thumb">' + mapThumb(m) + (m.id === state.id ? '<span class="mc-cur">EN EDICIÓN</span>' : '') + '</div>' +
-      '<div class="mc-name">' + escapeHtml(m.name || 'Sin nombre') + '</div>' +
-      '<div class="mc-meta">' + (m.pieces || []).length + (((m.pieces || []).length === 1) ? ' pieza' : ' piezas') + ' · ' + (m.elements || []).length + ' elem · ' + relTime(m.updated) + '</div>' +
-      '<div class="mc-actions">' +
-        '<button class="mc-b" data-act="open">Abrir</button>' +
-        '<button class="mc-b ic" data-act="ren" title="Renombrar">✎</button>' +
-        '<button class="mc-b ic" data-act="dup" title="Duplicar">⧉</button>' +
-        '<button class="mc-b ic del" data-act="del" title="Borrar">🗑</button>' +
-      '</div>' +
-      '<div class="mc-confirm" hidden><span>¿Borrarlo?</span><button class="mc-b del" data-act="delyes">Sí</button><button class="mc-b" data-act="delno">No</button></div>';
+      '<div class="mc-info">' +
+        '<div class="mc-name">' + escapeHtml(m.name || 'Sin nombre') + '</div>' +
+        '<div class="mc-meta">' + (m.pieces || []).length + (((m.pieces || []).length === 1) ? ' pieza' : ' piezas') + ' · ' + (m.elements || []).length + ' elem · ' + relTime(m.updated) + '</div>' +
+        (assignTxt ? '<div class="mc-assign">↳ ' + assignTxt + '</div>' : '') +
+        '<div class="mc-actions">' +
+          '<button class="mc-b" data-act="open">Abrir</button>' +
+          '<button class="mc-b ic" data-act="assign" title="Asignar a sala/congreso">⚑</button>' +
+          '<button class="mc-b ic" data-act="ren" title="Renombrar">✎</button>' +
+          '<button class="mc-b ic" data-act="dup" title="Duplicar">⧉</button>' +
+          '<button class="mc-b ic del" data-act="del" title="Borrar">🗑</button>' +
+        '</div>' +
+        '<div class="mc-confirm" hidden><span>¿Borrarlo?</span><button class="mc-b del" data-act="delyes">Sí</button><button class="mc-b" data-act="delno">No</button></div>' +
+      '</div>';
     card.addEventListener('click', async ev => {
       const b = ev.target.closest('[data-act]');
       const act = b ? b.dataset.act : 'open';           // tocar la tarjeta = abrir
@@ -2200,6 +2229,15 @@ function renderMapsList(){
         localStorage.setItem(LIB_KEY, JSON.stringify(loadLib().filter(x => x.id !== m.id)));
         renderMapsList();
         toast('Mapa borrado');
+        return;
+      }
+      if(act === 'assign'){
+        const v = await openTextModal(m.assign || '', 'Asignar a sala o congreso');
+        if(v === null) return;
+        const lib2 = loadLib(), it = lib2.find(x => x.id === m.id);
+        if(it){ it.assign = v.trim().slice(0, 40); localStorage.setItem(LIB_KEY, JSON.stringify(lib2)); }
+        if(state.id === m.id){ state.assign = v.trim().slice(0, 40); saveDraft(); }
+        renderMapsList();
         return;
       }
       if(act === 'ren'){
@@ -2242,9 +2280,6 @@ $('#btn-maps').addEventListener('click', () => {
   panel.classList.add('open');
 });
 $('#maps-close').addEventListener('click', () => panel.classList.remove('open'));
-panel.addEventListener('click', ev => {
-  if(ev.target === panel) panel.classList.remove('open');
-});
 /* nuevo mapa: confirmación por DOBLE TOQUE (sin confirm() del sistema) */
 let newArm = null;
 $('#maps-new').addEventListener('click', () => {
